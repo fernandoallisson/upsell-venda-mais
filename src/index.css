@@ -1,13 +1,128 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #0f172a;
+  background-color: #f8fafc;
+}
 
-@layer base {
-  html {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  }
+* {
+  box-sizing: border-box;
+}
 
-  body {
-    @apply min-h-screen bg-slate-50 text-slate-900;
-  }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card__header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.card__header p {
+  margin: 0;
+  color: #475569;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.form__field input {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5f5;
+  font-size: 16px;
+}
+
+.form__field input:disabled {
+  background: #f1f5f9;
+}
+
+.form__error {
+  margin: 0;
+  color: #dc2626;
+  font-size: 14px;
+}
+
+.button {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button--ghost {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info__label {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.08em;
+}
+
+.info__value {
+  font-size: 15px;
+  color: #0f172a;
+  word-break: break-all;
 }
