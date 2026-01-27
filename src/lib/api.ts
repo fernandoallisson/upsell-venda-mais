@@ -1,17 +1,14 @@
+// lib/api.ts
 import { getAuthToken } from './storage'
 
-const API_BASE_URL = 'https://central.vendamais.top/api'
-const TENANT_API_KEY = import.meta.env.VITE_TENANT_API_KEY
+const API_BASE_URL = 'https://vitor-api.vendamais.top/api'
 
 type JsonValue = Record<string, unknown> | null
 
-export type LoginResponse = {
-  token: string
-}
+export type LoginResponse = { token: string }
 
 export class ApiError extends Error {
   status?: number
-
   constructor(message: string, status?: number) {
     super(message)
     this.name = 'ApiError'
@@ -19,61 +16,63 @@ export class ApiError extends Error {
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
-}
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
 
 const parseJson = async (response: Response): Promise<JsonValue> => {
   try {
     return (await response.json()) as JsonValue
-  } catch (error) {
+  } catch {
     return null
   }
 }
 
-export const authFetch = async (
+// ✅ Para endpoints públicos (login, etc)
+export const publicFetch = async (
   input: RequestInfo | URL,
   init: RequestInit = {},
 ) => {
-  if (!TENANT_API_KEY) {
-    throw new ApiError('TENANT_API_KEY ausente no ambiente')
-  }
-
   const headers = new Headers(init.headers)
-  headers.set('Authorization', `Bearer ${TENANT_API_KEY}`)
   headers.set('Accept', 'application/json')
 
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
 
-  const authToken = getAuthToken()
-  if (authToken) {
-    headers.set('Authorization-User', `Bearer ${authToken}`)
-  }
-
-  return fetch(input, {
-    ...init,
-    headers,
-  })
+  return fetch(input, { ...init, headers })
 }
 
-export const login = async (
-  email: string,
-  password: string,
-): Promise<LoginResponse> => {
+// ✅ Para endpoints protegidos (precisa do token salvo)
+export const authFetch = async (
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+) => {
+  const token = getAuthToken()
+  if (!token) {
+    throw new ApiError('Não autenticado', 401)
+  }
+
+  const headers = new Headers(init.headers)
+  headers.set('Accept', 'application/json')
+  headers.set('Authorization', `Bearer ${token}`)
+
+  if (init.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  return fetch(input, { ...init, headers })
+}
+
+// ✅ Login agora NÃO usa authFetch
+export const login = async (email: string, password: string): Promise<LoginResponse> => {
   let response: Response
 
   try {
-    response = await authFetch(`${API_BASE_URL}/auth/login`, {
+    response = await publicFetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error
-    }
-
+  } catch {
     throw new ApiError('Falha de rede ao tentar autenticar')
   }
 
@@ -84,7 +83,6 @@ export const login = async (
       isRecord(data) && typeof data.message === 'string'
         ? data.message
         : 'Erro ao autenticar'
-
     throw new ApiError(message, response.status)
   }
 
