@@ -1,20 +1,35 @@
-const TOKEN_KEY = 'auth_token'
-const TOKEN_CREATED_AT_KEY = 'auth_token_created_at'
+const TOKEN_KEY = 'tenant_api_key'
+const TOKEN_CREATED_AT_KEY = 'tenant_api_key_created_at'
 
-export const getAuthToken = () => {
-  return localStorage.getItem(TOKEN_KEY)
+const setCookie = (name: string, value: string, days = 7) => {
+  const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString()
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
 }
 
-export const getAuthTokenCreatedAt = () => {
-  return localStorage.getItem(TOKEN_CREATED_AT_KEY)
+const getCookie = (name: string) => {
+  const match = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(`${name}=`))
+  return match ? decodeURIComponent(match.split('=')[1] ?? '') : null
+}
+
+const deleteCookie = (name: string) => {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`
 }
 
 export const setAuthToken = (token: string) => {
-  localStorage.setItem(TOKEN_KEY, token)
-  localStorage.setItem(TOKEN_CREATED_AT_KEY, new Date().toISOString())
+  setCookie(TOKEN_KEY, token, 7)
+  setCookie(TOKEN_CREATED_AT_KEY, String(Date.now()), 7)
 }
 
+export const getAuthToken = () => getCookie(TOKEN_KEY)
+
 export const clearAuthToken = () => {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(TOKEN_CREATED_AT_KEY)
+  deleteCookie(TOKEN_KEY)
+  deleteCookie(TOKEN_CREATED_AT_KEY)
+}
+
+export const getAuthTokenCreatedAt = () => {
+  const raw = getCookie(TOKEN_CREATED_AT_KEY)
+  return raw ? Number(raw) : null
 }
