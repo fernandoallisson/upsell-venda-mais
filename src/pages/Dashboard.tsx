@@ -1,356 +1,247 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  CheckCircle2,
+  DollarSign,
+  Eye,
+  MousePointer,
+  Percent,
+  TrendingUp,
+} from 'lucide-react'
 import { ApiError } from '../lib/api'
+import { getOffersAnalytics } from '../lib/services/analytics/analytics.service'
+import type { OfferAnalytics } from '../lib/services/analytics/analytics.types'
 import { logout } from '../lib/services/auth/auth.service'
-import { getUser, updateUser } from '../lib/services/users/users.service'
-import type { UpdateUserPayload, User } from '../lib/services/users/users.types'
-import { getAuthTokenCreatedAt } from '../lib/storage'
+import { getUser } from '../lib/services/users/users.service'
+import type { User } from '../lib/services/users/users.types'
+import { useAuth } from '../contexts/AuthContext'
+import DashboardFilters from '../components/dashboard/DashboardFilters'
+import KpiCard from '../components/dashboard/KpiCard'
+import OffersCharts from '../components/dashboard/OffersCharts'
+import OffersTable from '../components/dashboard/OffersTable'
+import DashboardHeader from '../components/layout/DashboardHeader'
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+
+const calcRate = (numerator: number, denominator: number) =>
+  denominator > 0 ? numerator / denominator : 0
 
 const Dashboard = () => {
-  const { token, signOut } = useAuth()
-  const createdAt = getAuthTokenCreatedAt()
+  const { signOut } = useAuth()
+  const [offers, setOffers] = useState<OfferAnalytics[]>([])
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
-  const [userStatus, setUserStatus] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [userError, setUserError] = useState<string | null>(null)
-  const [formData, setFormData] = useState<UpdateUserPayload>({
-    name: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
-  })
-  const [updateMethod, setUpdateMethod] = useState<'PUT' | 'PATCH'>('PUT')
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>(
-    'idle',
-  )
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
-  const [logoutStatus, setLogoutStatus] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [logoutMessage, setLogoutMessage] = useState<string | null>(null)
 
-  const tokenPreview = useMemo(() => {
-    if (!token) return 'Não encontrado'
-    if (token.length <= 20) return token
-    return `${token.slice(0, 12)}...${token.slice(-6)}`
-  }, [token])
+  const [search, setSearch] = useState('')
+  const [selectedCampaign, setSelectedCampaign] = useState('')
+  const [selectedProduct, setSelectedProduct] = useState('')
+  const [onlyTop, setOnlyTop] = useState(false)
 
-  useEffect(() => {
-    let isMounted = true
-
-    const loadUser = async () => {
-      setUserStatus('loading')
-      setUserError(null)
-      try {
-        const data = await getUser()
-        if (isMounted) {
-          setUser(data)
-          setFormData({
-            name: data.name,
-            email: data.email,
-            password: '',
-            password_confirmation: '',
-          })
-          setUserStatus('idle')
-        }
-      } catch (error) {
-        if (isMounted) {
-          const message =
-            error instanceof ApiError ? error.message : 'Erro ao carregar usuário'
-          setUserError(message)
-          setUserStatus('error')
-        }
-      }
-    }
-
-    loadUser()
-
-    return () => {
-      isMounted = false
+  const fetchAnalytics = useCallback(async () => {
+    setStatus('loading')
+    setError(null)
+    try {
+      const response = await getOffersAnalytics()
+      setOffers(response.data)
+      setStatus('idle')
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'Erro ao carregar métricas.'
+      setError(message)
+      setStatus('error')
     }
   }, [])
 
-  const handleFormChange = (field: keyof UpdateUserPayload, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    setSaveStatus('idle')
-    setSaveMessage(null)
-  }
-
-  const buildPayload = () => {
-    const payload: UpdateUserPayload = {
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-    }
-
-    const password = formData.password?.trim() ?? ''
-    const confirmation = formData.password_confirmation?.trim() ?? ''
-
-    if (password || confirmation) {
-      payload.password = password
-      payload.password_confirmation = confirmation
-    }
-
-    return payload
-  }
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setSaveStatus('saving')
-    setSaveMessage(null)
-
-    const payload = buildPayload()
-    if (!payload.name || !payload.email) {
-      setSaveStatus('error')
-      setSaveMessage('Nome e e-mail são obrigatórios.')
-      return
-    }
-
-    if (payload.password || payload.password_confirmation) {
-      if (!payload.password || !payload.password_confirmation) {
-        setSaveStatus('error')
-        setSaveMessage('Preencha a senha e a confirmação.')
-        return
-      }
-      if (payload.password !== payload.password_confirmation) {
-        setSaveStatus('error')
-        setSaveMessage('A confirmação de senha não confere.')
-        return
-      }
-    }
-
-    try {
-      const updated = await updateUser(updateMethod, payload)
-      setUser(updated)
-      setFormData({
-        name: updated.name,
-        email: updated.email,
-        password: '',
-        password_confirmation: '',
-      })
-      setSaveStatus('success')
-      setSaveMessage('Dados atualizados com sucesso.')
-    } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : 'Erro ao atualizar usuário'
-      setSaveStatus('error')
-      setSaveMessage(message)
-    }
-  }
-
-  const handleRefresh = async () => {
-    setUserStatus('loading')
-    setUserError(null)
+  const fetchUser = useCallback(async () => {
     try {
       const data = await getUser()
       setUser(data)
-      setFormData({
-        name: data.name,
-        email: data.email,
-        password: '',
-        password_confirmation: '',
-      })
-      setUserStatus('idle')
-    } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : 'Erro ao carregar usuário'
-      setUserError(message)
-      setUserStatus('error')
+    } catch {
+      setUser(null)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchAnalytics()
+    fetchUser()
+  }, [fetchAnalytics, fetchUser])
+
+  const campaigns = useMemo(() => {
+    const ids = new Set<number>()
+    offers.forEach((offer) => ids.add(offer.upsell_campaign_id))
+    return Array.from(ids).sort((a, b) => a - b)
+  }, [offers])
+
+  const products = useMemo(() => {
+    const ids = new Set<number>()
+    offers.forEach((offer) => ids.add(offer.product_id))
+    return Array.from(ids).sort((a, b) => a - b)
+  }, [offers])
+
+  const filteredOffers = useMemo(() => {
+    let data = [...offers]
+
+    if (selectedCampaign) {
+      data = data.filter(
+        (offer) => String(offer.upsell_campaign_id) === selectedCampaign,
+      )
+    }
+
+    if (selectedProduct) {
+      data = data.filter((offer) => String(offer.product_id) === selectedProduct)
+    }
+
+    if (search.trim()) {
+      const term = search.trim().toLowerCase()
+      data = data.filter((offer) =>
+        [offer.id, offer.product_id, offer.upsell_campaign_id]
+          .map(String)
+          .some((value) => value.toLowerCase().includes(term)),
+      )
+    }
+
+    if (onlyTop && data.length > 0) {
+      const avgCtr =
+        data.reduce(
+          (sum, offer) => sum + calcRate(offer.clicks_count, offer.views_count),
+          0,
+        ) / data.length
+      data = data.filter(
+        (offer) => calcRate(offer.clicks_count, offer.views_count) >= avgCtr,
+      )
+    }
+
+    return data
+  }, [offers, selectedCampaign, selectedProduct, search, onlyTop])
+
+  const totals = useMemo(() => {
+    return filteredOffers.reduce(
+      (acc, offer) => {
+        acc.views += offer.views_count
+        acc.clicks += offer.clicks_count
+        acc.accepted += offer.accepted_count
+        acc.revenue += Number(offer.revenue_generated) || 0
+        return acc
+      },
+      { views: 0, clicks: 0, accepted: 0, revenue: 0 },
+    )
+  }, [filteredOffers])
+
+  const ctr = calcRate(totals.clicks, totals.views)
+  const acceptRate = calcRate(totals.accepted, totals.clicks)
 
   const handleLogout = async () => {
-    setLogoutStatus('loading')
-    setLogoutMessage(null)
     try {
       await logout()
-      setLogoutStatus('idle')
+    } finally {
       signOut()
-    } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : 'Erro ao encerrar sessão'
-      setLogoutStatus('error')
-      setLogoutMessage(message)
     }
   }
 
   return (
-    <main className="page page--dashboard">
-      <section className="card card--wide">
-        <header className="card__header">
-          <h1>Dashboard do usuário</h1>
-          <p>Atualize seus dados e gerencie o token ativo.</p>
-        </header>
+    <div className="min-h-screen bg-slate-50">
+      <DashboardHeader
+        user={user}
+        onRefresh={fetchAnalytics}
+        onLogout={handleLogout}
+      />
 
-        <div className="card__content">
-          <div className="info-grid">
-            <div className="info">
-              <span className="info__label">Token ativo</span>
-              <span className="info__value">{tokenPreview}</span>
-            </div>
-            <div className="info">
-              <span className="info__label">Criado em</span>
-              <span className="info__value">
-                {createdAt ? new Date(createdAt).toLocaleString() : 'N/A'}
-              </span>
-            </div>
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
+        <DashboardFilters
+          search={search}
+          selectedCampaign={selectedCampaign}
+          selectedProduct={selectedProduct}
+          campaigns={campaigns}
+          products={products}
+          onlyTop={onlyTop}
+          onSearchChange={setSearch}
+          onCampaignChange={setSelectedCampaign}
+          onProductChange={setSelectedProduct}
+          onOnlyTopChange={setOnlyTop}
+        />
+
+        {status === 'loading' ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-white"
+              />
+            ))}
           </div>
+        ) : null}
 
-          <section className="section">
-            <header className="section__header">
-              <div>
-                <h2>Dados do usuário</h2>
-                <p>Consulta: GET /api/v1/user</p>
-              </div>
-              <button
-                className="button button--ghost"
-                type="button"
-                onClick={handleRefresh}
-                disabled={userStatus === 'loading'}
-              >
-                {userStatus === 'loading' ? 'Carregando...' : 'Recarregar'}
-              </button>
-            </header>
-
-            {userStatus === 'error' && userError ? (
-              <p className="form__error">{userError}</p>
-            ) : (
-              <div className="user-grid">
-                <div>
-                  <span className="info__label">Nome</span>
-                  <span className="info__value">{user?.name ?? '---'}</span>
-                </div>
-                <div>
-                  <span className="info__label">E-mail</span>
-                  <span className="info__value">{user?.email ?? '---'}</span>
-                </div>
-                <div>
-                  <span className="info__label">Tenant</span>
-                  <span className="info__value">{user?.tenant_id ?? '---'}</span>
-                </div>
-                <div>
-                  <span className="info__label">Criado em</span>
-                  <span className="info__value">
-                    {user?.created_at ? new Date(user.created_at).toLocaleString() : '---'}
-                  </span>
-                </div>
-                <div>
-                  <span className="info__label">Atualizado em</span>
-                  <span className="info__value">
-                    {user?.updated_at ? new Date(user.updated_at).toLocaleString() : '---'}
-                  </span>
-                </div>
-              </div>
-            )}
-          </section>
-
-          <section className="section">
-            <header className="section__header">
-              <div>
-                <h2>Atualizar usuário</h2>
-                <p>PUT /api/v1/user ou PATCH /api/v1/user</p>
-              </div>
-            </header>
-
-            <form className="form" onSubmit={handleSubmit}>
-              <div className="form__row">
-                <label className="form__field">
-                  Nome
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(event) => handleFormChange('name', event.target.value)}
-                    required
-                  />
-                </label>
-                <label className="form__field">
-                  E-mail
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(event) => handleFormChange('email', event.target.value)}
-                    required
-                  />
-                </label>
-              </div>
-
-              <div className="form__row">
-                <label className="form__field">
-                  Senha
-                  <input
-                    type="password"
-                    value={formData.password ?? ''}
-                    onChange={(event) => handleFormChange('password', event.target.value)}
-                    placeholder="Nova senha"
-                  />
-                </label>
-                <label className="form__field">
-                  Confirmação de senha
-                  <input
-                    type="password"
-                    value={formData.password_confirmation ?? ''}
-                    onChange={(event) =>
-                      handleFormChange('password_confirmation', event.target.value)
-                    }
-                    placeholder="Repita a senha"
-                  />
-                </label>
-              </div>
-
-              <div className="form__options">
-                <span className="info__label">Método</span>
-                <label className="radio">
-                  <input
-                    type="radio"
-                    name="updateMethod"
-                    value="PUT"
-                    checked={updateMethod === 'PUT'}
-                    onChange={() => setUpdateMethod('PUT')}
-                  />
-                  PUT (substituir)
-                </label>
-                <label className="radio">
-                  <input
-                    type="radio"
-                    name="updateMethod"
-                    value="PATCH"
-                    checked={updateMethod === 'PATCH'}
-                    onChange={() => setUpdateMethod('PATCH')}
-                  />
-                  PATCH (parcial)
-                </label>
-              </div>
-
-              {saveStatus === 'error' && saveMessage ? (
-                <p className="form__error">{saveMessage}</p>
-              ) : null}
-              {saveStatus === 'success' && saveMessage ? (
-                <p className="form__success">{saveMessage}</p>
-              ) : null}
-
-              <button className="button" type="submit" disabled={saveStatus === 'saving'}>
-                {saveStatus === 'saving' ? 'Salvando...' : 'Salvar alterações'}
-              </button>
-            </form>
-          </section>
-        </div>
-
-        <footer className="section footer">
-          <div>
-            <h2>Sessão</h2>
-            <p>POST /api/v1/logout</p>
-          </div>
-          <div className="footer__actions">
-            {logoutStatus === 'error' && logoutMessage ? (
-              <span className="form__error">{logoutMessage}</span>
-            ) : null}
+        {status === 'error' ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700">
+            <p className="font-semibold">Não foi possível carregar os dados.</p>
+            <p className="text-sm text-rose-600">{error}</p>
             <button
-              className="button button--ghost"
-              onClick={handleLogout}
-              disabled={logoutStatus === 'loading'}
+              type="button"
+              onClick={fetchAnalytics}
+              className="mt-4 inline-flex items-center rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700"
             >
-              {logoutStatus === 'loading' ? 'Saindo...' : 'Sair'}
+              Tentar novamente
             </button>
           </div>
-        </footer>
-      </section>
-    </main>
+        ) : null}
+
+        {status === 'idle' && filteredOffers.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
+            <p className="font-semibold">Nenhuma oferta encontrada.</p>
+            <p className="text-sm text-slate-500">
+              Ajuste os filtros ou verifique se há dados disponíveis.
+            </p>
+          </div>
+        ) : null}
+
+        {status === 'idle' && filteredOffers.length > 0 ? (
+          <>
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <KpiCard
+                title="Total de Views"
+                value={totals.views.toLocaleString('pt-BR')}
+                icon={<Eye className="h-5 w-5" />}
+              />
+              <KpiCard
+                title="Total de Clicks"
+                value={totals.clicks.toLocaleString('pt-BR')}
+                icon={<MousePointer className="h-5 w-5" />}
+              />
+              <KpiCard
+                title="Total de Accepted"
+                value={totals.accepted.toLocaleString('pt-BR')}
+                icon={<CheckCircle2 className="h-5 w-5" />}
+              />
+              <KpiCard
+                title="Receita Total"
+                value={formatCurrency(totals.revenue)}
+                icon={<DollarSign className="h-5 w-5" />}
+              />
+              <KpiCard
+                title="Taxa de Clique (CTR)"
+                value={`${(ctr * 100).toFixed(1)}%`}
+                icon={<Percent className="h-5 w-5" />}
+                helper="Clicks / Views"
+              />
+              <KpiCard
+                title="Taxa de Aceite"
+                value={`${(acceptRate * 100).toFixed(1)}%`}
+                icon={<TrendingUp className="h-5 w-5" />}
+                helper="Accepted / Clicks"
+              />
+            </section>
+
+            <OffersCharts offers={filteredOffers} />
+
+            <OffersTable offers={filteredOffers} />
+          </>
+        ) : null}
+      </main>
+    </div>
   )
 }
 
