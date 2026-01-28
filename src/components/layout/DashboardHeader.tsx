@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ChevronDown, LogOut, RefreshCcw, Settings, UserCircle } from 'lucide-react'
 import type { User } from '../../lib/services/users/users.types'
 
@@ -6,10 +7,19 @@ type DashboardHeaderProps = {
   user: User | null
   onRefresh: () => void
   onLogout: () => void
+  title?: string
+  subtitle?: string
 }
 
-const DashboardHeader = ({ user, onRefresh, onLogout }: DashboardHeaderProps) => {
+const DashboardHeader = ({
+  user,
+  onRefresh,
+  onLogout,
+  title = 'Dashboard',
+  subtitle = 'Venda Mais',
+}: DashboardHeaderProps) => {
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
 
   const initials = useMemo(() => {
     if (!user?.name) return 'U'
@@ -23,8 +33,8 @@ const DashboardHeader = ({ user, onRefresh, onLogout }: DashboardHeaderProps) =>
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
         <div>
-          <p className="text-xs font-semibold uppercase text-slate-400">Venda Mais</p>
-          <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
+          <p className="text-xs font-semibold uppercase text-slate-400">{subtitle}</p>
+          <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
         </div>
 
         <div className="flex items-center gap-3">
@@ -60,7 +70,10 @@ const DashboardHeader = ({ user, onRefresh, onLogout }: DashboardHeaderProps) =>
                 <button
                   type="button"
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
-                  // TODO: ajustar para rota de perfil quando existir no projeto
+                  onClick={() => {
+                    navigate('/perfil')
+                    setOpen(false)
+                  }}
                 >
                   <UserCircle className="h-4 w-4" />
                   Perfil
