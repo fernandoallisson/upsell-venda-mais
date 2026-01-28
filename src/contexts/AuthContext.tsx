@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login } from '../lib/api'
+import { login } from '../lib/services/auth/auth.service'
 import { clearAuthToken, getAuthToken, setAuthToken } from '../lib/storage'
 
 type AuthContextValue = {

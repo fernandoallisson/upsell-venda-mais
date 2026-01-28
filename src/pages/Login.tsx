@@ -48,8 +48,8 @@ const Login = () => {
     <main className="page">
       <section className="card">
         <header className="card__header">
-          <h1>Entrar</h1>
-          <p>Use seu e-mail e senha do tenant.</p>
+          <h1 className="text-center">Venda Mais</h1>
+          <p className="text-center bg">Aumente seu faturamento e acompanhe em tempo real</p>
         </header>
 
         <form className="form" onSubmit={handleSubmit}>

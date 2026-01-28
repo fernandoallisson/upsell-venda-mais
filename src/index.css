@@ -221,3 +221,7 @@ body {
   align-items: center;
   gap: 12px;
 }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
