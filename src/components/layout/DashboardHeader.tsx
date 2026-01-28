@@ -23,7 +23,7 @@ const DashboardHeader = ({ user, onRefresh, onLogout }: DashboardHeaderProps) =>
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
         <div>
-          <p className="text-xs font-semibold uppercase text-slate-400">Upsell</p>
+          <p className="text-xs font-semibold uppercase text-slate-400">Venda Mais</p>
           <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
         </div>
 
