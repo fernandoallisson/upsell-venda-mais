@@ -49,7 +49,7 @@ const Login = () => {
       <section className="card">
         <header className="card__header">
           <h1 className="text-center">Venda Mais</h1>
-          <p>Aumente seu faturamento e acompanhe em tempo real</p>
+          <p className="text-center bg">Aumente seu faturamento e acompanhe em tempo real</p>
         </header>
 
         <form className="form" onSubmit={handleSubmit}>
