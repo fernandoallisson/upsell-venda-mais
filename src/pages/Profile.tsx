@@ -1,4 +1,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+
 import { ApiError } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { logout } from '../lib/services/auth/auth.service'
@@ -12,7 +15,9 @@ type Feedback = {
 }
 
 const Profile = () => {
+  const navigate = useNavigate()
   const { signOut } = useAuth()
+
   const [user, setUser] = useState<User | null>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -42,6 +47,10 @@ const Profile = () => {
   useEffect(() => {
     loadUser()
   }, [loadUser])
+
+  const handleBackToDashboard = () => {
+    navigate('/dashboard')
+  }
 
   const handleLogout = async () => {
     try {
@@ -113,6 +122,19 @@ const Profile = () => {
       />
 
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
+        {/* ✅ Botão voltar */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handleBackToDashboard}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isLoading || isSaving}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para o dashboard
+          </button>
+        </div>
+
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-2">
             <h2 className="text-lg font-semibold text-slate-900">
@@ -195,6 +217,7 @@ const Profile = () => {
               >
                 {isSaving ? 'Salvando...' : 'Salvar alterações'}
               </button>
+
               <span className="text-xs text-slate-400">
                 Última atualização:{' '}
                 {user?.updated_at
