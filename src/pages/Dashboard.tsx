@@ -1,13 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import {
-  ApiError,
-  getUser,
-  logout,
-  type UpdateUserPayload,
-  updateUser,
-  type User,
-} from '../lib/api'
+import { ApiError } from '../lib/api'
+import { logout } from '../lib/services/auth/auth.service'
+import { getUser, updateUser } from '../lib/services/users/users.service'
+import type { UpdateUserPayload, User } from '../lib/services/users/users.types'
 import { getAuthTokenCreatedAt } from '../lib/storage'
 
 const Dashboard = () => {
