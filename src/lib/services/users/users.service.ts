@@ -2,6 +2,7 @@ import { ApiError, apiFetch } from '../../api'
 import type { UpdateUserPayload, User } from './users.types'
 
 const USER_ENDPOINT = '/v1/user'
+const AUTH_ME_ENDPOINT = '/v1/auth/me'
 
 type JsonValue = Record<string, unknown> | null
 
@@ -61,6 +62,20 @@ export const updateUser = async (
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar usuário',
     networkErrorMessage: 'Falha de rede ao atualizar usuário',
+  })
+
+  return parseUser(data)
+}
+
+export const updateAuthenticatedUser = async (
+  payload: UpdateUserPayload,
+): Promise<User> => {
+  const data = await apiFetch<JsonValue>(AUTH_ME_ENDPOINT, {
+    method: 'PUT',
+    auth: true,
+    body: JSON.stringify(payload),
+    errorMessage: 'Erro ao atualizar perfil',
+    networkErrorMessage: 'Falha de rede ao atualizar perfil',
   })
 
   return parseUser(data)
