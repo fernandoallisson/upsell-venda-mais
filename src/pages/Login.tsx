@@ -48,7 +48,7 @@ const Login = () => {
     <main className="page">
       <section className="card">
         <header className="card__header">
-          <h1 className="center">Venda Mais</h1>
+          <h1 className="text-center">Venda Mais</h1>
           <p>Aumente seu faturamento e acompanhe em tempo real</p>
         </header>
 
