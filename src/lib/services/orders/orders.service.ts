@@ -152,8 +152,8 @@ const parseOrdersResponse = (data: JsonValue): OrdersResponse => {
   }
 }
 
-export const getOrders = async (): Promise<OrdersResponse> => {
-  const data = await apiFetch<JsonValue>(ORDERS_ENDPOINT, {
+export const getOrders = async (page = 1): Promise<OrdersResponse> => {
+  const data = await apiFetch<JsonValue>(`${ORDERS_ENDPOINT}?page=${page}`, {
     method: 'GET',
     auth: true,
     errorMessage: 'Erro ao carregar pedidos',
