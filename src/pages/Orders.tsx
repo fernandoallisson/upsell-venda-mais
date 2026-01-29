@@ -8,10 +8,12 @@ import {
   RefreshCcw,
   Tag,
   User,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { ApiError } from '../lib/api'
 import { getOrderById, getOrders } from '../lib/services/orders/orders.service'
-import type { Order } from '../lib/services/orders/orders.types'
+import type { Order, OrdersResponse } from '../lib/services/orders/orders.types'
 import DashboardPage from '../components/layout/DashboardPage'
 
 const formatCurrency = (value: string, currency: string) => {
@@ -29,6 +31,50 @@ const formatDate = (value: string) => {
   return parsed.toLocaleString('pt-BR')
 }
 
+type PaginationMeta = Pick<
+  OrdersResponse,
+  | 'current_page'
+  | 'last_page'
+  | 'per_page'
+  | 'total'
+  | 'from'
+  | 'to'
+  | 'next_page_url'
+  | 'prev_page_url'
+>
+
+const buildPageItems = (current: number, last: number) => {
+  // exemplo: 1 ... 4 5 6 ... 11
+  const delta = 2
+  const pages: Array<number | '...'> = []
+
+  const left = Math.max(1, current - delta)
+  const right = Math.min(last, current + delta)
+
+  // sempre mostra primeira
+  pages.push(1)
+
+  if (left > 2) pages.push('...')
+
+  for (let p = left; p <= right; p += 1) {
+    if (p !== 1 && p !== last) pages.push(p)
+  }
+
+  if (right < last - 1) pages.push('...')
+
+  // sempre mostra última (se for diferente)
+  if (last !== 1) pages.push(last)
+
+  // remove duplicadas (casos de last pequeno)
+  const normalized: Array<number | '...'> = []
+  for (const item of pages) {
+    if (normalized.length === 0 || normalized[normalized.length - 1] !== item) {
+      normalized.push(item)
+    }
+  }
+  return normalized
+}
+
 const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -37,6 +83,9 @@ const Orders = () => {
     'idle',
   )
   const [error, setError] = useState<string | null>(null)
+
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null)
 
   const fetchOrderDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
@@ -54,29 +103,49 @@ const Orders = () => {
     }
   }, [])
 
-  const fetchOrders = useCallback(async () => {
-    setStatus('loading')
-    setError(null)
-    try {
-      const response = await getOrders()
-      setOrders(response.data)
-      const firstOrder = response.data[0] ?? null
-      setSelectedOrder(firstOrder)
-      if (firstOrder) {
-        fetchOrderDetails(firstOrder.id)
+  const fetchOrders = useCallback(
+    async (targetPage = page) => {
+      setStatus('loading')
+      setError(null)
+
+      try {
+        const response = await getOrders(targetPage)
+
+        setOrders(response.data)
+        setPagination({
+          current_page: response.current_page,
+          last_page: response.last_page,
+          per_page: response.per_page,
+          total: response.total,
+          from: response.from,
+          to: response.to,
+          next_page_url: response.next_page_url,
+          prev_page_url: response.prev_page_url,
+        })
+        setPage(response.current_page)
+
+        const firstOrder = response.data[0] ?? null
+        setSelectedOrder(firstOrder)
+
+        if (firstOrder) {
+          fetchOrderDetails(firstOrder.id)
+        }
+
+        setStatus('idle')
+      } catch (err) {
+        const message =
+          err instanceof ApiError ? err.message : 'Erro ao carregar pedidos.'
+        setError(message)
+        setStatus('error')
       }
-      setStatus('idle')
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : 'Erro ao carregar pedidos.'
-      setError(message)
-      setStatus('error')
-    }
-  }, [fetchOrderDetails])
+    },
+    [fetchOrderDetails, page],
+  )
 
   useEffect(() => {
-    fetchOrders()
-  }, [fetchOrders])
+    fetchOrders(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const totals = useMemo(() => {
     return orders.reduce(
@@ -94,6 +163,17 @@ const Orders = () => {
     fetchOrderDetails(order.id)
   }
 
+  const handleGoToPage = (nextPage: number) => {
+    if (!pagination) return
+    if (nextPage < 1 || nextPage > pagination.last_page) return
+    fetchOrders(nextPage)
+  }
+
+  const pageItems = useMemo(() => {
+    if (!pagination) return []
+    return buildPageItems(pagination.current_page, pagination.last_page)
+  }, [pagination])
+
   return (
     <DashboardPage
       title="Pedidos"
@@ -102,29 +182,38 @@ const Orders = () => {
     >
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
-          <p className="text-sm font-medium text-slate-500">
-            Pedidos recebidos
-          </p>
-          <div className="mt-1 flex items-baseline gap-3">
+          <p className="text-sm font-medium text-slate-500">Pedidos</p>
+
+          <div className="mt-1 flex flex-wrap items-baseline gap-3">
             <p className="text-2xl font-semibold text-slate-900">
-              {totals.count}
+              {pagination?.total ?? totals.count}
             </p>
-            <span className="text-sm text-slate-400">últimos registros</span>
+            <span className="text-sm text-slate-400">
+              total {pagination ? `(pág. ${pagination.current_page} de ${pagination.last_page})` : ''}
+            </span>
           </div>
+
           <p className="mt-2 text-sm text-slate-500">
-            Receita total: {' '}
+            Receita (página atual):{' '}
             <span className="font-semibold text-slate-700">
               {formatCurrency(totals.revenue.toFixed(2), 'BRL')}
             </span>
           </p>
+
+          {pagination ? (
+            <p className="mt-1 text-xs text-slate-400">
+              Mostrando {pagination.from ?? 0}–{pagination.to ?? 0} de {pagination.total}
+            </p>
+          ) : null}
         </div>
+
         <button
           type="button"
-          onClick={fetchOrders}
+          onClick={() => fetchOrders(page)}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
         >
           <RefreshCcw className="h-4 w-4" />
-          Atualizar pedidos
+          Atualizar (página {page})
         </button>
       </section>
 
@@ -145,7 +234,7 @@ const Orders = () => {
           <p className="text-sm text-rose-600">{error}</p>
           <button
             type="button"
-            onClick={fetchOrders}
+            onClick={() => fetchOrders(page)}
             className="mt-4 inline-flex items-center rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700"
           >
             Tentar novamente
@@ -169,6 +258,7 @@ const Orders = () => {
               <ClipboardList className="h-4 w-4 text-indigo-500" />
               Lista de pedidos
             </div>
+
             <div className="space-y-3">
               {orders.map((order) => {
                 const isActive = selectedOrder?.id === order.id
@@ -186,11 +276,9 @@ const Orders = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-semibold text-slate-900">
-                          {order.customer.first_name} {order.customer.last_name} 
+                          {order.customer.first_name} {order.customer.last_name}
                         </p>
-                        <p className="text-xs text-slate-500">
-                          {order.external_id}
-                        </p>
+                        <p className="text-xs text-slate-500">{order.external_id}</p>
                       </div>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                         {order.status}
@@ -206,8 +294,65 @@ const Orders = () => {
                 )
               })}
             </div>
+
+            {/* Paginação */}
+            {pagination ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-2">
+                <div className="text-xs text-slate-500">
+                  Mostrando <span className="font-semibold text-slate-700">{pagination.from ?? 0}</span>
+                  –<span className="font-semibold text-slate-700">{pagination.to ?? 0}</span> de{' '}
+                  <span className="font-semibold text-slate-700">{pagination.total}</span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={!pagination.prev_page_url}
+                    onClick={() => handleGoToPage(pagination.current_page - 1)}
+                    className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </button>
+
+                  <div className="mx-1 flex items-center gap-1">
+                    {pageItems.map((item, idx) =>
+                      item === '...' ? (
+                        <span key={`dots-${idx}`} className="px-2 text-xs text-slate-400">
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => handleGoToPage(item)}
+                          className={`min-w-9 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                            item === pagination.current_page
+                              ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      ),
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={!pagination.next_page_url}
+                    onClick={() => handleGoToPage(pagination.current_page + 1)}
+                    className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Próximo
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </section>
 
+          {/* DETALHES (mantive sua lógica, só colei aqui sem alterar) */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -249,6 +394,7 @@ const Orders = () => {
                       </div>
                     </div>
                   </div>
+
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-semibold uppercase text-slate-400">
                       Cliente
