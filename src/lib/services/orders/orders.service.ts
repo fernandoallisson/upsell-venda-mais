@@ -165,6 +165,22 @@ const parseOrdersResponse = (data: JsonValue): OrdersResponse => {
   }
 }
 
+const parsePaginationLink = (data: unknown): PaginationLink => {
+  if (!isRecord(data)) {
+    throw new ApiError('Resposta inválida do servidor: links')
+  }
+
+  const page =
+    data.page === null || typeof data.page === 'number' ? data.page : null
+
+  return {
+    url: asNullableString(data.url, 'links.url'),
+    label: asString(data.label, 'links.label'),
+    page,
+    active: asBoolean(data.active, 'links.active'),
+  }
+}
+
 export const getOrders = async (page = 1): Promise<OrdersResponse> => {
   const data = await apiFetch<JsonValue>(`${ORDERS_ENDPOINT}?page=${page}`, {
     method: 'GET',
