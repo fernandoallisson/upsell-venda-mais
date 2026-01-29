@@ -10,7 +10,7 @@ export type ProductCategory = {
 export type Product = {
   id: number
   tenant_id: string
-  category_id: number
+  category_id: number | null
   external_id: string
   sku: string
   name: string
