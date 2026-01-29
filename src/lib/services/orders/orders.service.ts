@@ -10,6 +10,12 @@ const ORDERS_ENDPOINT = '/v1/orders'
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
+const asNullableString = (value: unknown, field: string): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
 const asString = (value: unknown, field: string): string => {
   if (typeof value === 'string') return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
@@ -88,6 +94,9 @@ const parseItem = (data: unknown): OrderItem => {
 
 const parseUtm = (data: unknown): OrderUtm | null => {
   if (data === null || data === undefined) return null
+
+  if (Array.isArray(data)) return null
+
   if (!isRecord(data)) {
     throw new ApiError('Resposta inválida do servidor: utm')
   }
@@ -98,8 +107,8 @@ const parseUtm = (data: unknown): OrderUtm | null => {
     source: asString(data.source, 'utm.source'),
     medium: asString(data.medium, 'utm.medium'),
     campaign: asString(data.campaign, 'utm.campaign'),
-    term: asString(data.term, 'utm.term'),
-    content: typeof data.content === 'string' ? data.content : null,
+    term: asNullableString(data.term, 'utm.term'),
+    content: asNullableString(data.content, 'utm.content'),
     created_at: asString(data.created_at, 'utm.created_at'),
     updated_at: asString(data.updated_at, 'utm.updated_at'),
   }
