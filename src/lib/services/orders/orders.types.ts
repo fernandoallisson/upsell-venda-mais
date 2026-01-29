@@ -66,6 +66,15 @@ export type Order = {
 }
 
 export type OrdersResponse = {
-  current_page: number
   data: Order[]
+
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+  from: number | null
+  to: number | null
+
+  next_page_url: string | null
+  prev_page_url: string | null
 }
