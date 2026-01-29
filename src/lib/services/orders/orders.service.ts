@@ -15,6 +15,11 @@ const asNullableString = (value: unknown, field: string): string | null => {
   if (typeof value === 'string') return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
+const asNullableNumber = (value: unknown, field: string): number | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'number') return value
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
 
 const asString = (value: unknown, field: string): string => {
   if (typeof value === 'string') return value
