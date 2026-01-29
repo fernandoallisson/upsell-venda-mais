@@ -186,10 +186,10 @@ const Orders = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-semibold text-slate-900">
-                          {order.customer.first_name} {order.customer.last_name}  {order.external_id}
+                          {order.customer.first_name} {order.customer.last_name} 
                         </p>
                         <p className="text-xs text-slate-500">
-                         
+                          {order.external_id}
                         </p>
                       </div>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
