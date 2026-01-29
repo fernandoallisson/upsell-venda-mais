@@ -40,7 +40,7 @@ const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
 
   return (
     <aside
-      className={`flex h-screen flex-col border-r border-slate-200 bg-white px-3 py-6 transition-all duration-200 ${
+      className={`sticky top-0 flex h-screen flex-col border-r border-slate-200 bg-white px-3 py-6 transition-all duration-200 ${
         collapsed ? 'w-20' : 'w-64'
       }`}
     >
