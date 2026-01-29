@@ -158,10 +158,23 @@ const parseOrdersResponse = (data: JsonValue): OrdersResponse => {
   }
 
   const items = Array.isArray(data.data) ? data.data : ([] as JsonArray)
+  const links = Array.isArray(data.links) ? data.links : ([] as JsonArray)
 
   return {
     current_page: asNumber(data.current_page, 'current_page'),
     data: items.map(parseOrder),
+
+    first_page_url: asString(data.first_page_url, 'first_page_url'),
+    from: asNullableNumber(data.from, 'from'),
+    last_page: asNumber(data.last_page, 'last_page'),
+    last_page_url: asString(data.last_page_url, 'last_page_url'),
+    links: links.map(parsePaginationLink),
+    next_page_url: asNullableString(data.next_page_url, 'next_page_url'),
+    path: asString(data.path, 'path'),
+    per_page: asNumber(data.per_page, 'per_page'),
+    prev_page_url: asNullableString(data.prev_page_url, 'prev_page_url'),
+    to: asNullableNumber(data.to, 'to'),
+    total: asNumber(data.total, 'total'),
   }
 }
 
