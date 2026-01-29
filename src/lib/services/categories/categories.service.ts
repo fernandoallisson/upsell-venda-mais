@@ -1,19 +1,19 @@
 import { ApiError, apiFetch } from '../../api'
 import type {
-  CreateSegmentPayload,
-  Segment,
-  SegmentRule,
-  SegmentsResponse,
-} from './segments.types'
+  CategoriesResponse,
+  Category,
+  CreateCategoryPayload,
+  UpdateCategoryPayload,
+} from './categories.types'
 
 type JsonValue = Record<string, unknown> | null
 
 type JsonArray = unknown[]
 
-const SEGMENTS_ENDPOINT = '/v1/segments'
+const CATEGORIES_ENDPOINT = '/v1/categories'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+  typeof value === 'object' && value !== null
 
 type PaginationLink = {
   url: string | null
@@ -49,47 +49,18 @@ const asBoolean = (value: unknown, field: string): boolean => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
-const asRuleValue = (value: unknown, field: string): number | string => {
-  if (typeof value === 'number' || typeof value === 'string') return value
-  throw new ApiError(`Resposta inválida do servidor: ${field}`)
-}
-
-const parseRule = (data: unknown, field: string): SegmentRule => {
+const parseCategory = (data: unknown): Category => {
   if (!isRecord(data)) {
-    throw new ApiError(`Resposta inválida do servidor: ${field}`)
+    throw new ApiError('Resposta inválida do servidor: category')
   }
 
   return {
-    value: asRuleValue(data.value, `${field}.value`),
-    operator: asString(data.operator, `${field}.operator`),
-  }
-}
-
-const parseRules = (data: unknown): Record<string, SegmentRule> => {
-  if (!isRecord(data)) {
-    return {}
-  }
-
-  const parsed: Record<string, SegmentRule> = {}
-  Object.entries(data).forEach(([key, value]) => {
-    parsed[key] = parseRule(value, `rules.${key}`)
-  })
-
-  return parsed
-}
-
-const parseSegment = (data: unknown): Segment => {
-  if (!isRecord(data)) {
-    throw new ApiError('Resposta inválida do servidor: segment')
-  }
-
-  return {
-    id: asNumber(data.id, 'segment.id'),
-    tenant_id: asString(data.tenant_id, 'segment.tenant_id'),
-    name: asString(data.name, 'segment.name'),
-    rules: parseRules(data.rules),
-    created_at: asString(data.created_at, 'segment.created_at'),
-    updated_at: asString(data.updated_at, 'segment.updated_at'),
+    id: asNumber(data.id, 'category.id'),
+    tenant_id: asString(data.tenant_id, 'category.tenant_id'),
+    external_id: asString(data.external_id, 'category.external_id'),
+    name: asString(data.name, 'category.name'),
+    created_at: asString(data.created_at, 'category.created_at'),
+    updated_at: asString(data.updated_at, 'category.updated_at'),
   }
 }
 
@@ -109,7 +80,7 @@ const parsePaginationLink = (data: unknown): PaginationLink => {
   }
 }
 
-const parseSegmentsResponse = (data: JsonValue): SegmentsResponse => {
+const parseCategoriesResponse = (data: JsonValue): CategoriesResponse => {
   if (!isRecord(data)) {
     throw new ApiError('Resposta inválida do servidor')
   }
@@ -119,7 +90,7 @@ const parseSegmentsResponse = (data: JsonValue): SegmentsResponse => {
 
   return {
     current_page: asNumber(data.current_page, 'current_page'),
-    data: items.map(parseSegment),
+    data: items.map(parseCategory),
 
     first_page_url: asString(data.first_page_url, 'first_page_url'),
     from: asNullableNumber(data.from, 'from'),
@@ -135,38 +106,62 @@ const parseSegmentsResponse = (data: JsonValue): SegmentsResponse => {
   }
 }
 
-export const getSegments = async (page = 1): Promise<SegmentsResponse> => {
-  const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}?page=${page}`, {
+export const getCategories = async (page = 1): Promise<CategoriesResponse> => {
+  const data = await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}?page=${page}`, {
     method: 'GET',
     auth: true,
-    errorMessage: 'Erro ao carregar segmentos',
-    networkErrorMessage: 'Falha de rede ao carregar segmentos',
+    errorMessage: 'Erro ao carregar categorias',
+    networkErrorMessage: 'Falha de rede ao carregar categorias',
   })
 
-  return parseSegmentsResponse(data)
+  return parseCategoriesResponse(data)
 }
 
-export const getSegmentById = async (id: number): Promise<Segment> => {
-  const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}/${id}`, {
+export const getCategoryById = async (id: number): Promise<Category> => {
+  const data = await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
-    errorMessage: 'Erro ao carregar detalhes do segmento',
-    networkErrorMessage: 'Falha de rede ao carregar segmento',
+    errorMessage: 'Erro ao carregar detalhes da categoria',
+    networkErrorMessage: 'Falha de rede ao carregar categoria',
   })
 
-  return parseSegment(data)
+  return parseCategory(data)
 }
 
-export const createSegment = async (
-  payload: CreateSegmentPayload,
-): Promise<Segment> => {
-  const data = await apiFetch<JsonValue>(SEGMENTS_ENDPOINT, {
+export const createCategory = async (
+  payload: CreateCategoryPayload,
+): Promise<Category> => {
+  const data = await apiFetch<JsonValue>(CATEGORIES_ENDPOINT, {
     method: 'POST',
     auth: true,
     body: JSON.stringify(payload),
-    errorMessage: 'Erro ao criar segmento',
-    networkErrorMessage: 'Falha de rede ao criar segmento',
+    errorMessage: 'Erro ao criar categoria',
+    networkErrorMessage: 'Falha de rede ao criar categoria',
   })
 
-  return parseSegment(data)
+  return parseCategory(data)
+}
+
+export const updateCategory = async (
+  id: number,
+  payload: UpdateCategoryPayload,
+): Promise<Category> => {
+  const data = await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}/${id}`, {
+    method: 'PUT',
+    auth: true,
+    body: JSON.stringify(payload),
+    errorMessage: 'Erro ao atualizar categoria',
+    networkErrorMessage: 'Falha de rede ao atualizar categoria',
+  })
+
+  return parseCategory(data)
+}
+
+export const deleteCategory = async (id: number): Promise<void> => {
+  await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}/${id}`, {
+    method: 'DELETE',
+    auth: true,
+    errorMessage: 'Erro ao remover categoria',
+    networkErrorMessage: 'Falha de rede ao remover categoria',
+  })
 }
