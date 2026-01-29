@@ -35,6 +35,33 @@ const asNullableNumber = (value: unknown, field: string): number | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNumberLike = (value: unknown, field: string): number => {
+  if (typeof value === 'number') return value
+
+  if (typeof value === 'string') {
+    const normalized = value.trim()
+    if (!normalized) throw new ApiError(`Resposta inválida do servidor: ${field}`)
+    const parsed = Number(normalized)
+    if (!Number.isNaN(parsed)) return parsed
+  }
+
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+const asNullableNumberLike = (value: unknown, field: string): number | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'number') return value
+
+  if (typeof value === 'string') {
+    const normalized = value.trim()
+    if (!normalized) return null
+    const parsed = Number(normalized)
+    return Number.isNaN(parsed) ? null : parsed
+  }
+
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
 const asString = (value: unknown, field: string): string => {
   if (typeof value === 'string') return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
@@ -75,7 +102,7 @@ const parseProduct = (data: unknown): Product => {
   return {
     id: asNumber(data.id, 'product.id'),
     tenant_id: asString(data.tenant_id, 'product.tenant_id'),
-    category_id: asNumber(data.category_id, 'product.category_id'),
+    category_id: asNullableNumberLike(data.category_id, 'product.category_id'),
     external_id: asString(data.external_id, 'product.external_id'),
     sku: asString(data.sku, 'product.sku'),
     name: asString(data.name, 'product.name'),
