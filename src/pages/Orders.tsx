@@ -189,7 +189,7 @@ const Orders = () => {
               {pagination?.total ?? totals.count}
             </p>
             <span className="text-sm text-slate-400">
-              total {pagination ? `(pág. ${pagination.current_page} de ${pagination.last_page_url})` : ''}
+              total {pagination ? `(pág. ${pagination.current_page} de ${pagination.last_page})` : ''}
             </span>
           </div>
 
