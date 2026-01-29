@@ -1,5 +1,13 @@
 import { ApiError, apiFetch } from '../../api'
-import type { Order, OrderCustomer, OrderItem, OrderPreferences, OrdersResponse, OrderUtm } from './orders.types'
+import type {
+  CreateOrderPayload,
+  Order,
+  OrderCustomer,
+  OrderItem,
+  OrderPreferences,
+  OrdersResponse,
+  OrderUtm,
+} from './orders.types'
 
 type JsonValue = Record<string, unknown> | null
 
@@ -211,6 +219,20 @@ export const getOrderById = async (id: number): Promise<Order> => {
     auth: true,
     errorMessage: 'Erro ao carregar detalhes do pedido',
     networkErrorMessage: 'Falha de rede ao carregar pedido',
+  })
+
+  return parseOrder(data)
+}
+
+export const createOrder = async (
+  payload: CreateOrderPayload,
+): Promise<Order> => {
+  const data = await apiFetch<JsonValue>(ORDERS_ENDPOINT, {
+    method: 'POST',
+    auth: true,
+    body: JSON.stringify(payload),
+    errorMessage: 'Erro ao criar pedido',
+    networkErrorMessage: 'Falha de rede ao criar pedido',
   })
 
   return parseOrder(data)

@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  PlusCircle,
   RefreshCcw,
   Tag,
   UserCircle2,
@@ -11,10 +12,12 @@ import {
 import DashboardPage from '../components/layout/DashboardPage'
 import { ApiError } from '../lib/api'
 import {
+  createSegment,
   getSegmentById,
   getSegments,
 } from '../lib/services/segments/segments.service'
 import type {
+  CreateSegmentPayload,
   Segment,
   SegmentsResponse,
 } from '../lib/services/segments/segments.types'
@@ -70,6 +73,12 @@ const formatRuleLabel = (label: string) =>
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (match) => match.toUpperCase())
 
+const parseListInput = (value: string) =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+
 const Segmentation = () => {
   const [segments, setSegments] = useState<Segment[]>([])
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null)
@@ -81,6 +90,14 @@ const Segmentation = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [createStatus, setCreateStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [segmentForm, setSegmentForm] = useState({
+    name: '',
+    rules: '',
+  })
 
   const fetchSegmentDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
@@ -164,6 +181,28 @@ const Segmentation = () => {
     fetchSegments(nextPage)
   }
 
+  const handleCreateSegment = async () => {
+    setCreateStatus('loading')
+    setCreateError(null)
+
+    const payload: CreateSegmentPayload = {
+      name: segmentForm.name,
+      rules: parseListInput(segmentForm.rules),
+    }
+
+    try {
+      await createSegment(payload)
+      setCreateStatus('success')
+      setSegmentForm({ name: '', rules: '' })
+      fetchSegments(1)
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'Erro ao criar segmento.'
+      setCreateError(message)
+      setCreateStatus('error')
+    }
+  }
+
   const pageItems = useMemo(() => {
     if (!pagination) return []
     return buildPageItems(pagination.current_page, pagination.last_page)
@@ -217,6 +256,70 @@ const Segmentation = () => {
           <RefreshCcw className="h-4 w-4" />
           Atualizar (página {page})
         </button>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <PlusCircle className="h-4 w-4 text-indigo-500" />
+          Criar segmento
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="text-sm text-slate-600">
+            Nome do segmento
+            <input
+              type="text"
+              value={segmentForm.name}
+              onChange={(event) =>
+                setSegmentForm((prev) => ({
+                  ...prev,
+                  name: event.target.value,
+                }))
+              }
+              placeholder="Ex.: Compradores frequentes"
+              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
+            />
+          </label>
+
+          <label className="text-sm text-slate-600">
+            Regras (separadas por vírgula)
+            <input
+              type="text"
+              value={segmentForm.rules}
+              onChange={(event) =>
+                setSegmentForm((prev) => ({
+                  ...prev,
+                  rules: event.target.value,
+                }))
+              }
+              placeholder="lifetime_value, total_orders"
+              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
+            />
+          </label>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={handleCreateSegment}
+            disabled={createStatus === 'loading'}
+            className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <PlusCircle className="h-4 w-4" />
+            Criar segmento
+          </button>
+
+          {createStatus === 'success' ? (
+            <span className="text-sm font-medium text-emerald-600">
+              Segmento criado com sucesso.
+            </span>
+          ) : null}
+          {createStatus === 'error' ? (
+            <span className="text-sm font-medium text-rose-600">
+              {createError}
+            </span>
+          ) : null}
+        </div>
       </section>
 
       {status === 'loading' ? (

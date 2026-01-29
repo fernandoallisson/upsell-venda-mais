@@ -89,3 +89,13 @@ export type OrdersResponse = {
   to: number | null
   total: number
 }
+
+export type CreateOrderPayload = {
+  customer_id: number
+  placed_at: string
+  status: string
+  total_amount: number
+  subtotal_amount: number
+  items: string[]
+  utm: string[]
+}

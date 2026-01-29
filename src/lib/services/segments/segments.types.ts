@@ -35,3 +35,8 @@ export type SegmentsResponse = {
   to: number | null
   total: number
 }
+
+export type CreateSegmentPayload = {
+  name: string
+  rules: string[]
+}

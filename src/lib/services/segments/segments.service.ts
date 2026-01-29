@@ -1,5 +1,10 @@
 import { ApiError, apiFetch } from '../../api'
-import type { Segment, SegmentRule, SegmentsResponse } from './segments.types'
+import type {
+  CreateSegmentPayload,
+  Segment,
+  SegmentRule,
+  SegmentsResponse,
+} from './segments.types'
 
 type JsonValue = Record<string, unknown> | null
 
@@ -147,6 +152,20 @@ export const getSegmentById = async (id: number): Promise<Segment> => {
     auth: true,
     errorMessage: 'Erro ao carregar detalhes do segmento',
     networkErrorMessage: 'Falha de rede ao carregar segmento',
+  })
+
+  return parseSegment(data)
+}
+
+export const createSegment = async (
+  payload: CreateSegmentPayload,
+): Promise<Segment> => {
+  const data = await apiFetch<JsonValue>(SEGMENTS_ENDPOINT, {
+    method: 'POST',
+    auth: true,
+    body: JSON.stringify(payload),
+    errorMessage: 'Erro ao criar segmento',
+    networkErrorMessage: 'Falha de rede ao criar segmento',
   })
 
   return parseSegment(data)
