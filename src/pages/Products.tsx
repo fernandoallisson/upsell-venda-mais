@@ -9,7 +9,7 @@ const Products = () => (
   >
     <PagePlaceholder
       title="Produtos do catálogo"
-      description="Em breve você verá os itens disponíveis e poderá gerenciar preços, estoque e imagens."
+      description="Aqui você acompanha os itens disponíveis no catálogo em modo somente leitura."
     />
   </DashboardPage>
 )

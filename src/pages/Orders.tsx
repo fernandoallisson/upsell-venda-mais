@@ -4,7 +4,6 @@ import {
   ClipboardList,
   DollarSign,
   Mail,
-  PlusCircle,
   Phone,
   RefreshCcw,
   Tag,
@@ -13,13 +12,8 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { ApiError } from '../lib/api'
-import {
-  createOrder,
-  getOrderById,
-  getOrders,
-} from '../lib/services/orders/orders.service'
+import { getOrderById, getOrders } from '../lib/services/orders/orders.service'
 import type {
-  CreateOrderPayload,
   Order,
   OrdersResponse,
 } from '../lib/services/orders/orders.types'
@@ -39,12 +33,6 @@ const formatDate = (value: string) => {
   if (Number.isNaN(parsed.getTime())) return value
   return parsed.toLocaleString('pt-BR')
 }
-
-const parseListInput = (value: string) =>
-  value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
 
 type PaginationMeta = Pick<
   OrdersResponse,
@@ -101,20 +89,6 @@ const Orders = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [createStatus, setCreateStatus] = useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
-  const [createError, setCreateError] = useState<string | null>(null)
-  const [orderForm, setOrderForm] = useState({
-    customer_id: '',
-    placed_at: '',
-    status: '',
-    total_amount: '',
-    subtotal_amount: '',
-    items: '',
-    utm: '',
-  })
 
   const fetchOrderDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
@@ -198,41 +172,6 @@ const Orders = () => {
     fetchOrders(nextPage)
   }
 
-  const handleCreateOrder = async () => {
-    setCreateStatus('loading')
-    setCreateError(null)
-
-    const payload: CreateOrderPayload = {
-      customer_id: Number(orderForm.customer_id),
-      placed_at: orderForm.placed_at,
-      status: orderForm.status,
-      total_amount: Number(orderForm.total_amount),
-      subtotal_amount: Number(orderForm.subtotal_amount),
-      items: parseListInput(orderForm.items),
-      utm: parseListInput(orderForm.utm),
-    }
-
-    try {
-      await createOrder(payload)
-      setCreateStatus('success')
-      setOrderForm({
-        customer_id: '',
-        placed_at: '',
-        status: '',
-        total_amount: '',
-        subtotal_amount: '',
-        items: '',
-        utm: '',
-      })
-      fetchOrders(1)
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : 'Erro ao criar pedido.'
-      setCreateError(message)
-      setCreateStatus('error')
-    }
-  }
-
   const pageItems = useMemo(() => {
     if (!pagination) return []
     return buildPageItems(pagination.current_page, pagination.last_page)
@@ -279,156 +218,6 @@ const Orders = () => {
           <RefreshCcw className="h-4 w-4" />
           Atualizar (página {page})
         </button>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <button
-          type="button"
-          onClick={() => setIsCreateOpen((prev) => !prev)}
-          className="flex w-full items-center justify-between text-left"
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <PlusCircle className="h-4 w-4 text-indigo-500" />
-            Criar pedido
-          </div>
-          <span className="text-xs font-semibold text-indigo-600">
-            {isCreateOpen ? 'Recolher' : 'Expandir'}
-          </span>
-        </button>
-
-        {isCreateOpen ? (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="text-sm text-slate-600">
-            Cliente (ID)
-            <input
-              type="number"
-              value={orderForm.customer_id}
-              onChange={(event) =>
-                setOrderForm((prev) => ({
-                  ...prev,
-                  customer_id: event.target.value,
-                }))
-              }
-              placeholder="Ex.: 16"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
-            />
-          </label>
-
-          <label className="text-sm text-slate-600">
-            Data do pedido
-            <input
-              type="text"
-              value={orderForm.placed_at}
-              onChange={(event) =>
-                setOrderForm((prev) => ({
-                  ...prev,
-                  placed_at: event.target.value,
-                }))
-              }
-              placeholder="YYYY-MM-DD ou ISO"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
-            />
-          </label>
-
-          <label className="text-sm text-slate-600">
-            Status
-            <input
-              type="text"
-              value={orderForm.status}
-              onChange={(event) =>
-                setOrderForm((prev) => ({ ...prev, status: event.target.value }))
-              }
-              placeholder="Ex.: paid"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
-            />
-          </label>
-
-          <label className="text-sm text-slate-600">
-            Total (valor)
-            <input
-              type="number"
-              step="0.01"
-              value={orderForm.total_amount}
-              onChange={(event) =>
-                setOrderForm((prev) => ({
-                  ...prev,
-                  total_amount: event.target.value,
-                }))
-              }
-              placeholder="Ex.: 4326.41"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
-            />
-          </label>
-
-          <label className="text-sm text-slate-600">
-            Subtotal (valor)
-            <input
-              type="number"
-              step="0.01"
-              value={orderForm.subtotal_amount}
-              onChange={(event) =>
-                setOrderForm((prev) => ({
-                  ...prev,
-                  subtotal_amount: event.target.value,
-                }))
-              }
-              placeholder="Ex.: 4326.41"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
-            />
-          </label>
-
-          <label className="text-sm text-slate-600">
-            Itens (separados por vírgula)
-            <input
-              type="text"
-              value={orderForm.items}
-              onChange={(event) =>
-                setOrderForm((prev) => ({ ...prev, items: event.target.value }))
-              }
-              placeholder="item1, item2"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
-            />
-          </label>
-
-          <label className="text-sm text-slate-600">
-            UTM (separado por vírgula)
-            <input
-              type="text"
-              value={orderForm.utm}
-              onChange={(event) =>
-                setOrderForm((prev) => ({ ...prev, utm: event.target.value }))
-              }
-              placeholder="utm_source, utm_campaign"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
-            />
-          </label>
-          </div>
-        ) : null}
-
-        {isCreateOpen ? (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={handleCreateOrder}
-              disabled={createStatus === 'loading'}
-              className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <PlusCircle className="h-4 w-4" />
-              Criar pedido
-            </button>
-
-            {createStatus === 'success' ? (
-              <span className="text-sm font-medium text-emerald-600">
-                Pedido criado com sucesso.
-              </span>
-            ) : null}
-            {createStatus === 'error' ? (
-              <span className="text-sm font-medium text-rose-600">
-                {createError}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
       </section>
 
       {status === 'loading' ? (
