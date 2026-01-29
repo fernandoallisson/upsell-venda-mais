@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { logout } from '../lib/services/auth/auth.service'
 import { getUser, updateAuthenticatedUser } from '../lib/services/users/users.service'
 import type { UpdateUserPayload, User } from '../lib/services/users/users.types'
-import DashboardHeader from '../components/layout/DashboardHeader'
+import DashboardLayout from '../components/layout/DashboardLayout'
 
 type Feedback = {
   type: 'success' | 'error'
@@ -113,16 +113,14 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <DashboardHeader
-        user={user}
-        onRefresh={loadUser}
-        onLogout={handleLogout}
-        title="Perfil"
-        subtitle="Gerencie seus dados cadastrais"
-      />
-
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
+    <DashboardLayout
+      user={user}
+      onRefresh={loadUser}
+      onLogout={handleLogout}
+      title="Perfil"
+      subtitle="Gerencie seus dados cadastrais"
+      containerClassName="max-w-5xl"
+    >
         {/* ✅ Botão voltar */}
         <div className="flex items-center justify-between">
           <button
@@ -228,8 +226,7 @@ const Profile = () => {
             </div>
           </form>
         </section>
-      </main>
-    </div>
+    </DashboardLayout>
   )
 }
 

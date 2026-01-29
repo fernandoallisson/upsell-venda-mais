@@ -18,7 +18,7 @@ import DashboardFilters from '../components/dashboard/DashboardFilters'
 import KpiCard from '../components/dashboard/KpiCard'
 import OffersCharts from '../components/dashboard/OffersCharts'
 import OffersTable from '../components/dashboard/OffersTable'
-import DashboardHeader from '../components/layout/DashboardHeader'
+import DashboardLayout from '../components/layout/DashboardLayout'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', {
@@ -142,106 +142,103 @@ const Dashboard = () => {
     }
   }
 
+  const handleRefresh = () => {
+    fetchAnalytics()
+    fetchUser()
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <DashboardHeader
-        user={user}
-        onRefresh={fetchAnalytics}
-        onLogout={handleLogout}
+    <DashboardLayout user={user} onRefresh={handleRefresh} onLogout={handleLogout}>
+      <DashboardFilters
+        search={search}
+        selectedCampaign={selectedCampaign}
+        selectedProduct={selectedProduct}
+        campaigns={campaigns}
+        products={products}
+        onlyTop={onlyTop}
+        onSearchChange={setSearch}
+        onCampaignChange={setSelectedCampaign}
+        onProductChange={setSelectedProduct}
+        onOnlyTopChange={setOnlyTop}
       />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-        <DashboardFilters
-          search={search}
-          selectedCampaign={selectedCampaign}
-          selectedProduct={selectedProduct}
-          campaigns={campaigns}
-          products={products}
-          onlyTop={onlyTop}
-          onSearchChange={setSearch}
-          onCampaignChange={setSelectedCampaign}
-          onProductChange={setSelectedProduct}
-          onOnlyTopChange={setOnlyTop}
-        />
+      {status === 'loading' ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-white"
+            />
+          ))}
+        </div>
+      ) : null}
 
-        {status === 'loading' ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-white"
-              />
-            ))}
-          </div>
-        ) : null}
+      {status === 'error' ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700">
+          <p className="font-semibold">Não foi possível carregar os dados.</p>
+          <p className="text-sm text-rose-600">{error}</p>
+          <button
+            type="button"
+            onClick={fetchAnalytics}
+            className="mt-4 inline-flex items-center rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : null}
 
-        {status === 'error' ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700">
-            <p className="font-semibold">Não foi possível carregar os dados.</p>
-            <p className="text-sm text-rose-600">{error}</p>
-            <button
-              type="button"
-              onClick={fetchAnalytics}
-              className="mt-4 inline-flex items-center rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700"
-            >
-              Tentar novamente
-            </button>
-          </div>
-        ) : null}
+      {status === 'idle' && filteredOffers.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
+          <p className="font-semibold">Nenhuma oferta encontrada.</p>
+          <p className="text-sm text-slate-500">
+            Ajuste os filtros ou verifique se há dados disponíveis.
+          </p>
+        </div>
+      ) : null}
 
-        {status === 'idle' && filteredOffers.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
-            <p className="font-semibold">Nenhuma oferta encontrada.</p>
-            <p className="text-sm text-slate-500">
-              Ajuste os filtros ou verifique se há dados disponíveis.
-            </p>
-          </div>
-        ) : null}
+      {status === 'idle' && filteredOffers.length > 0 ? (
+        <>
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <KpiCard
+              title="Total de Views"
+              value={totals.views.toLocaleString('pt-BR')}
+              icon={<Eye className="h-5 w-5" />}
+            />
+            <KpiCard
+              title="Total de Clicks"
+              value={totals.clicks.toLocaleString('pt-BR')}
+              icon={<MousePointer className="h-5 w-5" />}
+            />
+            <KpiCard
+              title="Total de Accepted"
+              value={totals.accepted.toLocaleString('pt-BR')}
+              icon={<CheckCircle2 className="h-5 w-5" />}
+            />
+            <KpiCard
+              title="Receita Total"
+              value={formatCurrency(totals.revenue)}
+              icon={<DollarSign className="h-5 w-5" />}
+            />
+            <KpiCard
+              title="Taxa de Clique (CTR)"
+              value={`${(ctr * 100).toFixed(1)}%`}
+              icon={<Percent className="h-5 w-5" />}
+              helper="Clicks / Views"
+            />
+            <KpiCard
+              title="Taxa de Aceite"
+              value={`${(acceptRate * 100).toFixed(1)}%`}
+              icon={<TrendingUp className="h-5 w-5" />}
+              helper="Accepted / Clicks"
+            />
+          </section>
 
-        {status === 'idle' && filteredOffers.length > 0 ? (
-          <>
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <KpiCard
-                title="Total de Views"
-                value={totals.views.toLocaleString('pt-BR')}
-                icon={<Eye className="h-5 w-5" />}
-              />
-              <KpiCard
-                title="Total de Clicks"
-                value={totals.clicks.toLocaleString('pt-BR')}
-                icon={<MousePointer className="h-5 w-5" />}
-              />
-              <KpiCard
-                title="Total de Accepted"
-                value={totals.accepted.toLocaleString('pt-BR')}
-                icon={<CheckCircle2 className="h-5 w-5" />}
-              />
-              <KpiCard
-                title="Receita Total"
-                value={formatCurrency(totals.revenue)}
-                icon={<DollarSign className="h-5 w-5" />}
-              />
-              <KpiCard
-                title="Taxa de Clique (CTR)"
-                value={`${(ctr * 100).toFixed(1)}%`}
-                icon={<Percent className="h-5 w-5" />}
-                helper="Clicks / Views"
-              />
-              <KpiCard
-                title="Taxa de Aceite"
-                value={`${(acceptRate * 100).toFixed(1)}%`}
-                icon={<TrendingUp className="h-5 w-5" />}
-                helper="Accepted / Clicks"
-              />
-            </section>
+          <OffersCharts offers={filteredOffers} />
 
-            <OffersCharts offers={filteredOffers} />
-
-            <OffersTable offers={filteredOffers} />
-          </>
-        ) : null}
-      </main>
-    </div>
+          <OffersTable offers={filteredOffers} />
+        </>
+      ) : null}
+    </DashboardLayout>
   )
 }
 
