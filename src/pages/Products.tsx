@@ -213,7 +213,7 @@ const Products = () => {
   useEffect(() => {
     if (!selectedProduct) return
     setEditForm({
-      category_id: String(selectedProduct.category_id),
+      category_id: selectedProduct.category_id === null ? '' : String(selectedProduct.category_id),
       external_id: selectedProduct.external_id,
       sku: selectedProduct.sku,
       name: selectedProduct.name,
