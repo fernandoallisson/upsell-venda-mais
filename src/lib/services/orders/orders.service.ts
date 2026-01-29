@@ -10,6 +10,13 @@ const ORDERS_ENDPOINT = '/v1/orders'
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
+type PaginationLink = {
+  url: string | null
+  label: string
+  page: number | null
+  active: boolean
+}
+
 const asNullableString = (value: unknown, field: string): string | null => {
   if (value === null || value === undefined) return null
   if (typeof value === 'string') return value
