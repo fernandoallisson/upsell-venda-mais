@@ -73,15 +73,19 @@ export type PaginationLink = {
 }
 
 export type OrdersResponse = {
+  current_page: number
   data: Order[]
 
-  current_page: number
-  last_page: number
-  per_page: number
-  total: number
+  // meta da paginação (Laravel)
+  first_page_url: string
   from: number | null
-  to: number | null
-
+  last_page: number
+  last_page_url: string
+  links: PaginationLink[]
   next_page_url: string | null
+  path: string
+  per_page: number
   prev_page_url: string | null
+  to: number | null
+  total: number
 }
