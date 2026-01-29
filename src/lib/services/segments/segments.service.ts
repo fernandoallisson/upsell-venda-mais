@@ -13,7 +13,7 @@ type JsonArray = unknown[]
 const SEGMENTS_ENDPOINT = '/v1/segments'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
+  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 type PaginationLink = {
   url: string | null
