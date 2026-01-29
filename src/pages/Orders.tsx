@@ -101,6 +101,7 @@ const Orders = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createStatus, setCreateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -281,12 +282,22 @@ const Orders = () => {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-          <PlusCircle className="h-4 w-4 text-indigo-500" />
-          Criar pedido
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsCreateOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <PlusCircle className="h-4 w-4 text-indigo-500" />
+            Criar pedido
+          </div>
+          <span className="text-xs font-semibold text-indigo-600">
+            {isCreateOpen ? 'Recolher' : 'Expandir'}
+          </span>
+        </button>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        {isCreateOpen ? (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="text-sm text-slate-600">
             Cliente (ID)
             <input
@@ -391,30 +402,33 @@ const Orders = () => {
               className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-indigo-200 focus:outline-none"
             />
           </label>
-        </div>
+          </div>
+        ) : null}
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleCreateOrder}
-            disabled={createStatus === 'loading'}
-            className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Criar pedido
-          </button>
+        {isCreateOpen ? (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleCreateOrder}
+              disabled={createStatus === 'loading'}
+              className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Criar pedido
+            </button>
 
-          {createStatus === 'success' ? (
-            <span className="text-sm font-medium text-emerald-600">
-              Pedido criado com sucesso.
-            </span>
-          ) : null}
-          {createStatus === 'error' ? (
-            <span className="text-sm font-medium text-rose-600">
-              {createError}
-            </span>
-          ) : null}
-        </div>
+            {createStatus === 'success' ? (
+              <span className="text-sm font-medium text-emerald-600">
+                Pedido criado com sucesso.
+              </span>
+            ) : null}
+            {createStatus === 'error' ? (
+              <span className="text-sm font-medium text-rose-600">
+                {createError}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       {status === 'loading' ? (
