@@ -65,6 +65,13 @@ export type Order = {
   utm: OrderUtm | null
 }
 
+export type PaginationLink = {
+  url: string | null
+  label: string
+  page: number | null
+  active: boolean
+}
+
 export type OrdersResponse = {
   data: Order[]
 
