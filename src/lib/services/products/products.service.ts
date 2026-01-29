@@ -35,18 +35,6 @@ const asNullableNumber = (value: unknown, field: string): number | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
-const asNumberLike = (value: unknown, field: string): number => {
-  if (typeof value === 'number') return value
-
-  if (typeof value === 'string') {
-    const normalized = value.trim()
-    if (!normalized) throw new ApiError(`Resposta inválida do servidor: ${field}`)
-    const parsed = Number(normalized)
-    if (!Number.isNaN(parsed)) return parsed
-  }
-
-  throw new ApiError(`Resposta inválida do servidor: ${field}`)
-}
 
 const asNullableNumberLike = (value: unknown, field: string): number | null => {
   if (value === null || value === undefined) return null
