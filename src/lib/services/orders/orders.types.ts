@@ -42,7 +42,7 @@ export type OrderUtm = {
   source: string
   medium: string
   campaign: string
-  term: string
+  term: string | null
   content: string | null
   created_at: string
   updated_at: string
