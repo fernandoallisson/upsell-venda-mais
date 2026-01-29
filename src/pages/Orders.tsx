@@ -300,7 +300,7 @@ const Orders = () => {
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-2">
                 <div className="text-xs text-slate-500">
                   Mostrando <span className="font-semibold text-slate-700">{pagination.from ?? 0}</span>
-                  –<span className="font-semibold text-slate-700">{pagination.to ?? 0}</span> de{' '}
+                   – <span className="font-semibold text-slate-700">{pagination.to ?? 0}</span> de{' '}
                   <span className="font-semibold text-slate-700">{pagination.total}</span>
                 </div>
 
