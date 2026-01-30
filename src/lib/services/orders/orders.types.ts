@@ -50,9 +50,9 @@ export type OrderUtm = {
 
 export type Order = {
   id: number
-  tenant_id: string
-  customer_id: number
-  external_id: string
+  tenant_id: string | null
+  customer_id: number | null
+  external_id: string | null
   total_amount: string
   subtotal_amount: string
   currency: string
