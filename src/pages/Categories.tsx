@@ -173,7 +173,7 @@ const Categories = () => {
     if (!selectedCategory) return
     setEditForm({
       name: selectedCategory.name,
-      external_id: selectedCategory.external_id,
+      external_id: selectedCategory.external_id ?? '',
     })
 
     setIsEditOpen(false)
