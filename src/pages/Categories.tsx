@@ -105,7 +105,6 @@ const Categories = () => {
     external_id: '',
   })
 
-  // ✅ painel expandir/recolher (editar)
   const [isEditOpen, setIsEditOpen] = useState(false)
 
   const fetchCategoryDetails = useCallback(async (id: number) => {
@@ -177,19 +176,15 @@ const Categories = () => {
       external_id: selectedCategory.external_id,
     })
 
-    // ✅ opcional: quando troca a categoria selecionada, mantém o editar “aberto”
-    // (se preferir fechado por padrão, troque para false)
-    setIsEditOpen(true)
+    setIsEditOpen(false)
   }, [selectedCategory])
 
-  // ✅ ao recolher criar, limpa feedback
   useEffect(() => {
     if (isCreateOpen) return
     setCreateStatus('idle')
     setCreateError(null)
   }, [isCreateOpen])
 
-  // ✅ ao recolher editar, limpa feedback
   useEffect(() => {
     if (isEditOpen) return
     setUpdateStatus('idle')
