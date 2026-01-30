@@ -287,7 +287,7 @@ const Segmentation = () => {
 
   const selectedRules = useMemo(() => {
     if (!selectedSegment) return []
-    return Object.entries(selectedSegment.rules)
+    return rulesEntriesForDetails(selectedSegment.rules)
   }, [selectedSegment])
 
   return (
