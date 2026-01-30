@@ -30,7 +30,7 @@ const parseUser = (data: JsonValue): User => {
     typeof data.email !== 'string' ||
     typeof data.created_at !== 'string' ||
     typeof data.updated_at !== 'string' ||
-    typeof data.tenant_id !== 'string'
+    tenantId === null
   ) {
     throw new ApiError('Resposta inválida do servidor')
   }
