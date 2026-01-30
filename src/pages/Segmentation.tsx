@@ -32,6 +32,17 @@ const formatDate = (value: string) => {
   return parsed.toLocaleString('pt-BR')
 }
 
+const rulesCount = (rules: SegmentRules) =>
+  Array.isArray(rules) ? rules.length : Object.keys(rules).length
+
+const rulesKeysForEdit = (rules: SegmentRules) =>
+  Array.isArray(rules) ? rules : Object.keys(rules)
+
+const rulesEntriesForDetails = (rules: SegmentRules) =>
+  Array.isArray(rules)
+    ? rules.map((key) => [key, { operator: '', value: '' }] as const)
+    : Object.entries(rules)
+
 type PaginationMeta = Pick<
   SegmentsResponse,
   | 'current_page'
@@ -198,7 +209,7 @@ const Segmentation = () => {
     return segments.reduce(
       (acc, segment) => {
         acc.count += 1
-        acc.rules += Object.keys(segment.rules).length
+        acc.rules += rulesCount(segment.rules)
         return acc
       },
       { count: 0, rules: 0 },
