@@ -152,7 +152,7 @@ const parseOrder = (data: unknown): Order => {
   return {
     id: asNumber(data.id, 'order.id'),
     tenant_id: asNullableStringLike(data.tenant_id, 'order.tenant_id'),
-    customer_id: asNullableStringLike(data.customer_id, 'order.customer_id'),
+    customer_id: asNullableNumber(data.customer_id, 'order.customer_id'),
     external_id: asNullableStringLike(data.external_id, 'order.external_id'),
     total_amount: asString(data.total_amount, 'order.total_amount'),
     subtotal_amount: asString(data.subtotal_amount, 'order.subtotal_amount'),
