@@ -41,12 +41,6 @@ const asNullableStringLike = (value: unknown, field: string): string | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
-const asStringLike = (value: unknown, field: string): string => {
-  if (typeof value === 'string') return value
-  if (typeof value === 'number') return String(value)
-  throw new ApiError(`Resposta inválida do servidor: ${field}`)
-}
-
 const asString = (value: unknown, field: string): string => {
   if (typeof value === 'string') return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
