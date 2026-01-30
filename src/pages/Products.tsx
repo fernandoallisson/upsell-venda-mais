@@ -124,7 +124,7 @@ const Products = () => {
   })
 
   // ✅ mesmo mecanismo expandir/recolher: EDITAR
-  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(true)
 
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
