@@ -223,7 +223,7 @@ const Products = () => {
         selectedProduct.category_id === null
           ? ''
           : String(selectedProduct.category_id),
-      external_id: selectedProduct.external_id,
+      external_id: selectedProduct.external_id ?? '',
       sku: selectedProduct.sku,
       name: selectedProduct.name,
       image_url: selectedProduct.image_url,
