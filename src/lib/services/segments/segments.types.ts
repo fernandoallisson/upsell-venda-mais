@@ -38,12 +38,16 @@ export type SegmentsResponse = {
   total: number
 }
 
+export type SegmentRulesPayload =
+  | Array<Record<string, unknown>>
+  | Record<string, unknown>
+
 export type CreateSegmentPayload = {
   name: string
-  rules: string[]
+  rules: SegmentRulesPayload
 }
 
 export type UpdateSegmentPayload = {
   name: string
-  rules: string[]
+  rules: SegmentRulesPayload
 }

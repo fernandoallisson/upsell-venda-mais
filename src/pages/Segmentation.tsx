@@ -24,6 +24,7 @@ import type {
   SegmentsResponse,
   UpdateSegmentPayload,
   SegmentRules,
+  SegmentRulesPayload,
 } from '../lib/services/segments/segments.types'
 
 const formatDate = (value: string) => {
@@ -34,9 +35,6 @@ const formatDate = (value: string) => {
 
 const rulesCount = (rules: SegmentRules) =>
   Array.isArray(rules) ? rules.length : Object.keys(rules).length
-
-const rulesKeysForEdit = (rules: SegmentRules) =>
-  Array.isArray(rules) ? rules : Object.keys(rules)
 
 const rulesEntriesForDetails = (rules: SegmentRules) =>
   Array.isArray(rules)
@@ -88,11 +86,14 @@ const formatRuleLabel = (label: string) =>
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (match) => match.toUpperCase())
 
-const parseListInput = (value: string) =>
-  value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
+const parseRulesInput = (value: string): SegmentRulesPayload | null => {
+  if (!value.trim()) return null
+  try {
+    return JSON.parse(value) as SegmentRulesPayload
+  } catch {
+    return null
+  }
+}
 
 const Segmentation = () => {
   const [segments, setSegments] = useState<Segment[]>([])
@@ -114,6 +115,7 @@ const Segmentation = () => {
     name: '',
     rules: '',
   })
+  const [createRulesError, setCreateRulesError] = useState<string | null>(null)
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -122,6 +124,7 @@ const Segmentation = () => {
     name: '',
     rules: '',
   })
+  const [updateRulesError, setUpdateRulesError] = useState<string | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
 
   const fetchSegmentDetails = useCallback(async (id: number) => {
@@ -188,7 +191,7 @@ const Segmentation = () => {
     if (!selectedSegment) return
     setEditForm({
       name: selectedSegment.name,
-      rules: rulesKeysForEdit(selectedSegment.rules).join(', '),
+      rules: JSON.stringify(selectedSegment.rules, null, 2),
     })
     setIsEditOpen(false)
   }, [selectedSegment])
@@ -197,12 +200,14 @@ const Segmentation = () => {
     if (isCreateOpen) return
     setCreateStatus('idle')
     setCreateError(null)
+    setCreateRulesError(null)
   }, [isCreateOpen])
 
   useEffect(() => {
     if (isEditOpen) return
     setUpdateStatus('idle')
     setUpdateError(null)
+    setUpdateRulesError(null)
   }, [isEditOpen])
 
   const totals = useMemo(() => {
@@ -231,9 +236,17 @@ const Segmentation = () => {
     setCreateStatus('loading')
     setCreateError(null)
 
+    const rules = parseRulesInput(segmentForm.rules)
+
+    if (!rules) {
+      setCreateRulesError('Informe um JSON válido para as regras.')
+      setCreateStatus('error')
+      return
+    }
+
     const payload: CreateSegmentPayload = {
       name: segmentForm.name,
-      rules: parseListInput(segmentForm.rules),
+      rules,
     }
 
     try {
@@ -256,9 +269,17 @@ const Segmentation = () => {
     setUpdateStatus('loading')
     setUpdateError(null)
 
+    const rules = parseRulesInput(editForm.rules)
+
+    if (!rules) {
+      setUpdateRulesError('Informe um JSON válido para as regras.')
+      setUpdateStatus('error')
+      return
+    }
+
     const payload: UpdateSegmentPayload = {
       name: editForm.name,
-      rules: parseListInput(editForm.rules),
+      rules,
     }
 
     try {
@@ -280,10 +301,14 @@ const Segmentation = () => {
   }, [pagination])
 
   const isCreateValid =
-    segmentForm.name.trim().length > 0 && segmentForm.rules.trim().length > 0
+    segmentForm.name.trim().length > 0 &&
+    segmentForm.rules.trim().length > 0 &&
+    parseRulesInput(segmentForm.rules) !== null
 
   const isUpdateValid =
-    editForm.name.trim().length > 0 && editForm.rules.trim().length > 0
+    editForm.name.trim().length > 0 &&
+    editForm.rules.trim().length > 0 &&
+    parseRulesInput(editForm.rules) !== null
 
   const selectedRules = useMemo(() => {
     if (!selectedSegment) return []
@@ -407,18 +432,18 @@ const Segmentation = () => {
                     </label>
 
                     <label className="space-y-2 text-sm text-slate-600">
-                      <span>Regras (separadas por vírgula)</span>
-                      <input
-                        type="text"
+                      <span>Regras (JSON)</span>
+                      <textarea
                         value={segmentForm.rules}
-                        onChange={(event) =>
+                        onChange={(event) => {
                           setSegmentForm((prev) => ({
                             ...prev,
                             rules: event.target.value,
                           }))
-                        }
-                        placeholder="lifetime_value, total_orders"
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                          setCreateRulesError(null)
+                        }}
+                        placeholder='[{ "filter":"last_purchase_within_days","days":90 }, { "filter":"average_ticket","operator":">=","value":100 }]'
+                        className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
                       />
                     </label>
                   </div>
@@ -442,7 +467,7 @@ const Segmentation = () => {
 
                     {createStatus === 'error' ? (
                       <span className="text-xs font-semibold text-rose-600">
-                        {createError}
+                        {createRulesError ?? createError}
                       </span>
                     ) : null}
                   </div>
@@ -653,17 +678,17 @@ const Segmentation = () => {
                         </label>
 
                         <label className="space-y-2 text-sm text-slate-600">
-                          <span>Regras (separadas por vírgula)</span>
-                          <input
-                            type="text"
+                          <span>Regras (JSON)</span>
+                          <textarea
                             value={editForm.rules}
-                            onChange={(event) =>
+                            onChange={(event) => {
                               setEditForm((prev) => ({
                                 ...prev,
                                 rules: event.target.value,
                               }))
-                            }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                              setUpdateRulesError(null)
+                            }}
+                            className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
                           />
                         </label>
                       </div>
@@ -687,7 +712,7 @@ const Segmentation = () => {
 
                         {updateStatus === 'error' ? (
                           <span className="text-xs font-semibold text-rose-600">
-                            {updateError}
+                            {updateRulesError ?? updateError}
                           </span>
                         ) : null}
                       </div>
