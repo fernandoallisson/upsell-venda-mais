@@ -4,6 +4,7 @@ import type {
   Segment,
   SegmentRule,
   SegmentsResponse,
+  UpdateSegmentPayload,
 } from './segments.types'
 
 type JsonValue = Record<string, unknown> | null
@@ -174,6 +175,21 @@ export const createSegment = async (
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar segmento',
     networkErrorMessage: 'Falha de rede ao criar segmento',
+  })
+
+  return parseSegment(data)
+}
+
+export const updateSegment = async (
+  id: number,
+  payload: UpdateSegmentPayload,
+): Promise<Segment> => {
+  const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}/${id}`, {
+    method: 'PUT',
+    auth: true,
+    body: JSON.stringify(payload),
+    errorMessage: 'Erro ao atualizar segmento',
+    networkErrorMessage: 'Falha de rede ao atualizar segmento',
   })
 
   return parseSegment(data)

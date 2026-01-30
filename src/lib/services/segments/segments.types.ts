@@ -40,3 +40,8 @@ export type CreateSegmentPayload = {
   name: string
   rules: string[]
 }
+
+export type UpdateSegmentPayload = {
+  name: string
+  rules: string[]
+}
