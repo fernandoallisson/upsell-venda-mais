@@ -84,7 +84,7 @@ const Categories = () => {
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
 
-  // ✅ mesmo padrão do Segmentation: painel expandir/recolher para criação
+  // ✅ painel expandir/recolher (criar)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const [createStatus, setCreateStatus] = useState<
@@ -104,6 +104,9 @@ const Categories = () => {
     name: '',
     external_id: '',
   })
+
+  // ✅ painel expandir/recolher (editar)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   const fetchCategoryDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
@@ -173,14 +176,25 @@ const Categories = () => {
       name: selectedCategory.name,
       external_id: selectedCategory.external_id,
     })
+
+    // ✅ opcional: quando troca a categoria selecionada, mantém o editar “aberto”
+    // (se preferir fechado por padrão, troque para false)
+    setIsEditOpen(true)
   }, [selectedCategory])
 
-  // ✅ opcional, mas segue a melhoria que comentei: ao recolher, limpa feedback de criação
+  // ✅ ao recolher criar, limpa feedback
   useEffect(() => {
     if (isCreateOpen) return
     setCreateStatus('idle')
     setCreateError(null)
   }, [isCreateOpen])
+
+  // ✅ ao recolher editar, limpa feedback
+  useEffect(() => {
+    if (isEditOpen) return
+    setUpdateStatus('idle')
+    setUpdateError(null)
+  }, [isEditOpen])
 
   const totals = useMemo(() => {
     return categories.reduce(
@@ -217,7 +231,7 @@ const Categories = () => {
       setCreateStatus('success')
       setCategoryForm({ name: '', external_id: '' })
 
-      // ✅ melhoria: fecha o painel após sucesso (igual sugestão do Segmentation)
+      // ✅ fecha após sucesso
       setIsCreateOpen(false)
 
       fetchCategories(1)
@@ -359,7 +373,7 @@ const Categories = () => {
       {status === 'idle' && categories.length > 0 ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           <div className="space-y-6">
-            {/* ✅ painel expansível igual Segmentation */}
+            {/* Criar (expandir/recolher) */}
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <button
                 type="button"
@@ -436,6 +450,7 @@ const Categories = () => {
               ) : null}
             </section>
 
+            {/* Lista */}
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
                 <Layers className="h-4 w-4 text-indigo-500" />
@@ -549,6 +564,7 @@ const Categories = () => {
             </section>
           </div>
 
+          {/* Detalhes */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -601,60 +617,79 @@ const Categories = () => {
                   </div>
                 </div>
 
+                {/* ✅ Editar agora também é expansível */}
                 <div className="rounded-xl border border-slate-200 p-4">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                    <Pencil className="h-4 w-4 text-indigo-500" />
-                    Editar categoria
-                  </div>
-                  <div className="mt-4 grid gap-4">
-                    <label className="space-y-2 text-sm text-slate-600">
-                      <span>Nome</span>
-                      <input
-                        value={editForm.name}
-                        onChange={(event) =>
-                          setEditForm((prev) => ({
-                            ...prev,
-                            name: event.target.value,
-                          }))
-                        }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm text-slate-600">
-                      <span>External ID</span>
-                      <input
-                        value={editForm.external_id}
-                        onChange={(event) =>
-                          setEditForm((prev) => ({
-                            ...prev,
-                            external_id: event.target.value,
-                          }))
-                        }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                      />
-                    </label>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={handleUpdateCategory}
-                        disabled={!isUpdateValid || updateStatus === 'loading'}
-                        className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Salvar alterações
-                      </button>
-                      {updateStatus === 'success' ? (
-                        <span className="text-xs font-semibold text-emerald-600">
-                          Categoria atualizada!
-                        </span>
-                      ) : null}
-                      {updateStatus === 'error' ? (
-                        <span className="text-xs font-semibold text-rose-600">
-                          {updateError}
-                        </span>
-                      ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setIsEditOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between text-left"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <Pencil className="h-4 w-4 text-indigo-500" />
+                      Editar categoria
                     </div>
-                  </div>
+                    <span className="text-xs font-semibold text-indigo-600">
+                      {isEditOpen ? 'Recolher' : 'Expandir'}
+                    </span>
+                  </button>
+
+                  {isEditOpen ? (
+                    <>
+                      <div className="mt-4 grid gap-4">
+                        <label className="space-y-2 text-sm text-slate-600">
+                          <span>Nome</span>
+                          <input
+                            value={editForm.name}
+                            onChange={(event) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                name: event.target.value,
+                              }))
+                            }
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                          />
+                        </label>
+
+                        <label className="space-y-2 text-sm text-slate-600">
+                          <span>External ID</span>
+                          <input
+                            value={editForm.external_id}
+                            onChange={(event) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                external_id: event.target.value,
+                              }))
+                            }
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleUpdateCategory}
+                          disabled={!isUpdateValid || updateStatus === 'loading'}
+                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Salvar alterações
+                        </button>
+
+                        {updateStatus === 'success' ? (
+                          <span className="text-xs font-semibold text-emerald-600">
+                            Categoria atualizada!
+                          </span>
+                        ) : null}
+
+                        {updateStatus === 'error' ? (
+                          <span className="text-xs font-semibold text-rose-600">
+                            {updateError}
+                          </span>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
 
                 <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
