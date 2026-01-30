@@ -69,8 +69,8 @@ const parseCategory = (data: unknown): Category => {
 
   return {
     id: asNumber(data.id, 'category.id'),
-    tenant_id: asStringLike(data.tenant_id, 'category.tenant_id'),
-    external_id: asStringLike(data.external_id, 'category.external_id'),
+    tenant_id: asNullableStringLike(data.tenant_id, 'category.tenant_id'),
+    external_id: asNullableStringLike(data.external_id, 'category.external_id'),
     name: asString(data.name, 'category.name'),
     created_at: asString(data.created_at, 'category.created_at'),
     updated_at: asString(data.updated_at, 'category.updated_at'),
