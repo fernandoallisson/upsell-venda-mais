@@ -5,7 +5,7 @@ export type SegmentRule = {
 
 export type Segment = {
   id: number
-  tenant_id: string
+  tenant_id: string | null
   name: string
   rules: Record<string, SegmentRule>
   created_at: string
