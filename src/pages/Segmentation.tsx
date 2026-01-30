@@ -23,6 +23,7 @@ import type {
   Segment,
   SegmentsResponse,
   UpdateSegmentPayload,
+  SegmentRules,
 } from '../lib/services/segments/segments.types'
 
 const formatDate = (value: string) => {
