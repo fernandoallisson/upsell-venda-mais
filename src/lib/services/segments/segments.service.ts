@@ -28,6 +28,14 @@ const asNullableString = (value: unknown, field: string): string | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNullableStringLike = (value: unknown, field: string): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+
 const asNullableNumber = (value: unknown, field: string): number | null => {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') return value
@@ -85,7 +93,7 @@ const parseSegment = (data: unknown): Segment => {
 
   return {
     id: asNumber(data.id, 'segment.id'),
-    tenant_id: asString(data.tenant_id, 'segment.tenant_id'),
+    tenant_id: asNullableStringLike(data.tenant_id, 'segment.tenant_id'),
     name: asString(data.name, 'segment.name'),
     rules: parseRules(data.rules),
     created_at: asString(data.created_at, 'segment.created_at'),
