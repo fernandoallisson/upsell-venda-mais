@@ -35,7 +35,6 @@ const asNullableNumber = (value: unknown, field: string): number | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
-
 const asNullableNumberLike = (value: unknown, field: string): number | null => {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') return value
@@ -47,6 +46,13 @@ const asNullableNumberLike = (value: unknown, field: string): number | null => {
     return Number.isNaN(parsed) ? null : parsed
   }
 
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+const asNullableStringLike = (value: unknown, field: string): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
@@ -72,8 +78,8 @@ const parseCategory = (data: unknown): ProductCategory => {
 
   return {
     id: asNumber(data.id, 'category.id'),
-    tenant_id: asString(data.tenant_id, 'category.tenant_id'),
-    external_id: asString(data.external_id, 'category.external_id'),
+    tenant_id: asNullableStringLike(data.tenant_id, 'category.tenant_id'),
+    external_id: asNullableStringLike(data.external_id, 'category.external_id'),
     name: asString(data.name, 'category.name'),
     created_at: asString(data.created_at, 'category.created_at'),
     updated_at: asString(data.updated_at, 'category.updated_at'),
@@ -89,9 +95,9 @@ const parseProduct = (data: unknown): Product => {
 
   return {
     id: asNumber(data.id, 'product.id'),
-    tenant_id: asString(data.tenant_id, 'product.tenant_id'),
+    tenant_id: asNullableStringLike(data.tenant_id, 'product.tenant_id'),
     category_id: asNullableNumberLike(data.category_id, 'product.category_id'),
-    external_id: asString(data.external_id, 'product.external_id'),
+    external_id: asNullableStringLike(data.external_id, 'product.external_id'),
     sku: asString(data.sku, 'product.sku'),
     name: asString(data.name, 'product.name'),
     image_url: asString(data.image_url, 'product.image_url'),
