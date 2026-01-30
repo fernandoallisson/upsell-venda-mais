@@ -1,7 +1,7 @@
 export type Category = {
   id: number
-  tenant_id: string
-  external_id: string
+  tenant_id: string | null
+  external_id: string | null
   name: string
   created_at: string
   updated_at: string
