@@ -4,10 +4,11 @@ import type {
   Segment,
   SegmentRule,
   SegmentsResponse,
+  UpdateSegmentPayload,
+  SegmentRules,
 } from './segments.types'
 
 type JsonValue = Record<string, unknown> | null
-
 type JsonArray = unknown[]
 
 const SEGMENTS_ENDPOINT = '/v1/segments'
@@ -34,7 +35,6 @@ const asNullableStringLike = (value: unknown, field: string): string | null => {
   if (typeof value === 'number') return String(value)
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
-
 
 const asNullableNumber = (value: unknown, field: string): number | null => {
   if (value === null || value === undefined) return null
@@ -63,37 +63,68 @@ const asRuleValue = (value: unknown, field: string): number | string => {
 }
 
 const parseRule = (data: unknown, field: string): SegmentRule => {
-  if (!isRecord(data)) {
-    throw new ApiError(`Resposta inválida do servidor: ${field}`)
-  }
-
+  if (!isRecord(data)) throw new ApiError(`Resposta inválida do servidor: ${field}`)
   return {
     value: asRuleValue(data.value, `${field}.value`),
     operator: asString(data.operator, `${field}.operator`),
   }
 }
 
-const parseRules = (data: unknown): Record<string, SegmentRule> => {
-  if (!isRecord(data)) {
-    return {}
+/**
+ * Aceita:
+ * - rules como objeto: { lifetime_value: { value, operator }, ... }
+ * - rules como array: ["lifetime_value", "total_orders"]
+ */
+const parseRules = (data: unknown): SegmentRules => {
+  if (Array.isArray(data)) {
+    return data
+      .filter((v) => typeof v === 'string')
+      .map((v) => v.trim())
+      .filter(Boolean)
   }
+
+  if (!isRecord(data)) return {}
 
   const parsed: Record<string, SegmentRule> = {}
   Object.entries(data).forEach(([key, value]) => {
     parsed[key] = parseRule(value, `rules.${key}`)
   })
-
   return parsed
 }
 
-const parseSegment = (data: unknown): Segment => {
-  if (!isRecord(data)) {
-    throw new ApiError('Resposta inválida do servidor: segment')
+/**
+ * Alguns endpoints retornam:
+ * - Segment direto {id, name, ...}
+ * - Ou embrulhado: { segment: { ... }, matched_customers_count: number }
+ */
+const unwrapSegment = (data: unknown): unknown => {
+  if (!isRecord(data)) return data
+  if (isRecord(data.segment)) return data.segment
+  return data
+}
+
+const parseTenantId = (data: Record<string, unknown>): string | null => {
+  // tenta tenant_id direto
+  const tenantId = asNullableStringLike(data.tenant_id, 'segment.tenant_id')
+  if (tenantId) return tenantId
+
+  // tenta tenant.id (vem no POST)
+  const tenant = data.tenant
+  if (isRecord(tenant)) {
+    return asNullableStringLike(tenant.id, 'segment.tenant.id')
   }
+
+  return null
+}
+
+const parseSegment = (input: unknown): Segment => {
+  const data = unwrapSegment(input)
+
+  if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: segment')
 
   return {
     id: asNumber(data.id, 'segment.id'),
-    tenant_id: asNullableStringLike(data.tenant_id, 'segment.tenant_id'),
+    tenant_id: parseTenantId(data),
     name: asString(data.name, 'segment.name'),
     rules: parseRules(data.rules),
     created_at: asString(data.created_at, 'segment.created_at'),
@@ -102,12 +133,9 @@ const parseSegment = (data: unknown): Segment => {
 }
 
 const parsePaginationLink = (data: unknown): PaginationLink => {
-  if (!isRecord(data)) {
-    throw new ApiError('Resposta inválida do servidor: links')
-  }
+  if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: links')
 
-  const page =
-    data.page === null || typeof data.page === 'number' ? data.page : null
+  const page = data.page === null || typeof data.page === 'number' ? data.page : null
 
   return {
     url: asNullableString(data.url, 'links.url'),
@@ -118,9 +146,7 @@ const parsePaginationLink = (data: unknown): PaginationLink => {
 }
 
 const parseSegmentsResponse = (data: JsonValue): SegmentsResponse => {
-  if (!isRecord(data)) {
-    throw new ApiError('Resposta inválida do servidor')
-  }
+  if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor')
 
   const items = Array.isArray(data.data) ? data.data : ([] as JsonArray)
   const links = Array.isArray(data.links) ? data.links : ([] as JsonArray)
@@ -165,15 +191,29 @@ export const getSegmentById = async (id: number): Promise<Segment> => {
   return parseSegment(data)
 }
 
-export const createSegment = async (
-  payload: CreateSegmentPayload,
-): Promise<Segment> => {
+export const createSegment = async (payload: CreateSegmentPayload): Promise<Segment> => {
   const data = await apiFetch<JsonValue>(SEGMENTS_ENDPOINT, {
     method: 'POST',
     auth: true,
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar segmento',
     networkErrorMessage: 'Falha de rede ao criar segmento',
+  })
+
+  // ✅ agora funciona tanto se vier {segment:{...}} quanto direto
+  return parseSegment(data)
+}
+
+export const updateSegment = async (
+  id: number,
+  payload: UpdateSegmentPayload,
+): Promise<Segment> => {
+  const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}/${id}`, {
+    method: 'PUT',
+    auth: true,
+    body: JSON.stringify(payload),
+    errorMessage: 'Erro ao atualizar segmento',
+    networkErrorMessage: 'Falha de rede ao atualizar segmento',
   })
 
   return parseSegment(data)

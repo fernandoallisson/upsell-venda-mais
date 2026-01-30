@@ -3,11 +3,13 @@ export type SegmentRule = {
   operator: string
 }
 
+export type SegmentRules = Record<string, SegmentRule> | string[]
+
 export type Segment = {
   id: number
   tenant_id: string | null
   name: string
-  rules: Record<string, SegmentRule>
+  rules: SegmentRules
   created_at: string
   updated_at: string
 }
@@ -37,6 +39,11 @@ export type SegmentsResponse = {
 }
 
 export type CreateSegmentPayload = {
+  name: string
+  rules: string[]
+}
+
+export type UpdateSegmentPayload = {
   name: string
   rules: string[]
 }
