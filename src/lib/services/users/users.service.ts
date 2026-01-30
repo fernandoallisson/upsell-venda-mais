@@ -10,9 +10,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
 const parseUser = (data: JsonValue): User => {
-  if (!isRecord(data)) {
-    throw new ApiError('Resposta inválida do servidor')
-  }
+  if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: user')
+
+  const id = data.id
+  if (typeof id !== 'number') throw new ApiError('Resposta inválida do servidor: user.id')
+
+  const name = data.name
+  if (typeof name !== 'string') throw new ApiError('Resposta inválida do servidor: user.name')
+
+  const email = data.email
+  if (typeof email !== 'string') throw new ApiError('Resposta inválida do servidor: user.email')
+
+  const createdAt = data.created_at
+  if (typeof createdAt !== 'string') throw new ApiError('Resposta inválida do servidor: user.created_at')
+
+  const updatedAt = data.updated_at
+  if (typeof updatedAt !== 'string') throw new ApiError('Resposta inválida do servidor: user.updated_at')
+
 
   const emailVerifiedAt =
     data.email_verified_at === null || typeof data.email_verified_at === 'string'
