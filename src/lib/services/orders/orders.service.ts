@@ -37,6 +37,13 @@ const asNullableNumber = (value: unknown, field: string): number | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNullableStringLike = (value: unknown, field: string): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
 const asString = (value: unknown, field: string): string => {
   if (typeof value === 'string') return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
@@ -70,8 +77,8 @@ const parseCustomer = (data: unknown): OrderCustomer => {
 
   return {
     id: asNumber(data.id, 'customer.id'),
-    tenant_id: asString(data.tenant_id, 'customer.tenant_id'),
-    external_id: asString(data.external_id, 'customer.external_id'),
+    tenant_id: asNullableStringLike(data.tenant_id, 'customer.tenant_id'),
+    external_id: asNullableStringLike(data.external_id, 'customer.external_id'),
     email: asString(data.email, 'customer.email'),
     phone: asString(data.phone, 'customer.phone'),
     first_name: asString(data.first_name, 'customer.first_name'),
@@ -144,9 +151,9 @@ const parseOrder = (data: unknown): Order => {
 
   return {
     id: asNumber(data.id, 'order.id'),
-    tenant_id: asString(data.tenant_id, 'order.tenant_id'),
-    customer_id: asNumber(data.customer_id, 'order.customer_id'),
-    external_id: asString(data.external_id, 'order.external_id'),
+    tenant_id: asNullableStringLike(data.tenant_id, 'order.tenant_id'),
+    customer_id: asNullableStringLike(data.customer_id, 'order.customer_id'),
+    external_id: asNullableStringLike(data.external_id, 'order.external_id'),
     total_amount: asString(data.total_amount, 'order.total_amount'),
     subtotal_amount: asString(data.subtotal_amount, 'order.subtotal_amount'),
     currency: asString(data.currency, 'order.currency'),
