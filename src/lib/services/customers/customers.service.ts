@@ -6,7 +6,7 @@ import type {
   CustomerSegment,
   CustomersResponse,
 } from './customers.types'
-import type { SegmentRules } from '../segments/segments.types'
+import type { SegmentRuleObject, SegmentRules } from '../segments/segments.types'
 
 type JsonValue = Record<string, unknown> | null
 
@@ -65,6 +65,8 @@ const asRuleValue = (value: unknown, field: string): number | string => {
 
 const parseRules = (data: unknown): SegmentRules => {
   if (Array.isArray(data)) {
+    const objects = data.filter(isRecord) as SegmentRuleObject[]
+    if (objects.length > 0) return objects
     return data
       .filter((value) => typeof value === 'string')
       .map((value) => value.trim())
