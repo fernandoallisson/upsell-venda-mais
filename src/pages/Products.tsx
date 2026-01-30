@@ -124,7 +124,7 @@ const Products = () => {
   })
 
   // ✅ mesmo mecanismo expandir/recolher: EDITAR
-  const [isEditOpen, setIsEditOpen] = useState(true)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
@@ -234,7 +234,7 @@ const Products = () => {
     })
 
     // ✅ opcional (mesmo padrão que usamos em categorias): ao selecionar um produto, abre o painel de edição
-    setIsEditOpen(true)
+    setIsEditOpen(false)
   }, [selectedProduct])
 
   // ✅ ao recolher criar, limpa feedback
