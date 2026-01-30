@@ -7,56 +7,47 @@ const AUTH_ME_ENDPOINT = '/v1/auth/me'
 type JsonValue = Record<string, unknown> | null
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+// Aceita string/number e converte para string. Opcional: pode retornar null.
+const asNullableStringLike = (value: unknown, field: string): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+const asString = (value: unknown, field: string): string => {
+  if (typeof value === 'string') return value
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+const asNumber = (value: unknown, field: string): number => {
+  if (typeof value === 'number') return value
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+const asNullableString = (value: unknown, field: string): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
 
 const parseUser = (data: JsonValue): User => {
   if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: user')
 
-  const id = data.id
-  if (typeof id !== 'number') throw new ApiError('Resposta inválida do servidor: user.id')
-
-  const name = data.name
-  if (typeof name !== 'string') throw new ApiError('Resposta inválida do servidor: user.name')
-
-  const email = data.email
-  if (typeof email !== 'string') throw new ApiError('Resposta inválida do servidor: user.email')
-
-  const createdAt = data.created_at
-  if (typeof createdAt !== 'string') throw new ApiError('Resposta inválida do servidor: user.created_at')
-
-  const updatedAt = data.updated_at
-  if (typeof updatedAt !== 'string') throw new ApiError('Resposta inválida do servidor: user.updated_at')
-
-
-  const emailVerifiedAt =
-    data.email_verified_at === null || typeof data.email_verified_at === 'string'
-      ? data.email_verified_at
-      : null
-
-  const tenantId =
-  typeof data.tenant_id === 'string' || typeof data.tenant_id === 'number'
-    ? String(data.tenant_id)
-    : null
-
-  if (
-    typeof data.id !== 'number' ||
-    typeof data.name !== 'string' ||
-    typeof data.email !== 'string' ||
-    typeof data.created_at !== 'string' ||
-    typeof data.updated_at !== 'string' ||
-    tenantId === null
-  ) {
-    throw new ApiError('Resposta inválida do servidor')
-  }
-
   return {
-    id: data.id,
-    name: data.name,
-    email: data.email,
-    email_verified_at: emailVerifiedAt,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
-    tenant_id: tenantId,
+    id: asNumber(data.id, 'user.id'),
+    name: asString(data.name, 'user.name'),
+    email: asString(data.email, 'user.email'),
+    email_verified_at: asNullableString(
+      data.email_verified_at,
+      'user.email_verified_at',
+    ),
+    created_at: asString(data.created_at, 'user.created_at'),
+    updated_at: asString(data.updated_at, 'user.updated_at'),
+    // tenant_id no backend pode vir number/string (e às vezes null). Mantemos null se vier.
+    tenant_id: asNullableStringLike(data.tenant_id, 'user.tenant_id'),
   }
 }
 
