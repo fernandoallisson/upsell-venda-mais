@@ -701,24 +701,31 @@ const Segmentation = () => {
                   </p>
                   {selectedRules.length > 0 ? (
                     <div className="mt-3 space-y-2">
-                      {selectedRules.map(([ruleKey, rule]) => (
-                        <div
-                          key={ruleKey}
-                          className="flex flex-wrap items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600"
-                        >
-                          <div>
-                            <p className="font-semibold text-slate-800">
-                              {formatRuleLabel(ruleKey)}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              Operador {rule.operator}
-                            </p>
+                      {selectedRules.map(([ruleKey, rule]) => {
+                        const hasOperator = typeof rule.operator === 'string' && rule.operator.length > 0
+                        const hasValue = rule.value !== ''
+                      
+                        return (
+                          <div key={ruleKey} className="flex flex-wrap items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                            <div>
+                              <p className="font-semibold text-slate-800">{formatRuleLabel(ruleKey)}</p>
+                              {hasOperator ? (
+                                <p className="text-xs text-slate-500">Operador {rule.operator}</p>
+                              ) : (
+                                <p className="text-xs text-slate-500">Regra cadastrada</p>
+                              )}
+                            </div>
+                      
+                            {hasOperator && hasValue ? (
+                              <span className="text-sm font-semibold text-slate-700">
+                                {rule.operator} {rule.value}
+                              </span>
+                            ) : (
+                              <span className="text-xs font-semibold text-slate-500">—</span>
+                            )}
                           </div>
-                          <span className="text-sm font-semibold text-slate-700">
-                            {rule.operator} {rule.value}
-                          </span>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   ) : (
                     <p className="mt-3 text-sm text-slate-500">
