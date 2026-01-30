@@ -84,6 +84,9 @@ const Categories = () => {
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
 
+  // ✅ mesmo padrão do Segmentation: painel expandir/recolher para criação
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+
   const [createStatus, setCreateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -172,6 +175,13 @@ const Categories = () => {
     })
   }, [selectedCategory])
 
+  // ✅ opcional, mas segue a melhoria que comentei: ao recolher, limpa feedback de criação
+  useEffect(() => {
+    if (isCreateOpen) return
+    setCreateStatus('idle')
+    setCreateError(null)
+  }, [isCreateOpen])
+
   const totals = useMemo(() => {
     return categories.reduce(
       (acc) => {
@@ -206,6 +216,10 @@ const Categories = () => {
       await createCategory(payload)
       setCreateStatus('success')
       setCategoryForm({ name: '', external_id: '' })
+
+      // ✅ melhoria: fecha o painel após sucesso (igual sugestão do Segmentation)
+      setIsCreateOpen(false)
+
       fetchCategories(1)
     } catch (err) {
       const message =
@@ -345,63 +359,81 @@ const Categories = () => {
       {status === 'idle' && categories.length > 0 ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           <div className="space-y-6">
+            {/* ✅ painel expansível igual Segmentation */}
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <PlusCircle className="h-4 w-4 text-indigo-500" />
-                Nova categoria
-              </div>
-
-              <div className="mt-4 grid gap-4">
-                <label className="space-y-2 text-sm text-slate-600">
-                  <span>Nome</span>
-                  <input
-                    value={categoryForm.name}
-                    onChange={(event) =>
-                      setCategoryForm((prev) => ({
-                        ...prev,
-                        name: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                    placeholder="Ex: Eletrônicos"
-                  />
-                </label>
-                <label className="space-y-2 text-sm text-slate-600">
-                  <span>External ID</span>
-                  <input
-                    value={categoryForm.external_id}
-                    onChange={(event) =>
-                      setCategoryForm((prev) => ({
-                        ...prev,
-                        external_id: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                    placeholder="cat-eletronicos-001"
-                  />
-                </label>
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleCreateCategory}
-                    disabled={!isCreateValid || createStatus === 'loading'}
-                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Tag className="h-4 w-4" />
-                    Criar categoria
-                  </button>
-                  {createStatus === 'success' ? (
-                    <span className="text-xs font-semibold text-emerald-600">
-                      Categoria criada!
-                    </span>
-                  ) : null}
-                  {createStatus === 'error' ? (
-                    <span className="text-xs font-semibold text-rose-600">
-                      {createError}
-                    </span>
-                  ) : null}
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <PlusCircle className="h-4 w-4 text-indigo-500" />
+                  Nova categoria
                 </div>
-              </div>
+                <span className="text-xs font-semibold text-indigo-600">
+                  {isCreateOpen ? 'Recolher' : 'Expandir'}
+                </span>
+              </button>
+
+              {isCreateOpen ? (
+                <>
+                  <div className="mt-4 grid gap-4">
+                    <label className="space-y-2 text-sm text-slate-600">
+                      <span>Nome</span>
+                      <input
+                        value={categoryForm.name}
+                        onChange={(event) =>
+                          setCategoryForm((prev) => ({
+                            ...prev,
+                            name: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        placeholder="Ex: Eletrônicos"
+                      />
+                    </label>
+
+                    <label className="space-y-2 text-sm text-slate-600">
+                      <span>External ID</span>
+                      <input
+                        value={categoryForm.external_id}
+                        onChange={(event) =>
+                          setCategoryForm((prev) => ({
+                            ...prev,
+                            external_id: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        placeholder="cat-eletronicos-001"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCreateCategory}
+                      disabled={!isCreateValid || createStatus === 'loading'}
+                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Tag className="h-4 w-4" />
+                      Criar categoria
+                    </button>
+
+                    {createStatus === 'success' ? (
+                      <span className="text-xs font-semibold text-emerald-600">
+                        Categoria criada!
+                      </span>
+                    ) : null}
+
+                    {createStatus === 'error' ? (
+                      <span className="text-xs font-semibold text-rose-600">
+                        {createError}
+                      </span>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -439,7 +471,9 @@ const Categories = () => {
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                         <span>Criado em {formatDate(category.created_at)}</span>
-                        <span>Atualizado em {formatDate(category.updated_at)}</span>
+                        <span>
+                          Atualizado em {formatDate(category.updated_at)}
+                        </span>
                       </div>
                     </button>
                   )
