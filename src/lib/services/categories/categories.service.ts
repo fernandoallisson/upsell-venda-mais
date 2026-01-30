@@ -34,6 +34,19 @@ const asNullableNumber = (value: unknown, field: string): number | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNullableStringLike = (value: unknown, field: string): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+const asStringLike = (value: unknown, field: string): string => {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
 const asString = (value: unknown, field: string): string => {
   if (typeof value === 'string') return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
@@ -56,8 +69,8 @@ const parseCategory = (data: unknown): Category => {
 
   return {
     id: asNumber(data.id, 'category.id'),
-    tenant_id: asString(data.tenant_id, 'category.tenant_id'),
-    external_id: asString(data.external_id, 'category.external_id'),
+    tenant_id: asStringLike(data.tenant_id, 'category.tenant_id'),
+    external_id: asStringLike(data.external_id, 'category.external_id'),
     name: asString(data.name, 'category.name'),
     created_at: asString(data.created_at, 'category.created_at'),
     updated_at: asString(data.updated_at, 'category.updated_at'),
