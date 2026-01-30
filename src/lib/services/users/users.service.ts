@@ -20,11 +20,11 @@ const parseUser = (data: JsonValue): User => {
       : null
 
   
-  const tenantId = data.tenant_id === null || data.tenant_id === undefined
-    ? null
-    : typeof data.tenant_id === 'string' || typeof data.tenant_id === 'number'
-      ? String(data.tenant_id)
-      : null
+  const emailVerifiedAt =
+  data.email_verified_at === null || typeof data.email_verified_at === 'string'
+    ? data.email_verified_at
+    : null
+
 
 
   if (
