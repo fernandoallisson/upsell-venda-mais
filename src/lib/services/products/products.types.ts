@@ -11,7 +11,7 @@ export type Product = {
   id: number
   tenant_id: string
   category_id: number | null
-  external_id: string
+  external_id: string | null
   sku: string
   name: string
   image_url: string
