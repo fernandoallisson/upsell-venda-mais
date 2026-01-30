@@ -46,7 +46,6 @@ const parseUser = (data: JsonValue): User => {
     created_at: data.created_at,
     updated_at: data.updated_at,
     tenant_id: tenantId,
-
   }
 }
 
