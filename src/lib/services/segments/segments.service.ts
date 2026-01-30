@@ -6,7 +6,6 @@ import type {
   SegmentsResponse,
   UpdateSegmentPayload,
   SegmentRules,
-  SegmentRuleObject,
 } from './segments.types'
 
 type JsonValue = Record<string, unknown> | null
@@ -78,8 +77,6 @@ const parseRule = (data: unknown, field: string): SegmentRule => {
  */
 const parseRules = (data: unknown): SegmentRules => {
   if (Array.isArray(data)) {
-    const objects = data.filter(isRecord) as SegmentRuleObject[]
-    if (objects.length > 0) return objects
     return data
       .filter((v) => typeof v === 'string')
       .map((v) => v.trim())

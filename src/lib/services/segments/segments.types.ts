@@ -3,15 +3,7 @@ export type SegmentRule = {
   operator: string
 }
 
-export type SegmentRuleObject = {
-  filter: string
-  [key: string]: unknown
-}
-
-export type SegmentRules =
-  | Record<string, SegmentRule>
-  | string[]
-  | SegmentRuleObject[]
+export type SegmentRules = Record<string, SegmentRule> | string[]
 
 export type Segment = {
   id: number
