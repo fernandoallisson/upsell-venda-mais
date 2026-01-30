@@ -188,7 +188,7 @@ const Segmentation = () => {
     if (!selectedSegment) return
     setEditForm({
       name: selectedSegment.name,
-      rules: Object.keys(selectedSegment.rules).join(', '),
+      rules: rulesKeysForEdit(selectedSegment.rules).join(', '),
     })
     setIsEditOpen(false)
   }, [selectedSegment])
