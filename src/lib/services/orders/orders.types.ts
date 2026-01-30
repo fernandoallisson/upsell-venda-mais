@@ -5,8 +5,8 @@ export type OrderPreferences = {
 
 export type OrderCustomer = {
   id: number
-  tenant_id: string
-  external_id: string
+  tenant_id: string | null
+  external_id: string | null
   email: string
   phone: string
   first_name: string
