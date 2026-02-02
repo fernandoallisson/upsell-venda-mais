@@ -66,6 +66,6 @@ export type CustomerPayload = {
   phone: string
   first_name: string
   last_name: string
-  preferences: string[]
+  preferences: CustomerPreferences
   segments: string[]
 }
