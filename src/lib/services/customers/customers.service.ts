@@ -30,6 +30,17 @@ const asNullableString = (value: unknown, field: string): string | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNumberLike = (value: unknown, field: string): number => {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (!Number.isNaN(parsed)) return parsed
+  }
+  if (value === null || value === undefined) return 0
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+
 const asNullableNumber = (value: unknown, field: string): number | null => {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') return value
@@ -150,7 +161,7 @@ const parseCustomer = (data: unknown): Customer => {
     phone: asString(data.phone, 'customer.phone'),
     first_name: asString(data.first_name, 'customer.first_name'),
     last_name: asString(data.last_name, 'customer.last_name'),
-    total_orders_count: asNumber(data.total_orders_count, 'customer.total_orders_count'),
+    total_orders_count: asNumberLike(data.total_orders_count,'customer.total_orders_count'),
     lifetime_value: asString(data.lifetime_value, 'customer.lifetime_value'),
     average_ticket: asString(data.average_ticket, 'customer.average_ticket'),
     last_purchase_at: asString(data.last_purchase_at, 'customer.last_purchase_at'),
