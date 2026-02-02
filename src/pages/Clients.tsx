@@ -202,19 +202,12 @@ const Clients = () => {
         }
 
         setStatus('idle')
-} catch (err) {
-  console.error('Erro getCustomers:', err)
-
-  const message =
-    err instanceof ApiError
-      ? err.message
-      : err instanceof Error
-        ? err.message
-        : 'Erro ao carregar clientes.'
-
-  setError(message)
-  setStatus('error')
-}
+              } catch (err) {
+        const message =
+          err instanceof ApiError ? err.message : 'Erro ao carregar clientes.'
+        setError(message)
+        setStatus('error')
+      }
     },
     [fetchCustomerDetails, page],
   )
