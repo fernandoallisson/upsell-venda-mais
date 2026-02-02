@@ -46,6 +46,27 @@ const asNullableStringLike = (value: unknown, field: string): string | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNumberLikeLoose = (value: unknown, field: string): number => {
+  if (typeof value === 'number') return value
+
+  if (typeof value === 'boolean') return value ? 1 : 0
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return 0
+
+    // remove tudo que não for dígito, ponto ou sinal
+    const cleaned = trimmed.replace(/[^\d.-]/g, '')
+    const parsed = Number(cleaned)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  if (value === null || value === undefined) return 0
+
+  // se vier objeto/array/qualquer coisa, não quebra a tela
+  return 0
+}
+
 const asString = (value: unknown, field: string): string => {
   if (typeof value === 'string') return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
@@ -164,7 +185,10 @@ const parseCustomer = (data: unknown): Customer => {
     first_name: asString(data.first_name, 'customer.first_name'),
     last_name: asString(data.last_name, 'customer.last_name'),
 
-    total_orders_count: asNumberLike(data.total_orders_count, 'customer.total_orders_count'),
+    total_orders_count: asNumberLikeLoose(
+      (data as any).total_orders_count,
+      'customer.total_orders_count',
+    ),
 
     lifetime_value: asString(data.lifetime_value, 'customer.lifetime_value'),
     average_ticket: asString(data.average_ticket, 'customer.average_ticket'),
