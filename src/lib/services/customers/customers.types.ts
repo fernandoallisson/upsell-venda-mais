@@ -28,7 +28,7 @@ export type Customer = {
   total_orders_count: number
   lifetime_value: string
   average_ticket: string
-  last_purchase_at: string
+  last_purchase_at: string | null
   lifecycle_stage: string
   preferences: CustomerPreferences
   created_at: string
