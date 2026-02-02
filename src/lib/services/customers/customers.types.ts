@@ -46,7 +46,6 @@ export type PaginationLink = {
 export type CustomersResponse = {
   current_page: number
   data: Customer[]
-
   first_page_url: string
   from: number | null
   last_page: number
@@ -67,5 +66,5 @@ export type CustomerPayload = {
   first_name: string
   last_name: string
   preferences: CustomerPreferences
-  segments: number[]
+  segments: number[] // <- envia como número, que é o mais seguro pro backend
 }
