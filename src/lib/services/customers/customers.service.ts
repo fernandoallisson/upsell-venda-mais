@@ -256,6 +256,7 @@ export const getCustomerById = async (id: number): Promise<Customer> => {
 }
 
 export const createCustomer = async (payload: CustomerPayload): Promise<Customer> => {
+  console.log('SERVICE createCustomer payload >>>', payload)
   const data = await apiFetch<JsonValue>(CUSTOMERS_ENDPOINT, {
     method: 'POST',
     auth: true,
