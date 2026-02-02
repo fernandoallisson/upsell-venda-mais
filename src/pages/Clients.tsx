@@ -45,7 +45,8 @@ const formatCurrency = (value: string, currency: string) => {
   }).format(number)
 }
 
-const formatDate = (value: string) => {
+const formatDate = (value: string | null) => {
+  if (!value) return '—'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
   return parsed.toLocaleString('pt-BR')
@@ -95,16 +96,6 @@ const formatLifecycleStage = (value: string) =>
   value
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (match) => match.toUpperCase())
-
-const buildPreferencesList = (preferences: {
-  sms: boolean
-  newsletter: boolean
-}) => {
-  const list: string[] = []
-  if (preferences.sms) list.push('sms')
-  if (preferences.newsletter) list.push('newsletter')
-  return list
-}
 
 const Clients = () => {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -295,6 +286,9 @@ const Clients = () => {
     })
   }
 
+  const toNumberSegments = (ids: string[]) =>
+    ids.map((id) => Number(id)).filter((n) => Number.isFinite(n))
+
   const handleCreateCustomer = async () => {
     setCreateStatus('loading')
     setCreateError(null)
@@ -305,8 +299,8 @@ const Clients = () => {
       phone: customerForm.phone.trim(),
       first_name: customerForm.first_name.trim(),
       last_name: customerForm.last_name.trim(),
-      preferences: buildPreferencesList(customerForm.preferences),
-      segments: customerForm.segments,
+      preferences: customerForm.preferences,
+      segments: toNumberSegments(customerForm.segments),
     }
 
     try {
@@ -346,8 +340,8 @@ const Clients = () => {
       phone: editForm.phone.trim(),
       first_name: editForm.first_name.trim(),
       last_name: editForm.last_name.trim(),
-      preferences: buildPreferencesList(editForm.preferences),
-      segments: editForm.segments,
+      preferences: editForm.preferences,
+      segments: toNumberSegments(editForm.segments),
     }
 
     try {
@@ -806,36 +800,16 @@ const Clients = () => {
 
               {detailStatus !== 'loading' && selectedCustomer ? (
                 <>
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500">
-                        Cliente selecionado
-                      </p>
-                      <h3 className="text-xl font-semibold text-slate-900">
-                        {selectedCustomer.first_name} {selectedCustomer.last_name}
-                      </h3>
-                      <p className="text-sm text-slate-500">
-                        {formatLifecycleStage(selectedCustomer.lifecycle_stage)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsEditOpen((prev) => !prev)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        {isEditOpen ? 'Recolher edição' : 'Editar'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDeleteCustomer}
-                        className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:border-rose-300"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Remover
-                      </button>
-                    </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500">
+                      Cliente selecionado
+                    </p>
+                    <h3 className="text-xl font-semibold text-slate-900">
+                      {selectedCustomer.first_name} {selectedCustomer.last_name}
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      {formatLifecycleStage(selectedCustomer.lifecycle_stage)}
+                    </p>
                   </div>
 
                   <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -923,6 +897,220 @@ const Clients = () => {
                       )}
                     </div>
                   </div>
+
+                  <div className="mt-6 rounded-xl border border-slate-200 p-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditOpen((prev) => !prev)}
+                      className="flex w-full items-center justify-between text-left"
+                    >
+                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <Pencil className="h-4 w-4 text-indigo-500" />
+                        Editar cliente
+                      </div>
+                      <span className="text-xs font-semibold text-indigo-600">
+                        {isEditOpen ? 'Recolher' : 'Expandir'}
+                      </span>
+                    </button>
+
+                    {isEditOpen ? (
+                      <>
+                        <div className="mt-4 grid gap-4">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <label className="space-y-2 text-sm text-slate-600">
+                              <span>Primeiro nome</span>
+                              <input
+                                value={editForm.first_name}
+                                onChange={(event) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    first_name: event.target.value,
+                                  }))
+                                }
+                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                              />
+                            </label>
+
+                            <label className="space-y-2 text-sm text-slate-600">
+                              <span>Sobrenome</span>
+                              <input
+                                value={editForm.last_name}
+                                onChange={(event) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    last_name: event.target.value,
+                                  }))
+                                }
+                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                              />
+                            </label>
+                          </div>
+
+                          <label className="space-y-2 text-sm text-slate-600">
+                            <span>Email</span>
+                            <input
+                              type="email"
+                              value={editForm.email}
+                              onChange={(event) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  email: event.target.value,
+                                }))
+                              }
+                              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                            />
+                          </label>
+
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <label className="space-y-2 text-sm text-slate-600">
+                              <span>Telefone</span>
+                              <input
+                                value={editForm.phone}
+                                onChange={(event) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    phone: event.target.value,
+                                  }))
+                                }
+                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                              />
+                            </label>
+                            <label className="space-y-2 text-sm text-slate-600">
+                              <span>External ID (opcional)</span>
+                              <input
+                                value={editForm.external_id}
+                                onChange={(event) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    external_id: event.target.value,
+                                  }))
+                                }
+                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                              />
+                            </label>
+                          </div>
+
+                          <div className="space-y-3">
+                            <p className="text-sm font-semibold text-slate-700">
+                              Preferências
+                            </p>
+                            <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={editForm.preferences.sms}
+                                  onChange={(event) =>
+                                    setEditForm((prev) => ({
+                                      ...prev,
+                                      preferences: {
+                                        ...prev.preferences,
+                                        sms: event.target.checked,
+                                      },
+                                    }))
+                                  }
+                                  className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                                />
+                                SMS
+                              </label>
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={editForm.preferences.newsletter}
+                                  onChange={(event) =>
+                                    setEditForm((prev) => ({
+                                      ...prev,
+                                      preferences: {
+                                        ...prev.preferences,
+                                        newsletter: event.target.checked,
+                                      },
+                                    }))
+                                  }
+                                  className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                                />
+                                Newsletter
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <p className="text-sm font-semibold text-slate-700">
+                              Segmentos vinculados
+                            </p>
+                            {segments.length === 0 ? (
+                              <p className="text-xs text-slate-400">
+                                Nenhum segmento disponível para seleção.
+                              </p>
+                            ) : (
+                              <div className="grid gap-2 md:grid-cols-2">
+                                {segments.map((segment) => (
+                                  <label
+                                    key={segment.id}
+                                    className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={editForm.segments.includes(
+                                        String(segment.id),
+                                      )}
+                                      onChange={() =>
+                                        toggleSegment(
+                                          String(segment.id),
+                                          setEditForm,
+                                        )
+                                      }
+                                      className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                                    />
+                                    {segment.name}
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={handleUpdateCustomer}
+                            disabled={!isFormValid(editForm) || updateStatus === 'loading'}
+                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Atualizar cliente
+                          </button>
+
+                          {updateStatus === 'success' ? (
+                            <span className="text-xs font-semibold text-emerald-600">
+                              Cliente atualizado!
+                            </span>
+                          ) : null}
+                          {updateStatus === 'error' ? (
+                            <span className="text-xs font-semibold text-rose-600">
+                              {updateError}
+                            </span>
+                          ) : null}
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
+                      <Trash2 className="h-4 w-4" />
+                      Remover cliente
+                    </div>
+                    <p className="mt-2 text-xs text-rose-600">
+                      Esta ação é irreversível e remove o cliente do CRM.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleDeleteCustomer}
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir cliente
+                    </button>
+                  </div>
                 </>
               ) : null}
 
@@ -932,204 +1120,6 @@ const Clients = () => {
                 </div>
               ) : null}
             </section>
-
-            {selectedCustomer ? (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setIsEditOpen((prev) => !prev)}
-                  className="flex w-full items-center justify-between text-left"
-                >
-                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                    <Pencil className="h-4 w-4 text-indigo-500" />
-                    Editar cliente
-                  </div>
-                  <span className="text-xs font-semibold text-indigo-600">
-                    {isEditOpen ? 'Recolher' : 'Expandir'}
-                  </span>
-                </button>
-
-                {isEditOpen ? (
-                  <>
-                    <div className="mt-4 grid gap-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="space-y-2 text-sm text-slate-600">
-                          <span>Primeiro nome</span>
-                          <input
-                            value={editForm.first_name}
-                            onChange={(event) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                first_name: event.target.value,
-                              }))
-                            }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                          />
-                        </label>
-
-                        <label className="space-y-2 text-sm text-slate-600">
-                          <span>Sobrenome</span>
-                          <input
-                            value={editForm.last_name}
-                            onChange={(event) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                last_name: event.target.value,
-                              }))
-                            }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                          />
-                        </label>
-                      </div>
-
-                      <label className="space-y-2 text-sm text-slate-600">
-                        <span>Email</span>
-                        <input
-                          type="email"
-                          value={editForm.email}
-                          onChange={(event) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              email: event.target.value,
-                            }))
-                          }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                        />
-                      </label>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="space-y-2 text-sm text-slate-600">
-                          <span>Telefone</span>
-                          <input
-                            value={editForm.phone}
-                            onChange={(event) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                phone: event.target.value,
-                              }))
-                            }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                          />
-                        </label>
-                        <label className="space-y-2 text-sm text-slate-600">
-                          <span>External ID (opcional)</span>
-                          <input
-                            value={editForm.external_id}
-                            onChange={(event) =>
-                              setEditForm((prev) => ({
-                                ...prev,
-                                external_id: event.target.value,
-                              }))
-                            }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                          />
-                        </label>
-                      </div>
-
-                      <div className="space-y-3">
-                        <p className="text-sm font-semibold text-slate-700">
-                          Preferências
-                        </p>
-                        <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={editForm.preferences.sms}
-                              onChange={(event) =>
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  preferences: {
-                                    ...prev.preferences,
-                                    sms: event.target.checked,
-                                  },
-                                }))
-                              }
-                              className="h-4 w-4 rounded border-slate-300 text-indigo-600"
-                            />
-                            SMS
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={editForm.preferences.newsletter}
-                              onChange={(event) =>
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  preferences: {
-                                    ...prev.preferences,
-                                    newsletter: event.target.checked,
-                                  },
-                                }))
-                              }
-                              className="h-4 w-4 rounded border-slate-300 text-indigo-600"
-                            />
-                            Newsletter
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <p className="text-sm font-semibold text-slate-700">
-                          Segmentos vinculados
-                        </p>
-                        {segments.length === 0 ? (
-                          <p className="text-xs text-slate-400">
-                            Nenhum segmento disponível para seleção.
-                          </p>
-                        ) : (
-                          <div className="grid gap-2 md:grid-cols-2">
-                            {segments.map((segment) => (
-                              <label
-                                key={segment.id}
-                                className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={editForm.segments.includes(
-                                    String(segment.id),
-                                  )}
-                                  onChange={() =>
-                                    toggleSegment(
-                                      String(segment.id),
-                                      setEditForm,
-                                    )
-                                  }
-                                  className="h-4 w-4 rounded border-slate-300 text-indigo-600"
-                                />
-                                {segment.name}
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={handleUpdateCustomer}
-                        disabled={!isFormValid(editForm) || updateStatus === 'loading'}
-                        className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Atualizar cliente
-                      </button>
-
-                      {updateStatus === 'success' ? (
-                        <span className="text-xs font-semibold text-emerald-600">
-                          Cliente atualizado!
-                        </span>
-                      ) : null}
-                      {updateStatus === 'error' ? (
-                        <span className="text-xs font-semibold text-rose-600">
-                          {updateError}
-                        </span>
-                      ) : null}
-                    </div>
-                  </>
-                ) : null}
-              </section>
-            ) : null}
           </div>
         </div>
       ) : null}

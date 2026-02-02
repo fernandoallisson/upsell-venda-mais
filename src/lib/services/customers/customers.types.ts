@@ -28,7 +28,7 @@ export type Customer = {
   total_orders_count: number
   lifetime_value: string
   average_ticket: string
-  last_purchase_at: string
+  last_purchase_at: string | null
   lifecycle_stage: string
   preferences: CustomerPreferences
   created_at: string
@@ -46,7 +46,6 @@ export type PaginationLink = {
 export type CustomersResponse = {
   current_page: number
   data: Customer[]
-
   first_page_url: string
   from: number | null
   last_page: number
@@ -66,6 +65,6 @@ export type CustomerPayload = {
   phone: string
   first_name: string
   last_name: string
-  preferences: string[]
-  segments: string[]
+  preferences: CustomerPreferences
+  segments: number[] // <- envia como número, que é o mais seguro pro backend
 }
