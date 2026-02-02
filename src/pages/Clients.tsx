@@ -45,11 +45,13 @@ const formatCurrency = (value: string, currency: string) => {
   }).format(number)
 }
 
-const formatDate = (value: string) => {
+const formatDate = (value: string | null) => {
+  if (!value) return '—'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
   return parsed.toLocaleString('pt-BR')
 }
+
 
 type PaginationMeta = Pick<
   CustomersResponse,
