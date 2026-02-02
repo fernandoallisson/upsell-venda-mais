@@ -85,7 +85,7 @@ const parseRules = (data: unknown): SegmentRules => {
 }
 
 const parsePreferences = (data: unknown): CustomerPreferences => {
-  // quando o backend não manda nada
+  // não veio nada
   if (data === null || data === undefined) {
     return { sms: false, newsletter: false }
   }
@@ -101,14 +101,16 @@ const parsePreferences = (data: unknown): CustomerPreferences => {
 
   // formato: { sms: boolean, newsletter: boolean }
   if (isRecord(data)) {
-    const sms = typeof data.sms === 'boolean' ? data.sms : false
-    const newsletter = typeof data.newsletter === 'boolean' ? data.newsletter : false
-
-    return { sms, newsletter }
+    return {
+      sms: typeof data.sms === 'boolean' ? data.sms : false,
+      newsletter: typeof data.newsletter === 'boolean' ? data.newsletter : false,
+    }
   }
 
-  throw new ApiError('Resposta inválida do servidor: preferences')
+  // qualquer outro formato inesperado
+  return { sms: false, newsletter: false }
 }
+
 
 
 const parseSegment = (data: unknown): CustomerSegment => {
