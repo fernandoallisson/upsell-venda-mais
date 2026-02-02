@@ -52,7 +52,6 @@ const formatDate = (value: string | null) => {
   return parsed.toLocaleString('pt-BR')
 }
 
-
 type PaginationMeta = Pick<
   CustomersResponse,
   | 'current_page'
@@ -194,7 +193,7 @@ const Clients = () => {
         }
 
         setStatus('idle')
-              } catch (err) {
+      } catch (err) {
         const message =
           err instanceof ApiError ? err.message : 'Erro ao carregar clientes.'
         setError(message)
@@ -287,6 +286,9 @@ const Clients = () => {
     })
   }
 
+  const toNumberSegments = (ids: string[]) =>
+    ids.map((id) => Number(id)).filter((n) => Number.isFinite(n))
+
   const handleCreateCustomer = async () => {
     setCreateStatus('loading')
     setCreateError(null)
@@ -298,10 +300,8 @@ const Clients = () => {
       first_name: customerForm.first_name.trim(),
       last_name: customerForm.last_name.trim(),
       preferences: customerForm.preferences,
-      segments: customerForm.segments
-      .map((id) => Number(id))
-      .filter((id) => Number.isFinite(id)),
-  }
+      segments: toNumberSegments(customerForm.segments),
+    }
 
     try {
       await createCustomer(payload)
@@ -341,9 +341,7 @@ const Clients = () => {
       first_name: editForm.first_name.trim(),
       last_name: editForm.last_name.trim(),
       preferences: editForm.preferences,
-      segments: editForm.segments
-        .map((id) => Number(id))
-        .filter((id) => Number.isFinite(id)),
+      segments: toNumberSegments(editForm.segments),
     }
 
     try {
@@ -1122,7 +1120,6 @@ const Clients = () => {
                 </div>
               ) : null}
             </section>
-
           </div>
         </div>
       ) : null}
