@@ -12,3 +12,9 @@ export type OfferAnalytics = {
 export type OffersAnalyticsResponse = {
   data: OfferAnalytics[]
 }
+
+export type AnalyticsOverviewResponse = {
+  orders_count: number
+  revenue: string
+  avg_ticket: string
+}
