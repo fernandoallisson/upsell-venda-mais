@@ -214,7 +214,8 @@ const Clients = () => {
 
   setError(message)
   setStatus('error')
-},
+}
+    },
     [fetchCustomerDetails, page],
   )
 
