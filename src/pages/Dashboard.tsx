@@ -5,11 +5,18 @@ import {
   Eye,
   MousePointer,
   Percent,
+  ShoppingCart,
   TrendingUp,
 } from 'lucide-react'
 import { ApiError } from '../lib/api'
-import { getOffersAnalytics } from '../lib/services/analytics/analytics.service'
-import type { OfferAnalytics } from '../lib/services/analytics/analytics.types'
+import {
+  getAnalyticsOverview,
+  getOffersAnalytics,
+} from '../lib/services/analytics/analytics.service'
+import type {
+  AnalyticsOverviewResponse,
+  OfferAnalytics,
+} from '../lib/services/analytics/analytics.types'
 import { logout } from '../lib/services/auth/auth.service'
 import { getUser } from '../lib/services/users/users.service'
 import type { User } from '../lib/services/users/users.types'
@@ -32,6 +39,9 @@ const calcRate = (numerator: number, denominator: number) =>
 const Dashboard = () => {
   const { signOut } = useAuth()
   const [offers, setOffers] = useState<OfferAnalytics[]>([])
+  const [overview, setOverview] = useState<AnalyticsOverviewResponse | null>(
+    null,
+  )
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
@@ -45,8 +55,12 @@ const Dashboard = () => {
     setStatus('loading')
     setError(null)
     try {
-      const response = await getOffersAnalytics()
-      setOffers(response.data)
+      const [offersResponse, overviewResponse] = await Promise.all([
+        getOffersAnalytics(),
+        getAnalyticsOverview(),
+      ])
+      setOffers(offersResponse.data)
+      setOverview(overviewResponse)
       setStatus('idle')
     } catch (err) {
       const message =
@@ -199,6 +213,25 @@ const Dashboard = () => {
       {status === 'idle' && filteredOffers.length > 0 ? (
         <>
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {overview ? (
+              <>
+                <KpiCard
+                  title="Total de Pedidos"
+                  value={overview.orders_count.toLocaleString('pt-BR')}
+                  icon={<ShoppingCart className="h-5 w-5" />}
+                />
+                <KpiCard
+                  title="Receita de Pedidos"
+                  value={formatCurrency(Number(overview.revenue) || 0)}
+                  icon={<DollarSign className="h-5 w-5" />}
+                />
+                <KpiCard
+                  title="Ticket Médio"
+                  value={formatCurrency(Number(overview.avg_ticket) || 0)}
+                  icon={<TrendingUp className="h-5 w-5" />}
+                />
+              </>
+            ) : null}
             <KpiCard
               title="Total de Views"
               value={totals.views.toLocaleString('pt-BR')}

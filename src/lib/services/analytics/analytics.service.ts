@@ -1,5 +1,8 @@
 import { apiFetch } from '../../api'
-import type { OffersAnalyticsResponse } from './analytics.types'
+import type {
+  AnalyticsOverviewResponse,
+  OffersAnalyticsResponse,
+} from './analytics.types'
 
 export const getOffersAnalytics = async (): Promise<OffersAnalyticsResponse> =>
   apiFetch<OffersAnalyticsResponse>('/v1/analytics/offers', {
@@ -8,3 +11,12 @@ export const getOffersAnalytics = async (): Promise<OffersAnalyticsResponse> =>
     errorMessage: 'Erro ao carregar métricas de ofertas',
     networkErrorMessage: 'Falha de rede ao carregar métricas de ofertas',
   })
+
+export const getAnalyticsOverview =
+  async (): Promise<AnalyticsOverviewResponse> =>
+    apiFetch<AnalyticsOverviewResponse>('/v1/analytics/overview', {
+      method: 'GET',
+      auth: true,
+      errorMessage: 'Erro ao carregar resumo do dashboard',
+      networkErrorMessage: 'Falha de rede ao carregar resumo do dashboard',
+    })
