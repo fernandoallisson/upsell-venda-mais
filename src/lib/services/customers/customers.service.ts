@@ -111,12 +111,6 @@ const parsePreferences = (data: unknown): CustomerPreferences => {
 }
 
 
-  return {
-    sms: asBoolean(data.sms, 'preferences.sms'),
-    newsletter: asBoolean(data.newsletter, 'preferences.newsletter'),
-  }
-}
-
 const parseSegment = (data: unknown): CustomerSegment => {
   if (!isRecord(data)) {
     throw new ApiError('Resposta inválida do servidor: segment')
