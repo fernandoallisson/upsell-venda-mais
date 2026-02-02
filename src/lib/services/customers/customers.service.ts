@@ -174,7 +174,7 @@ const parseCustomer = (raw: unknown): Customer => {
     lifetime_value: asStringOrEmpty(data.lifetime_value),
     average_ticket: asStringOrEmpty(data.average_ticket),
 
-    last_purchase_at: asNullableString(data.last_purchase_at, 'customer.last_purchase_at') ?? null,
+    last_purchase_at: asNullableDateLike(data.last_purchase_at),
 
     lifecycle_stage: asStringOrEmpty(data.lifecycle_stage),
     preferences: parsePreferences(data.preferences),
