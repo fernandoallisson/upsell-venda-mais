@@ -57,11 +57,6 @@ const asStringOrEmpty = (value: unknown, field: string): string => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
-const asNumber = (value: unknown, field: string): number => {
-  if (typeof value === 'number') return value
-  throw new ApiError(`Resposta inválida do servidor: ${field}`)
-}
-
 const asNumberLike = (value: unknown, field: string): number => {
   if (typeof value === 'number') return value
   if (typeof value === 'string') {
