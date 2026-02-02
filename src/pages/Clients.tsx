@@ -96,16 +96,6 @@ const formatLifecycleStage = (value: string) =>
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (match) => match.toUpperCase())
 
-const buildPreferencesList = (preferences: {
-  sms: boolean
-  newsletter: boolean
-}) => {
-  const list: string[] = []
-  if (preferences.sms) list.push('sms')
-  if (preferences.newsletter) list.push('newsletter')
-  return list
-}
-
 const Clients = () => {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
@@ -305,7 +295,7 @@ const Clients = () => {
       phone: customerForm.phone.trim(),
       first_name: customerForm.first_name.trim(),
       last_name: customerForm.last_name.trim(),
-      preferences: buildPreferencesList(customerForm.preferences),
+      preferences: customerForm.preferences,
       segments: customerForm.segments,
     }
 
@@ -346,7 +336,7 @@ const Clients = () => {
       phone: editForm.phone.trim(),
       first_name: editForm.first_name.trim(),
       last_name: editForm.last_name.trim(),
-      preferences: buildPreferencesList(editForm.preferences),
+      preferences: editForm.preferences,
       segments: editForm.segments,
     }
 
