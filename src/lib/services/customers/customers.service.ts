@@ -21,6 +21,14 @@ const asString = (value: unknown, field: string): string => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNullableDateLike = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value) // timestamp, etc.
+  return null // não quebra se vier objeto/array/etc
+}
+
+
 const asStringOrEmpty = (value: unknown): string => {
   if (value === null || value === undefined) return ''
   if (typeof value === 'string') return value
