@@ -85,9 +85,31 @@ const parseRules = (data: unknown): SegmentRules => {
 }
 
 const parsePreferences = (data: unknown): CustomerPreferences => {
-  if (!isRecord(data)) {
-    throw new ApiError('Resposta inválida do servidor: preferences')
+  // quando o backend não manda nada
+  if (data === null || data === undefined) {
+    return { sms: false, newsletter: false }
   }
+
+  // formato: ["sms", "newsletter"]
+  if (Array.isArray(data)) {
+    const prefs = data.filter((v): v is string => typeof v === 'string')
+    return {
+      sms: prefs.includes('sms'),
+      newsletter: prefs.includes('newsletter'),
+    }
+  }
+
+  // formato: { sms: boolean, newsletter: boolean }
+  if (isRecord(data)) {
+    const sms = typeof data.sms === 'boolean' ? data.sms : false
+    const newsletter = typeof data.newsletter === 'boolean' ? data.newsletter : false
+
+    return { sms, newsletter }
+  }
+
+  throw new ApiError('Resposta inválida do servidor: preferences')
+}
+
 
   return {
     sms: asBoolean(data.sms, 'preferences.sms'),
