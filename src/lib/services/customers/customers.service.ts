@@ -9,7 +9,6 @@ import type {
 import type { SegmentRules } from '../segments/segments.types'
 
 type JsonValue = Record<string, unknown> | null
-
 type JsonArray = unknown[]
 
 const CUSTOMERS_ENDPOINT = '/v1/customers'
@@ -30,20 +29,13 @@ const asNullableString = (value: unknown, field: string): string | null => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
-const asNumberLike = (value: unknown, field: string): number => {
+const asNullableNumber = (value: unknown, field: string): number | null => {
+  if (value === null || value === undefined) return null
   if (typeof value === 'number') return value
   if (typeof value === 'string') {
     const parsed = Number(value)
     if (!Number.isNaN(parsed)) return parsed
   }
-  if (value === null || value === undefined) return 0
-  throw new ApiError(`Resposta inválida do servidor: ${field}`)
-}
-
-
-const asNullableNumber = (value: unknown, field: string): number | null => {
-  if (value === null || value === undefined) return null
-  if (typeof value === 'number') return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
@@ -59,8 +51,24 @@ const asString = (value: unknown, field: string): string => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asStringOrEmpty = (value: unknown, field: string): string => {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
 const asNumber = (value: unknown, field: string): number => {
   if (typeof value === 'number') return value
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+const asNumberLike = (value: unknown, field: string): number => {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (!Number.isNaN(parsed)) return parsed
+  }
+  if (value === null || value === undefined) return 0
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
@@ -87,19 +95,18 @@ const parseRules = (data: unknown): SegmentRules => {
   const parsed: Record<string, { value: number | string; operator: string }> = {}
   Object.entries(data).forEach(([key, value]) => {
     if (!isRecord(value)) return
+    // operator pode não vir em rules "soltos" - então só adiciona se tiver os campos
+    if (!('value' in value) || !('operator' in value)) return
     parsed[key] = {
-      value: asRuleValue(value.value, `rules.${key}.value`),
-      operator: asString(value.operator, `rules.${key}.operator`),
+      value: asRuleValue((value as any).value, `rules.${key}.value`),
+      operator: asString((value as any).operator, `rules.${key}.operator`),
     }
   })
   return parsed
 }
 
 const parsePreferences = (data: unknown): CustomerPreferences => {
-  // não veio nada
-  if (data === null || data === undefined) {
-    return { sms: false, newsletter: false }
-  }
+  if (data === null || data === undefined) return { sms: false, newsletter: false }
 
   // formato: ["sms", "newsletter"]
   if (Array.isArray(data)) {
@@ -118,11 +125,8 @@ const parsePreferences = (data: unknown): CustomerPreferences => {
     }
   }
 
-  // qualquer outro formato inesperado
   return { sms: false, newsletter: false }
 }
-
-
 
 const parseSegment = (data: unknown): CustomerSegment => {
   if (!isRecord(data)) {
@@ -132,15 +136,15 @@ const parseSegment = (data: unknown): CustomerSegment => {
   const pivot = isRecord(data.pivot) ? data.pivot : null
 
   return {
-    id: asNumber(data.id, 'segment.id'),
+    id: asNumberLike(data.id, 'segment.id'),
     name: asString(data.name, 'segment.name'),
     rules: parseRules(data.rules),
     created_at: asString(data.created_at, 'segment.created_at'),
     updated_at: asString(data.updated_at, 'segment.updated_at'),
     pivot: pivot
       ? {
-          customer_id: asNumber(pivot.customer_id, 'segment.pivot.customer_id'),
-          segment_id: asNumber(pivot.segment_id, 'segment.pivot.segment_id'),
+          customer_id: asNumberLike(pivot.customer_id, 'segment.pivot.customer_id'),
+          segment_id: asNumberLike(pivot.segment_id, 'segment.pivot.segment_id'),
         }
       : undefined,
   }
@@ -154,21 +158,31 @@ const parseCustomer = (data: unknown): Customer => {
   const segments = Array.isArray(data.segments) ? data.segments : ([] as JsonArray)
 
   return {
-    id: asNumber(data.id, 'customer.id'),
+    id: asNumberLike(data.id, 'customer.id'),
     tenant_id: asNullableStringLike(data.tenant_id, 'customer.tenant_id'),
     external_id: asNullableStringLike(data.external_id, 'customer.external_id'),
-    email: asString(data.email, 'customer.email'),
-    phone: asString(data.phone, 'customer.phone'),
+
+    // se o backend às vezes mandar null, isso não quebra a lista
+    email: asStringOrEmpty(data.email, 'customer.email'),
+    phone: asStringOrEmpty(data.phone, 'customer.phone'),
+
     first_name: asString(data.first_name, 'customer.first_name'),
     last_name: asString(data.last_name, 'customer.last_name'),
-    total_orders_count: asNumberLike(data.total_orders_count,'customer.total_orders_count'),
+
+    total_orders_count: asNumberLike(data.total_orders_count, 'customer.total_orders_count'),
+
     lifetime_value: asString(data.lifetime_value, 'customer.lifetime_value'),
     average_ticket: asString(data.average_ticket, 'customer.average_ticket'),
-    last_purchase_at: asString(data.last_purchase_at, 'customer.last_purchase_at'),
+
+    // pode vir null se nunca comprou
+    last_purchase_at: asNullableString(data.last_purchase_at, 'customer.last_purchase_at') ?? null,
+
     lifecycle_stage: asString(data.lifecycle_stage, 'customer.lifecycle_stage'),
     preferences: parsePreferences(data.preferences),
+
     created_at: asString(data.created_at, 'customer.created_at'),
     updated_at: asString(data.updated_at, 'customer.updated_at'),
+
     segments: segments.map(parseSegment),
   }
 }
@@ -178,12 +192,17 @@ const parsePaginationLink = (data: unknown): PaginationLink => {
     throw new ApiError('Resposta inválida do servidor: links')
   }
 
-  const page = data.page === null || typeof data.page === 'number' ? data.page : null
+  const page =
+    data.page === null || typeof data.page === 'number'
+      ? data.page
+      : typeof data.page === 'string'
+        ? Number(data.page)
+        : null
 
   return {
     url: asNullableString(data.url, 'links.url'),
     label: asString(data.label, 'links.label'),
-    page,
+    page: Number.isFinite(page as number) ? (page as number) : null,
     active: asBoolean(data.active, 'links.active'),
   }
 }
@@ -197,20 +216,20 @@ const parseCustomersResponse = (data: JsonValue): CustomersResponse => {
   const links = Array.isArray(data.links) ? data.links : ([] as JsonArray)
 
   return {
-    current_page: asNumber(data.current_page, 'current_page'),
+    current_page: asNumberLike(data.current_page, 'current_page'),
     data: items.map(parseCustomer),
 
     first_page_url: asString(data.first_page_url, 'first_page_url'),
     from: asNullableNumber(data.from, 'from'),
-    last_page: asNumber(data.last_page, 'last_page'),
+    last_page: asNumberLike(data.last_page, 'last_page'),
     last_page_url: asString(data.last_page_url, 'last_page_url'),
     links: links.map(parsePaginationLink),
     next_page_url: asNullableString(data.next_page_url, 'next_page_url'),
     path: asString(data.path, 'path'),
-    per_page: asNumber(data.per_page, 'per_page'),
+    per_page: asNumberLike(data.per_page, 'per_page'),
     prev_page_url: asNullableString(data.prev_page_url, 'prev_page_url'),
     to: asNullableNumber(data.to, 'to'),
-    total: asNumber(data.total, 'total'),
+    total: asNumberLike(data.total, 'total'),
   }
 }
 
