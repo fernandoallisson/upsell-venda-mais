@@ -21,13 +21,10 @@ const asString = (value: unknown, field: string): string => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
-const asNullableDateLike = (value: unknown): string | null => {
-  if (value === null || value === undefined) return null
-  if (typeof value === 'string') return value
-  if (typeof value === 'number') return String(value) // timestamp, etc.
-  return null // não quebra se vier objeto/array/etc
+const asBoolean = (value: unknown, field: string): boolean => {
+  if (typeof value === 'boolean') return value
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
-
 
 const asStringOrEmpty = (value: unknown): string => {
   if (value === null || value === undefined) return ''
@@ -43,18 +40,6 @@ const asNullableStringLike = (value: unknown): string | null => {
   return null
 }
 
-const asNullableString = (value: unknown, field: string): string | null => {
-  if (value === null || value === undefined) return null
-  if (typeof value === 'string') return value
-  throw new ApiError(`Resposta inválida do servidor: ${field}`)
-}
-
-const asBoolean = (value: unknown, field: string): boolean => {
-  if (typeof value === 'boolean') return value
-  throw new ApiError(`Resposta inválida do servidor: ${field}`)
-}
-
-// super tolerante: não quebra por causa de POST/PUT inconsistentes
 const asNumberLoose = (value: unknown): number => {
   if (typeof value === 'number' && Number.isFinite(value)) return value
 
@@ -71,30 +56,24 @@ const asNumberLoose = (value: unknown): number => {
 }
 
 const parseRules = (data: unknown): SegmentRules => {
-  // backend às vezes manda rules como array de strings
   if (Array.isArray(data)) {
     return data
-      .filter((value) => typeof value === 'string')
-      .map((value) => value.trim())
+      .filter((v) => typeof v === 'string')
+      .map((v) => v.trim())
       .filter(Boolean)
   }
 
   if (!isRecord(data)) return {}
 
   const parsed: Record<string, { value: number | string; operator: string }> = {}
-  Object.entries(data).forEach(([key, value]) => {
-    if (!isRecord(value)) return
-    if (!('value' in value) || !('operator' in value)) return
-
-    const ruleValue = (value as any).value
+  for (const [key, value] of Object.entries(data)) {
+    if (!isRecord(value)) continue
     const operator = (value as any).operator
-
-    if (typeof operator !== 'string') return
-    if (typeof ruleValue !== 'string' && typeof ruleValue !== 'number') return
-
-    parsed[key] = { value: ruleValue, operator }
-  })
-
+    const ruleValue = (value as any).value
+    if (typeof operator !== 'string') continue
+    if (typeof ruleValue !== 'string' && typeof ruleValue !== 'number') continue
+    parsed[key] = { operator, value: ruleValue }
+  }
   return parsed
 }
 
@@ -139,7 +118,6 @@ const parseSegment = (data: unknown): CustomerSegment => {
   }
 }
 
-// aceita diferentes envelopes: {data:{...}}, {customer:{...}} ou objeto direto
 const unwrapCustomer = (data: JsonValue): unknown => {
   if (!isRecord(data)) return data
   if (isRecord((data as any).data)) return (data as any).data
@@ -147,40 +125,45 @@ const unwrapCustomer = (data: JsonValue): unknown => {
   return data
 }
 
+// IMPORTANT: aqui NUNCA validamos last_purchase_at de forma estrita
 const parseCustomer = (raw: unknown): Customer => {
-  const data = isRecord(raw) ? raw : null
-  if (!data) throw new ApiError('Resposta inválida do servidor: customer')
+  if (!isRecord(raw)) throw new ApiError('Resposta inválida do servidor: customer')
 
-  const segmentsRaw = Array.isArray(data.segments) ? data.segments : ([] as JsonArray)
+  const segmentsRaw = Array.isArray(raw.segments) ? raw.segments : ([] as JsonArray)
 
-  // campos “essenciais” do seu UI
-  const firstName = asStringOrEmpty(data.first_name)
-  const lastName = asStringOrEmpty(data.last_name)
+  const lastPurchase =
+    raw.last_purchase_at === null || raw.last_purchase_at === undefined
+      ? null
+      : typeof raw.last_purchase_at === 'string'
+        ? raw.last_purchase_at
+        : typeof raw.last_purchase_at === 'number'
+          ? String(raw.last_purchase_at)
+          : null
 
   return {
-    id: asNumberLoose(data.id),
-    tenant_id: asNullableStringLike(data.tenant_id),
-    external_id: asNullableStringLike(data.external_id),
+    id: asNumberLoose(raw.id),
 
-    email: asStringOrEmpty(data.email),
-    phone: asStringOrEmpty(data.phone),
+    tenant_id: asNullableStringLike(raw.tenant_id),
+    external_id: asNullableStringLike(raw.external_id),
 
-    // não quebra se o POST vier “incompleto”
-    first_name: firstName,
-    last_name: lastName,
+    email: asStringOrEmpty(raw.email),
+    phone: asStringOrEmpty(raw.phone),
 
-    total_orders_count: asNumberLoose(data.total_orders_count),
+    first_name: asStringOrEmpty(raw.first_name),
+    last_name: asStringOrEmpty(raw.last_name),
 
-    lifetime_value: asStringOrEmpty(data.lifetime_value),
-    average_ticket: asStringOrEmpty(data.average_ticket),
+    total_orders_count: asNumberLoose(raw.total_orders_count),
 
-    last_purchase_at: asNullableDateLike(data.last_purchase_at),
+    lifetime_value: asStringOrEmpty(raw.lifetime_value),
+    average_ticket: asStringOrEmpty(raw.average_ticket),
 
-    lifecycle_stage: asStringOrEmpty(data.lifecycle_stage),
-    preferences: parsePreferences(data.preferences),
+    last_purchase_at: lastPurchase,
 
-    created_at: asStringOrEmpty(data.created_at),
-    updated_at: asStringOrEmpty(data.updated_at),
+    lifecycle_stage: asStringOrEmpty(raw.lifecycle_stage),
+    preferences: parsePreferences(raw.preferences),
+
+    created_at: asStringOrEmpty(raw.created_at),
+    updated_at: asStringOrEmpty(raw.updated_at),
 
     segments: segmentsRaw.map(parseSegment),
   }
@@ -212,18 +195,28 @@ const parseCustomersResponse = (data: JsonValue): CustomersResponse => {
 
   return {
     current_page: asNumberLoose(data.current_page),
-    data: items.map((item) => parseCustomer(item)),
+    data: items.map(parseCustomer),
 
     first_page_url: asString(data.first_page_url, 'first_page_url'),
-    from: data.from === null ? null : asNumberLoose(data.from),
+    from: data.from === null || data.from === undefined ? null : asNumberLoose(data.from),
     last_page: asNumberLoose(data.last_page),
     last_page_url: asString(data.last_page_url, 'last_page_url'),
     links: links.map(parsePaginationLink),
-    next_page_url: data.next_page_url === null ? null : asNullableString(data.next_page_url, 'next_page_url'),
+    next_page_url:
+      data.next_page_url === null || data.next_page_url === undefined
+        ? null
+        : typeof data.next_page_url === 'string'
+          ? data.next_page_url
+          : null,
     path: asString(data.path, 'path'),
     per_page: asNumberLoose(data.per_page),
-    prev_page_url: data.prev_page_url === null ? null : asNullableString(data.prev_page_url, 'prev_page_url'),
-    to: data.to === null ? null : asNumberLoose(data.to),
+    prev_page_url:
+      data.prev_page_url === null || data.prev_page_url === undefined
+        ? null
+        : typeof data.prev_page_url === 'string'
+          ? data.prev_page_url
+          : null,
+    to: data.to === null || data.to === undefined ? null : asNumberLoose(data.to),
     total: asNumberLoose(data.total),
   }
 }
