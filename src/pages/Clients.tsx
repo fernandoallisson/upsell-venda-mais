@@ -298,8 +298,10 @@ const Clients = () => {
       first_name: customerForm.first_name.trim(),
       last_name: customerForm.last_name.trim(),
       preferences: customerForm.preferences,
-      segments: customerForm.segments,
-    }
+      segments: customerForm.segments
+      .map((id) => Number(id))
+      .filter((id) => Number.isFinite(id)),
+  }
 
     try {
       await createCustomer(payload)
@@ -339,7 +341,9 @@ const Clients = () => {
       first_name: editForm.first_name.trim(),
       last_name: editForm.last_name.trim(),
       preferences: editForm.preferences,
-      segments: editForm.segments,
+      segments: editForm.segments
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id)),
     }
 
     try {
