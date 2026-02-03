@@ -147,6 +147,11 @@ const parseRules = (data: unknown): SegmentRules => {
 const unwrapSegment = (data: unknown): unknown => {
   if (!isRecord(data)) return data
   if (isRecord(data.segment)) return data.segment
+  const payload = data.data
+  if (isRecord(payload)) {
+    if (isRecord(payload.segment)) return payload.segment
+    return payload
+  }
   return data
 }
 
