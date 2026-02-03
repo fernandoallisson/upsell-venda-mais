@@ -8,6 +8,7 @@ import {
   PlusCircle,
   RefreshCcw,
   Tag,
+  Trash2,
   UserCircle2,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
@@ -95,6 +96,288 @@ const parseRulesInput = (value: string): SegmentRulesPayload | null => {
   }
 }
 
+type RuleFieldValues = {
+  days?: string
+  operator?: string
+  value?: string
+  booleanValue?: 'yes' | 'no'
+  product?: string
+  category?: string
+  text?: string
+  startDate?: string
+  endDate?: string
+  preferenceKey?: string
+  preferenceValue?: 'yes' | 'no'
+}
+
+type SegmentRuleDraft = {
+  id: string
+  category: string
+  filter: string
+  data: RuleFieldValues
+}
+
+type FilterDefinition = {
+  value: string
+  label: string
+  description: string
+  fields: Array<
+    | 'days'
+    | 'operatorValue'
+    | 'boolean'
+    | 'product'
+    | 'category'
+    | 'text'
+    | 'dateRange'
+    | 'preference'
+  >
+}
+
+type RuleCategoryDefinition = {
+  value: string
+  label: string
+  filters: FilterDefinition[]
+}
+
+const RULE_CATEGORIES: RuleCategoryDefinition[] = [
+  {
+    value: 'purchase_behavior',
+    label: 'Comportamento de Compra',
+    filters: [
+      {
+        value: 'last_purchase_within_days',
+        label: 'Última compra dentro de X dias',
+        description: 'Filtra clientes pela última compra recente.',
+        fields: ['days'],
+      },
+      {
+        value: 'inactive_days',
+        label: 'Inativo há X dias',
+        description: 'Identifica clientes sem compras recentes.',
+        fields: ['days'],
+      },
+      {
+        value: 'total_orders',
+        label: 'Total de pedidos',
+        description: 'Filtra pelo total de pedidos do cliente.',
+        fields: ['operatorValue'],
+      },
+      {
+        value: 'bought_upsell',
+        label: 'Comprou produto upsell',
+        description: 'Seleciona clientes que compraram um upsell.',
+        fields: ['boolean'],
+      },
+    ],
+  },
+  {
+    value: 'value_metrics',
+    label: 'Valor e Ticket',
+    filters: [
+      {
+        value: 'average_ticket',
+        label: 'Ticket Médio',
+        description: 'Filtra pelo ticket médio do cliente.',
+        fields: ['operatorValue'],
+      },
+      {
+        value: 'lifetime_value',
+        label: 'Lifetime Value (LTV)',
+        description: 'Filtra pelo valor total gerado pelo cliente.',
+        fields: ['operatorValue'],
+      },
+    ],
+  },
+  {
+    value: 'product_category',
+    label: 'Produtos e Categorias',
+    filters: [
+      {
+        value: 'bought_product',
+        label: 'Comprou produto específico',
+        description: 'Seleciona clientes que compraram um produto.',
+        fields: ['product'],
+      },
+      {
+        value: 'bought_category',
+        label: 'Comprou de categoria',
+        description: 'Seleciona clientes que compraram em uma categoria.',
+        fields: ['category'],
+      },
+    ],
+  },
+  {
+    value: 'utm_tracking',
+    label: 'Origem (UTM)',
+    filters: [
+      {
+        value: 'utm_source',
+        label: 'UTM Source',
+        description: 'Filtra pelo UTM Source utilizado.',
+        fields: ['text'],
+      },
+      {
+        value: 'utm_medium',
+        label: 'UTM Medium',
+        description: 'Filtra pelo UTM Medium utilizado.',
+        fields: ['text'],
+      },
+      {
+        value: 'utm_campaign',
+        label: 'UTM Campaign',
+        description: 'Filtra pelo UTM Campaign utilizado.',
+        fields: ['text'],
+      },
+    ],
+  },
+  {
+    value: 'date_range',
+    label: 'Período de Cadastro/Pedido',
+    filters: [
+      {
+        value: 'registered_between',
+        label: 'Cadastrado entre datas',
+        description: 'Filtra clientes cadastrados dentro do período.',
+        fields: ['dateRange'],
+      },
+      {
+        value: 'ordered_between',
+        label: 'Fez pedido entre datas',
+        description: 'Filtra clientes com pedidos no período.',
+        fields: ['dateRange'],
+      },
+    ],
+  },
+  {
+    value: 'customer_data',
+    label: 'Dados do Cliente',
+    filters: [
+      {
+        value: 'has_email',
+        label: 'Possui email',
+        description: 'Seleciona clientes com e-mail cadastrado.',
+        fields: ['boolean'],
+      },
+      {
+        value: 'has_phone',
+        label: 'Possui telefone',
+        description: 'Seleciona clientes com telefone cadastrado.',
+        fields: ['boolean'],
+      },
+    ],
+  },
+  {
+    value: 'preferences',
+    label: 'Preferências',
+    filters: [
+      {
+        value: 'preference_key',
+        label: 'Preferência específica',
+        description: 'Filtra clientes por preferência declarada.',
+        fields: ['preference'],
+      },
+    ],
+  },
+]
+
+const OPERATOR_OPTIONS = ['>', '<', '>=', '<=', '=', '!='] as const
+
+const createRuleId = () => crypto.randomUUID()
+
+const createEmptyRule = (): SegmentRuleDraft => ({
+  id: createRuleId(),
+  category: '',
+  filter: '',
+  data: {},
+})
+
+const getCategoryFilters = (categoryValue: string) =>
+  RULE_CATEGORIES.find((category) => category.value === categoryValue)?.filters ??
+  []
+
+const getFilterDefinition = (categoryValue: string, filterValue: string) =>
+  getCategoryFilters(categoryValue).find(
+    (filter) => filter.value === filterValue,
+  )
+
+const isRuleComplete = (rule: SegmentRuleDraft) => {
+  if (!rule.category || !rule.filter) return false
+  const filterDefinition = getFilterDefinition(rule.category, rule.filter)
+  if (!filterDefinition) return false
+
+  return filterDefinition.fields.every((field) => {
+    switch (field) {
+      case 'days':
+        return Boolean(rule.data.days?.trim())
+      case 'operatorValue':
+        return Boolean(rule.data.operator && rule.data.value?.trim())
+      case 'boolean':
+        return Boolean(rule.data.booleanValue)
+      case 'product':
+        return Boolean(rule.data.product?.trim())
+      case 'category':
+        return Boolean(rule.data.category?.trim())
+      case 'text':
+        return Boolean(rule.data.text?.trim())
+      case 'dateRange':
+        return Boolean(rule.data.startDate && rule.data.endDate)
+      case 'preference':
+        return Boolean(rule.data.preferenceKey?.trim() && rule.data.preferenceValue)
+      default:
+        return false
+    }
+  })
+}
+
+const buildRulePayload = (rule: SegmentRuleDraft) => {
+  const payload: Record<string, unknown> = {
+    category: rule.category,
+    filter: rule.filter,
+  }
+
+  switch (rule.filter) {
+    case 'last_purchase_within_days':
+    case 'inactive_days':
+      payload.days = Number(rule.data.days)
+      break
+    case 'total_orders':
+    case 'average_ticket':
+    case 'lifetime_value':
+      payload.operator = rule.data.operator
+      payload.value = Number(rule.data.value)
+      break
+    case 'bought_upsell':
+    case 'has_email':
+    case 'has_phone':
+      payload.value = rule.data.booleanValue === 'yes'
+      break
+    case 'bought_product':
+      payload.product = rule.data.product
+      break
+    case 'bought_category':
+      payload.category = rule.data.category
+      break
+    case 'utm_source':
+    case 'utm_medium':
+    case 'utm_campaign':
+      payload.value = rule.data.text
+      break
+    case 'registered_between':
+    case 'ordered_between':
+      payload.start_date = rule.data.startDate
+      payload.end_date = rule.data.endDate
+      break
+    case 'preference_key':
+      payload.key = rule.data.preferenceKey
+      payload.value = rule.data.preferenceValue === 'yes'
+      break
+    default:
+      break
+  }
+
+  return payload
+}
+
 const Segmentation = () => {
   const [segments, setSegments] = useState<Segment[]>([])
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null)
@@ -113,8 +396,11 @@ const Segmentation = () => {
   const [createError, setCreateError] = useState<string | null>(null)
   const [segmentForm, setSegmentForm] = useState({
     name: '',
-    rules: '',
   })
+  const [createRules, setCreateRules] = useState<SegmentRuleDraft[]>([
+    createEmptyRule(),
+  ])
+  const [previewCount, setPreviewCount] = useState<number | null>(null)
   const [createRulesError, setCreateRulesError] = useState<string | null>(null)
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
@@ -201,6 +487,9 @@ const Segmentation = () => {
     setCreateStatus('idle')
     setCreateError(null)
     setCreateRulesError(null)
+    setSegmentForm({ name: '' })
+    setCreateRules([createEmptyRule()])
+    setPreviewCount(null)
   }, [isCreateOpen])
 
   useEffect(() => {
@@ -236,23 +525,35 @@ const Segmentation = () => {
     setCreateStatus('loading')
     setCreateError(null)
 
-    const rules = parseRulesInput(segmentForm.rules)
+    if (!segmentForm.name.trim()) {
+      setCreateRulesError('Informe o nome do segmento.')
+      setCreateStatus('error')
+      return
+    }
 
-    if (!rules) {
-      setCreateRulesError('Informe um JSON válido para as regras.')
+    if (createRules.length === 0) {
+      setCreateRulesError('Adicione ao menos uma regra de segmentação.')
+      setCreateStatus('error')
+      return
+    }
+
+    if (!createRules.every(isRuleComplete)) {
+      setCreateRulesError('Preencha todos os campos das regras.')
       setCreateStatus('error')
       return
     }
 
     const payload: CreateSegmentPayload = {
       name: segmentForm.name,
-      rules,
+      rules: createRules.map(buildRulePayload),
     }
 
     try {
       await createSegment(payload)
       setCreateStatus('success')
-      setSegmentForm({ name: '', rules: '' })
+      setSegmentForm({ name: '' })
+      setCreateRules([createEmptyRule()])
+      setPreviewCount(null)
       setIsCreateOpen(false)
       fetchSegments(1)
     } catch (err) {
@@ -302,8 +603,8 @@ const Segmentation = () => {
 
   const isCreateValid =
     segmentForm.name.trim().length > 0 &&
-    segmentForm.rules.trim().length > 0 &&
-    parseRulesInput(segmentForm.rules) !== null
+    createRules.length > 0 &&
+    createRules.every(isRuleComplete)
 
   const isUpdateValid =
     editForm.name.trim().length > 0 &&
@@ -314,6 +615,44 @@ const Segmentation = () => {
     if (!selectedSegment) return []
     return rulesEntriesForDetails(selectedSegment.rules)
   }, [selectedSegment])
+
+  const handleAddRule = () => {
+    setCreateRules((prev) => [...prev, createEmptyRule()])
+  }
+
+  const handleRemoveRule = (id: string) => {
+    setCreateRules((prev) => prev.filter((rule) => rule.id !== id))
+  }
+
+  const handleUpdateRule = (
+    id: string,
+    updates: Partial<SegmentRuleDraft>,
+  ) => {
+    setCreateRules((prev) =>
+      prev.map((rule) => (rule.id === id ? { ...rule, ...updates } : rule)),
+    )
+  }
+
+  const handleUpdateRuleData = (
+    id: string,
+    data: Partial<RuleFieldValues>,
+  ) => {
+    setCreateRules((prev) =>
+      prev.map((rule) =>
+        rule.id === id ? { ...rule, data: { ...rule.data, ...data } } : rule,
+      ),
+    )
+  }
+
+  const handleCalculatePreview = () => {
+    const validRulesCount = createRules.filter(isRuleComplete).length
+    const estimate = Math.max(0, validRulesCount * 128)
+    setPreviewCount(estimate)
+  }
+
+  const handleCancelCreate = () => {
+    setIsCreateOpen(false)
+  }
 
   return (
     <DashboardPage
@@ -416,7 +755,7 @@ const Segmentation = () => {
                 <>
                   <div className="mt-4 grid gap-4">
                     <label className="space-y-2 text-sm text-slate-600">
-                      <span>Nome</span>
+                      <span>Nome do segmento</span>
                       <input
                         type="text"
                         value={segmentForm.name}
@@ -431,24 +770,342 @@ const Segmentation = () => {
                       />
                     </label>
 
-                    <label className="space-y-2 text-sm text-slate-600">
-                      <span>Regras (JSON)</span>
-                      <textarea
-                        value={segmentForm.rules}
-                        onChange={(event) => {
-                          setSegmentForm((prev) => ({
-                            ...prev,
-                            rules: event.target.value,
-                          }))
-                          setCreateRulesError(null)
-                        }}
-                        placeholder='[{ "filter":"last_purchase_within_days","days":90 }, { "filter":"average_ticket","operator":">=","value":100 }]'
-                        className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                      />
-                    </label>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700">
+                            Regras de Segmentação
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Todas as regras são combinadas com E (AND).
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddRule}
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+                        >
+                          <PlusCircle className="h-4 w-4 text-indigo-500" />
+                          Adicionar Regra
+                        </button>
+                      </div>
+
+                      <div className="mt-4 space-y-4">
+                        {createRules.map((rule, index) => {
+                          const categoryFilters = getCategoryFilters(rule.category)
+                          const filterDefinition = getFilterDefinition(
+                            rule.category,
+                            rule.filter,
+                          )
+
+                          return (
+                            <div
+                              key={rule.id}
+                              className="rounded-xl border border-slate-200 bg-white p-4"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <p className="text-sm font-semibold text-slate-700">
+                                  Regra {index + 1}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveRule(rule.id)}
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 transition hover:text-rose-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Remover
+                                </button>
+                              </div>
+
+                              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                                <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                  <span>Categoria</span>
+                                  <select
+                                    value={rule.category}
+                                    onChange={(event) => {
+                                      handleUpdateRule(rule.id, {
+                                        category: event.target.value,
+                                        filter: '',
+                                        data: {},
+                                      })
+                                      setCreateRulesError(null)
+                                    }}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                  >
+                                    <option value="">Selecione uma categoria</option>
+                                    {RULE_CATEGORIES.map((category) => (
+                                      <option key={category.value} value={category.value}>
+                                        {category.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+
+                                <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                  <span>Filtro</span>
+                                  <select
+                                    value={rule.filter}
+                                    onChange={(event) => {
+                                      handleUpdateRule(rule.id, {
+                                        filter: event.target.value,
+                                        data: {},
+                                      })
+                                      setCreateRulesError(null)
+                                    }}
+                                    disabled={!rule.category}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                  >
+                                    <option value="">Selecione um filtro</option>
+                                    {categoryFilters.map((filter) => (
+                                      <option key={filter.value} value={filter.value}>
+                                        {filter.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              </div>
+
+                              {filterDefinition ? (
+                                <p className="mt-2 text-xs text-slate-500">
+                                  {filterDefinition.description}
+                                </p>
+                              ) : null}
+
+                              {filterDefinition ? (
+                                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                                  {filterDefinition.fields.includes('days') ? (
+                                    <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                      <span>Dias</span>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        value={rule.data.days ?? ''}
+                                        onChange={(event) =>
+                                          handleUpdateRuleData(rule.id, {
+                                            days: event.target.value,
+                                          })
+                                        }
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                      />
+                                    </label>
+                                  ) : null}
+
+                                  {filterDefinition.fields.includes('operatorValue') ? (
+                                    <>
+                                      <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                        <span>Operador</span>
+                                        <select
+                                          value={rule.data.operator ?? ''}
+                                          onChange={(event) =>
+                                            handleUpdateRuleData(rule.id, {
+                                              operator: event.target.value,
+                                            })
+                                          }
+                                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                        >
+                                          <option value="">Selecione</option>
+                                          {OPERATOR_OPTIONS.map((operator) => (
+                                            <option key={operator} value={operator}>
+                                              {operator}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                      <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                        <span>Valor</span>
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={rule.data.value ?? ''}
+                                          onChange={(event) =>
+                                            handleUpdateRuleData(rule.id, {
+                                              value: event.target.value,
+                                            })
+                                          }
+                                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                        />
+                                      </label>
+                                    </>
+                                  ) : null}
+
+                                  {filterDefinition.fields.includes('boolean') ? (
+                                    <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                      <span>Valor</span>
+                                      <select
+                                        value={rule.data.booleanValue ?? ''}
+                                        onChange={(event) =>
+                                          handleUpdateRuleData(rule.id, {
+                                            booleanValue: event.target.value as
+                                              | 'yes'
+                                              | 'no',
+                                          })
+                                        }
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                      >
+                                        <option value="">Selecione</option>
+                                        <option value="yes">Sim</option>
+                                        <option value="no">Não</option>
+                                      </select>
+                                    </label>
+                                  ) : null}
+
+                                  {filterDefinition.fields.includes('product') ? (
+                                    <label className="space-y-2 text-xs font-semibold text-slate-600 md:col-span-2">
+                                      <span>Produto</span>
+                                      <input
+                                        type="text"
+                                        value={rule.data.product ?? ''}
+                                        onChange={(event) =>
+                                          handleUpdateRuleData(rule.id, {
+                                            product: event.target.value,
+                                          })
+                                        }
+                                        placeholder="Digite o nome do produto"
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                      />
+                                    </label>
+                                  ) : null}
+
+                                  {filterDefinition.fields.includes('category') ? (
+                                    <label className="space-y-2 text-xs font-semibold text-slate-600 md:col-span-2">
+                                      <span>Categoria</span>
+                                      <input
+                                        type="text"
+                                        value={rule.data.category ?? ''}
+                                        onChange={(event) =>
+                                          handleUpdateRuleData(rule.id, {
+                                            category: event.target.value,
+                                          })
+                                        }
+                                        placeholder="Digite a categoria"
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                      />
+                                    </label>
+                                  ) : null}
+
+                                  {filterDefinition.fields.includes('text') ? (
+                                    <label className="space-y-2 text-xs font-semibold text-slate-600 md:col-span-2">
+                                      <span>Valor</span>
+                                      <input
+                                        type="text"
+                                        value={rule.data.text ?? ''}
+                                        onChange={(event) =>
+                                          handleUpdateRuleData(rule.id, {
+                                            text: event.target.value,
+                                          })
+                                        }
+                                        placeholder="Digite o valor"
+                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                      />
+                                    </label>
+                                  ) : null}
+
+                                  {filterDefinition.fields.includes('dateRange') ? (
+                                    <>
+                                      <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                        <span>Data inicial</span>
+                                        <input
+                                          type="date"
+                                          value={rule.data.startDate ?? ''}
+                                          onChange={(event) =>
+                                            handleUpdateRuleData(rule.id, {
+                                              startDate: event.target.value,
+                                            })
+                                          }
+                                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                        />
+                                      </label>
+                                      <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                        <span>Data final</span>
+                                        <input
+                                          type="date"
+                                          value={rule.data.endDate ?? ''}
+                                          onChange={(event) =>
+                                            handleUpdateRuleData(rule.id, {
+                                              endDate: event.target.value,
+                                            })
+                                          }
+                                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                        />
+                                      </label>
+                                    </>
+                                  ) : null}
+
+                                  {filterDefinition.fields.includes('preference') ? (
+                                    <>
+                                      <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                        <span>Chave</span>
+                                        <input
+                                          type="text"
+                                          value={rule.data.preferenceKey ?? ''}
+                                          onChange={(event) =>
+                                            handleUpdateRuleData(rule.id, {
+                                              preferenceKey: event.target.value,
+                                            })
+                                          }
+                                          placeholder="ex: newsletter"
+                                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                        />
+                                      </label>
+                                      <label className="space-y-2 text-xs font-semibold text-slate-600">
+                                        <span>Valor</span>
+                                        <select
+                                          value={rule.data.preferenceValue ?? ''}
+                                          onChange={(event) =>
+                                            handleUpdateRuleData(rule.id, {
+                                              preferenceValue: event.target.value as
+                                                | 'yes'
+                                                | 'no',
+                                            })
+                                          }
+                                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                                        >
+                                          <option value="">Selecione</option>
+                                          <option value="yes">Sim</option>
+                                          <option value="no">Não</option>
+                                        </select>
+                                      </label>
+                                    </>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700">
+                            Preview de clientes correspondentes
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {previewCount === null
+                              ? 'Clique em calcular para ver a estimativa.'
+                              : `${previewCount} clientes encontrados.`}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleCalculatePreview}
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+                        >
+                          Calcular Preview
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCancelCreate}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300"
+                    >
+                      Cancelar
+                    </button>
                     <button
                       type="button"
                       onClick={handleCreateSegment}
