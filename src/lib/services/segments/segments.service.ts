@@ -72,55 +72,59 @@ const parseRule = (data: unknown, field: string): SegmentRule => {
 }
 
 
-/**
- * Aceita:
- * - rules como objeto: { lifetime_value: { value, operator }, ... }
- * - rules como array: ["lifetime_value", "total_orders"]
- */
-/**
- * Aceita:
- * - rules como objeto: { lifetime_value: { value, operator }, ... }
- * - rules como array de objetos: [{ filter, category, operator?, value?, days?, ... }]
- * - rules como array de strings: ["lifetime_value", "total_orders"] (legado)
- */
 const parseRules = (data: unknown): SegmentRules => {
-  // ✅ NOVO: array de objetos (como seu fetch mostrou)
   if (Array.isArray(data)) {
-    // se for array de records, devolve como está (validando o mínimo)
     const objectRules = data.filter(isRecord)
 
+    // ✅ array de objetos (novo formato)
     if (objectRules.length > 0) {
       return objectRules.map((rule, idx) => {
-        // valida o mínimo pra você não carregar lixo
-        const filter = asNullableStringLike(rule.filter, `rules.${idx}.filter`)
-        const category = asNullableStringLike(rule.category, `rules.${idx}.category`)
+        // filter é obrigatório
+        const filter = asString(rule.filter, `rules.${idx}.filter`)
 
-        if (!filter) throw new ApiError(`Resposta inválida do servidor: rules.${idx}.filter`)
-        if (!category) throw new ApiError(`Resposta inválida do servidor: rules.${idx}.category`)
+        // category é opcional (pode vir null/undefined)
+        const category =
+          asNullableStringLike(rule.category, `rules.${idx}.category`) ?? undefined
+
+        const operator =
+          asNullableStringLike(rule.operator, `rules.${idx}.operator`) ?? undefined
+
+        const value =
+          rule.value === undefined || rule.value === null
+            ? undefined
+            : asRuleValue(rule.value, `rules.${idx}.value`)
+
+        const days =
+          rule.days === undefined || rule.days === null
+            ? undefined
+            : Number(
+                asNullableStringLike(rule.days, `rules.${idx}.days`) ?? rule.days,
+              )
 
         return {
-          ...rule,
           filter,
           category,
-          // operator/value são comuns, mas podem faltar dependendo do tipo de filtro
-          operator: asNullableStringLike(rule.operator, `rules.${idx}.operator`) ?? undefined,
-          value:
-            rule.value === undefined || rule.value === null
-              ? undefined
-              : asRuleValue(rule.value, `rules.${idx}.value`),
-          days:
-            rule.days === undefined || rule.days === null
-              ? undefined
-              : asNullableStringLike(rule.days, `rules.${idx}.days`) ?? String(rule.days),
+          operator,
+          value,
+          days,
+          product:
+            asNullableStringLike(rule.product, `rules.${idx}.product`) ?? undefined,
+          start_date:
+            asNullableStringLike(rule.start_date, `rules.${idx}.start_date`) ??
+            undefined,
+          end_date:
+            asNullableStringLike(rule.end_date, `rules.${idx}.end_date`) ??
+            undefined,
+          key: asNullableStringLike(rule.key, `rules.${idx}.key`) ?? undefined,
         }
-      }) as unknown as SegmentRules
+      })
     }
 
     // ✅ legado: array de strings
     return data
       .filter((v) => typeof v === 'string')
       .map((v) => v.trim())
-      .filter(Boolean) as unknown as SegmentRules
+      .filter(Boolean)
   }
 
   // ✅ formato antigo: objeto chaveado
@@ -132,6 +136,7 @@ const parseRules = (data: unknown): SegmentRules => {
   })
   return parsed
 }
+
 
 
 /**
