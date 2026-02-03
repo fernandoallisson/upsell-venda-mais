@@ -383,29 +383,36 @@ const normalizeRulesToDrafts = (rules: SegmentRules): SegmentRuleDraft[] => {
           : findCategoryByFilter(filter)?.value ?? ''
       const filterDefinition = getFilterDefinition(category, filter)
       const data: RuleFieldValues = {}
+      const rawValue =
+        rawRule.value !== undefined && rawRule.value !== null
+          ? String(rawRule.value)
+          : ''
+      const categoryValue =
+        rawRule.category_value ??
+        rawRule.category_name ??
+        (typeof rawRule.category === 'string' && rawRule.category !== category
+          ? rawRule.category
+          : undefined)
 
       if (filterDefinition?.fields.includes('days')) {
         data.days = rawRule.days ? String(rawRule.days) : ''
       }
       if (filterDefinition?.fields.includes('operatorValue')) {
         data.operator = rawRule.operator ? String(rawRule.operator) : ''
-        data.value =
-          rawRule.value !== undefined && rawRule.value !== null
-            ? String(rawRule.value)
-            : ''
+        data.value = rawValue
       }
       if (filterDefinition?.fields.includes('boolean')) {
         data.booleanValue =
           rawRule.value === true ? 'yes' : rawRule.value === false ? 'no' : undefined
       }
       if (filterDefinition?.fields.includes('product')) {
-        data.product = rawRule.product ? String(rawRule.product) : ''
+        data.product = rawRule.product ? String(rawRule.product) : rawValue
       }
       if (filterDefinition?.fields.includes('category')) {
-        data.category = rawRule.category ? String(rawRule.category) : ''
+        data.category = categoryValue ? String(categoryValue) : rawValue
       }
       if (filterDefinition?.fields.includes('text')) {
-        data.text = rawRule.value ? String(rawRule.value) : ''
+        data.text = rawValue
       }
       if (filterDefinition?.fields.includes('dateRange')) {
         data.startDate = rawRule.start_date ? String(rawRule.start_date) : ''
