@@ -62,6 +62,20 @@ const asRuleValue = (value: unknown, field: string): number | string => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const parseRule = (data: unknown, field: string): SegmentRule => {
+  if (!isRecord(data)) throw new ApiError(`Resposta inválida do servidor: ${field}`)
+
+  return {
+    value: asRuleValue(data.value, `${field}.value`),
+    operator: asNullableStringLike(data.operator, `${field}.operator`) ?? '',
+  }
+}
+
+/**
+ * Aceita:
+ * - rules como objeto: { lifetime_value: { value, operator }, ... }
+ * - rules como array: ["lifetime_value", "total_orders"]
+ */
 /**
  * Aceita:
  * - rules como objeto: { lifetime_value: { value, operator }, ... }
@@ -118,28 +132,6 @@ const parseRules = (data: unknown): SegmentRules => {
   return parsed
 }
 
-
-/**
- * Aceita:
- * - rules como objeto: { lifetime_value: { value, operator }, ... }
- * - rules como array: ["lifetime_value", "total_orders"]
- */
-const parseRules = (data: unknown): SegmentRules => {
-  if (Array.isArray(data)) {
-    return data
-      .filter((v) => typeof v === 'string')
-      .map((v) => v.trim())
-      .filter(Boolean)
-  }
-
-  if (!isRecord(data)) return {}
-
-  const parsed: Record<string, SegmentRule> = {}
-  Object.entries(data).forEach(([key, value]) => {
-    parsed[key] = parseRule(value, `rules.${key}`)
-  })
-  return parsed
-}
 
 /**
  * Alguns endpoints retornam:
