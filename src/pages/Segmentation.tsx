@@ -8,6 +8,7 @@ import {
   PlusCircle,
   RefreshCcw,
   Tag,
+  Trash2,
   UserCircle2,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
@@ -24,7 +25,6 @@ import type {
   SegmentsResponse,
   UpdateSegmentPayload,
   SegmentRules,
-  SegmentRulesPayload,
 } from '../lib/services/segments/segments.types'
 
 const formatDate = (value: string) => {
@@ -35,11 +35,6 @@ const formatDate = (value: string) => {
 
 const rulesCount = (rules: SegmentRules) =>
   Array.isArray(rules) ? rules.length : Object.keys(rules).length
-
-const rulesEntriesForDetails = (rules: SegmentRules) =>
-  Array.isArray(rules)
-    ? rules.map((key) => [key, { operator: '', value: '' }] as const)
-    : Object.entries(rules)
 
 type PaginationMeta = Pick<
   SegmentsResponse,
@@ -86,14 +81,761 @@ const formatRuleLabel = (label: string) =>
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (match) => match.toUpperCase())
 
-const parseRulesInput = (value: string): SegmentRulesPayload | null => {
-  if (!value.trim()) return null
-  try {
-    return JSON.parse(value) as SegmentRulesPayload
-  } catch {
-    return null
-  }
+type RuleFieldValues = {
+  days?: string
+  operator?: string
+  value?: string
+  booleanValue?: 'yes' | 'no'
+  product?: string
+  category?: string
+  text?: string
+  startDate?: string
+  endDate?: string
+  preferenceKey?: string
+  preferenceValue?: 'yes' | 'no'
 }
+
+type SegmentRuleDraft = {
+  id: string
+  category: string
+  filter: string
+  data: RuleFieldValues
+}
+
+type FilterDefinition = {
+  value: string
+  label: string
+  description: string
+  fields: Array<
+    | 'days'
+    | 'operatorValue'
+    | 'boolean'
+    | 'product'
+    | 'category'
+    | 'text'
+    | 'dateRange'
+    | 'preference'
+  >
+}
+
+type RuleCategoryDefinition = {
+  value: string
+  label: string
+  filters: FilterDefinition[]
+}
+
+const RULE_CATEGORIES: RuleCategoryDefinition[] = [
+  {
+    value: 'purchase_behavior',
+    label: 'Comportamento de Compra',
+    filters: [
+      {
+        value: 'last_purchase_within_days',
+        label: 'Última compra dentro de X dias',
+        description: 'Filtra clientes pela última compra recente.',
+        fields: ['days'],
+      },
+      {
+        value: 'inactive_days',
+        label: 'Inativo há X dias',
+        description: 'Identifica clientes sem compras recentes.',
+        fields: ['days'],
+      },
+      {
+        value: 'total_orders',
+        label: 'Total de pedidos',
+        description: 'Filtra pelo total de pedidos do cliente.',
+        fields: ['operatorValue'],
+      },
+      {
+        value: 'bought_upsell',
+        label: 'Comprou produto upsell',
+        description: 'Seleciona clientes que compraram um upsell.',
+        fields: ['boolean'],
+      },
+    ],
+  },
+  {
+    value: 'value_metrics',
+    label: 'Valor e Ticket',
+    filters: [
+      {
+        value: 'average_ticket',
+        label: 'Ticket Médio',
+        description: 'Filtra pelo ticket médio do cliente.',
+        fields: ['operatorValue'],
+      },
+      {
+        value: 'lifetime_value',
+        label: 'Lifetime Value (LTV)',
+        description: 'Filtra pelo valor total gerado pelo cliente.',
+        fields: ['operatorValue'],
+      },
+    ],
+  },
+  {
+    value: 'product_category',
+    label: 'Produtos e Categorias',
+    filters: [
+      {
+        value: 'bought_product',
+        label: 'Comprou produto específico',
+        description: 'Seleciona clientes que compraram um produto.',
+        fields: ['product'],
+      },
+      {
+        value: 'bought_category',
+        label: 'Comprou de categoria',
+        description: 'Seleciona clientes que compraram em uma categoria.',
+        fields: ['category'],
+      },
+    ],
+  },
+  {
+    value: 'utm_tracking',
+    label: 'Origem (UTM)',
+    filters: [
+      {
+        value: 'utm_source',
+        label: 'UTM Source',
+        description: 'Filtra pelo UTM Source utilizado.',
+        fields: ['text'],
+      },
+      {
+        value: 'utm_medium',
+        label: 'UTM Medium',
+        description: 'Filtra pelo UTM Medium utilizado.',
+        fields: ['text'],
+      },
+      {
+        value: 'utm_campaign',
+        label: 'UTM Campaign',
+        description: 'Filtra pelo UTM Campaign utilizado.',
+        fields: ['text'],
+      },
+    ],
+  },
+  {
+    value: 'date_range',
+    label: 'Período de Cadastro/Pedido',
+    filters: [
+      {
+        value: 'registered_between',
+        label: 'Cadastrado entre datas',
+        description: 'Filtra clientes cadastrados dentro do período.',
+        fields: ['dateRange'],
+      },
+      {
+        value: 'ordered_between',
+        label: 'Fez pedido entre datas',
+        description: 'Filtra clientes com pedidos no período.',
+        fields: ['dateRange'],
+      },
+    ],
+  },
+  {
+    value: 'customer_data',
+    label: 'Dados do Cliente',
+    filters: [
+      {
+        value: 'has_email',
+        label: 'Possui email',
+        description: 'Seleciona clientes com e-mail cadastrado.',
+        fields: ['boolean'],
+      },
+      {
+        value: 'has_phone',
+        label: 'Possui telefone',
+        description: 'Seleciona clientes com telefone cadastrado.',
+        fields: ['boolean'],
+      },
+    ],
+  },
+  {
+    value: 'preferences',
+    label: 'Preferências',
+    filters: [
+      {
+        value: 'preference_key',
+        label: 'Preferência específica',
+        description: 'Filtra clientes por preferência declarada.',
+        fields: ['preference'],
+      },
+    ],
+  },
+]
+
+const OPERATOR_OPTIONS = ['>', '<', '>=', '<=', '=', '!='] as const
+
+const createRuleId = () => crypto.randomUUID()
+
+const createEmptyRule = (): SegmentRuleDraft => ({
+  id: createRuleId(),
+  category: '',
+  filter: '',
+  data: {},
+})
+
+const getCategoryFilters = (categoryValue: string) =>
+  RULE_CATEGORIES.find((category) => category.value === categoryValue)?.filters ??
+  []
+
+const getFilterDefinition = (categoryValue: string, filterValue: string) =>
+  getCategoryFilters(categoryValue).find(
+    (filter) => filter.value === filterValue,
+  )
+
+const findCategoryByFilter = (filterValue: string) => {
+  for (const category of RULE_CATEGORIES) {
+    if (category.filters.some((filter) => filter.value === filterValue)) {
+      return category
+    }
+  }
+  return null
+}
+
+const isRuleComplete = (rule: SegmentRuleDraft) => {
+  if (!rule.category || !rule.filter) return false
+  const filterDefinition = getFilterDefinition(rule.category, rule.filter)
+  if (!filterDefinition) return false
+
+  return filterDefinition.fields.every((field) => {
+    switch (field) {
+      case 'days':
+        return Boolean(rule.data.days?.trim())
+      case 'operatorValue':
+        return Boolean(rule.data.operator && rule.data.value?.trim())
+      case 'boolean':
+        return Boolean(rule.data.booleanValue)
+      case 'product':
+        return Boolean(rule.data.product?.trim())
+      case 'category':
+        return Boolean(rule.data.category?.trim())
+      case 'text':
+        return Boolean(rule.data.text?.trim())
+      case 'dateRange':
+        return Boolean(rule.data.startDate && rule.data.endDate)
+      case 'preference':
+        return Boolean(rule.data.preferenceKey?.trim() && rule.data.preferenceValue)
+      default:
+        return false
+    }
+  })
+}
+
+const buildRulePayload = (rule: SegmentRuleDraft) => {
+  const payload: Record<string, unknown> = {
+    category: rule.category,
+    filter: rule.filter,
+  }
+
+  switch (rule.filter) {
+    case 'last_purchase_within_days':
+    case 'inactive_days':
+      payload.days = Number(rule.data.days)
+      break
+    case 'total_orders':
+    case 'average_ticket':
+    case 'lifetime_value':
+      payload.operator = rule.data.operator
+      payload.value = Number(rule.data.value)
+      break
+    case 'bought_upsell':
+    case 'has_email':
+    case 'has_phone':
+      payload.value = rule.data.booleanValue === 'yes'
+      break
+    case 'bought_product':
+      payload.product = rule.data.product
+      break
+    case 'bought_category':
+      payload.category = rule.data.category
+      break
+    case 'utm_source':
+    case 'utm_medium':
+    case 'utm_campaign':
+      payload.value = rule.data.text
+      break
+    case 'registered_between':
+    case 'ordered_between':
+      payload.start_date = rule.data.startDate
+      payload.end_date = rule.data.endDate
+      break
+    case 'preference_key':
+      payload.key = rule.data.preferenceKey
+      payload.value = rule.data.preferenceValue === 'yes'
+      break
+    default:
+      break
+  }
+
+  return payload
+}
+
+const normalizeRulesToDrafts = (rules: SegmentRules): SegmentRuleDraft[] => {
+  if (Array.isArray(rules)) {
+    return rules.map((rule) => {
+      const rawRule = rule as Record<string, unknown>
+      const filter = String(rawRule.filter ?? '')
+      const category =
+        typeof rawRule.category === 'string'
+          ? rawRule.category
+          : findCategoryByFilter(filter)?.value ?? ''
+      const filterDefinition = getFilterDefinition(category, filter)
+      const data: RuleFieldValues = {}
+      const rawValue =
+        rawRule.value !== undefined && rawRule.value !== null
+          ? String(rawRule.value)
+          : ''
+      const categoryValue =
+        rawRule.category_value ??
+        rawRule.category_name ??
+        (typeof rawRule.category === 'string' && rawRule.category !== category
+          ? rawRule.category
+          : undefined)
+
+      if (filterDefinition?.fields.includes('days')) {
+        data.days = rawRule.days ? String(rawRule.days) : ''
+      }
+      if (filterDefinition?.fields.includes('operatorValue')) {
+        data.operator = rawRule.operator ? String(rawRule.operator) : ''
+        data.value = rawValue
+      }
+      if (filterDefinition?.fields.includes('boolean')) {
+        data.booleanValue =
+          rawRule.value === true ? 'yes' : rawRule.value === false ? 'no' : undefined
+      }
+      if (filterDefinition?.fields.includes('product')) {
+        data.product = rawRule.product ? String(rawRule.product) : rawValue
+      }
+      if (filterDefinition?.fields.includes('category')) {
+        data.category = categoryValue ? String(categoryValue) : rawValue
+      }
+      if (filterDefinition?.fields.includes('text')) {
+        data.text = rawValue
+      }
+      if (filterDefinition?.fields.includes('dateRange')) {
+        data.startDate = rawRule.start_date ? String(rawRule.start_date) : ''
+        data.endDate = rawRule.end_date ? String(rawRule.end_date) : ''
+      }
+      if (filterDefinition?.fields.includes('preference')) {
+        data.preferenceKey = rawRule.key ? String(rawRule.key) : ''
+        data.preferenceValue =
+          rawRule.value === true ? 'yes' : rawRule.value === false ? 'no' : undefined
+      }
+
+      return {
+        id: createRuleId(),
+        category,
+        filter,
+        data,
+      }
+    })
+  }
+
+  return Object.entries(rules).map(([ruleKey, ruleValue]) => {
+    const filter = ruleKey
+    const category = findCategoryByFilter(filter)?.value ?? ''
+    const filterDefinition = getFilterDefinition(category, filter)
+    const data: RuleFieldValues = {}
+    const rawRule = ruleValue as Record<string, unknown>
+
+    if (filterDefinition?.fields.includes('operatorValue')) {
+      data.operator = rawRule.operator ? String(rawRule.operator) : ''
+      data.value =
+        rawRule.value !== undefined && rawRule.value !== null
+          ? String(rawRule.value)
+          : ''
+    }
+
+    return {
+      id: createRuleId(),
+      category,
+      filter,
+      data,
+    }
+  })
+}
+
+const formatRuleValue = (rule: SegmentRuleDraft) => {
+  const filterDefinition = getFilterDefinition(rule.category, rule.filter)
+  if (!filterDefinition) return 'Regra cadastrada'
+
+  const parts: string[] = []
+
+  if (filterDefinition.fields.includes('days')) {
+    parts.push(`${rule.data.days ?? ''} dias`)
+  }
+  if (filterDefinition.fields.includes('operatorValue')) {
+    if (rule.data.operator && rule.data.value) {
+      parts.push(`${rule.data.operator} ${rule.data.value}`)
+    }
+  }
+  if (filterDefinition.fields.includes('boolean')) {
+    parts.push(rule.data.booleanValue === 'yes' ? 'Sim' : 'Não')
+  }
+  if (filterDefinition.fields.includes('product')) {
+    parts.push(`Produto: ${rule.data.product ?? ''}`)
+  }
+  if (filterDefinition.fields.includes('category')) {
+    parts.push(`Categoria: ${rule.data.category ?? ''}`)
+  }
+  if (filterDefinition.fields.includes('text')) {
+    parts.push(rule.data.text ?? '')
+  }
+  if (filterDefinition.fields.includes('dateRange')) {
+    parts.push(`${rule.data.startDate ?? ''} → ${rule.data.endDate ?? ''}`)
+  }
+  if (filterDefinition.fields.includes('preference')) {
+    parts.push(
+      `${rule.data.preferenceKey ?? ''}: ${
+        rule.data.preferenceValue === 'yes' ? 'Sim' : 'Não'
+      }`,
+    )
+  }
+
+  return parts.filter(Boolean).join(' · ')
+}
+
+type RuleBuilderProps = {
+  rules: SegmentRuleDraft[]
+  onAddRule: () => void
+  onRemoveRule: (id: string) => void
+  onUpdateRule: (id: string, updates: Partial<SegmentRuleDraft>) => void
+  onUpdateRuleData: (id: string, data: Partial<RuleFieldValues>) => void
+  previewCount?: number | null
+  onCalculatePreview?: () => void
+  showPreview?: boolean
+}
+
+const RuleBuilder = ({
+  rules,
+  onAddRule,
+  onRemoveRule,
+  onUpdateRule,
+  onUpdateRuleData,
+  previewCount,
+  onCalculatePreview,
+  showPreview = false,
+}: RuleBuilderProps) => (
+  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-semibold text-slate-700">
+          Regras de Segmentação
+        </p>
+        <p className="text-xs text-slate-500">
+          Todas as regras são combinadas com E (AND).
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onAddRule}
+        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+      >
+        <PlusCircle className="h-4 w-4 text-indigo-500" />
+        Adicionar Regra
+      </button>
+    </div>
+
+    <div className="mt-4 space-y-4">
+      {rules.map((rule, index) => {
+        const categoryFilters = getCategoryFilters(rule.category)
+        const filterDefinition = getFilterDefinition(rule.category, rule.filter)
+
+        return (
+          <div
+            key={rule.id}
+            className="rounded-xl border border-slate-200 bg-white p-4"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-slate-700">
+                Regra {index + 1}
+              </p>
+              <button
+                type="button"
+                onClick={() => onRemoveRule(rule.id)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 transition hover:text-rose-700"
+              >
+                <Trash2 className="h-4 w-4" />
+                Remover
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <label className="space-y-2 text-xs font-semibold text-slate-600">
+                <span>Categoria</span>
+                <select
+                  value={rule.category}
+                  onChange={(event) =>
+                    onUpdateRule(rule.id, {
+                      category: event.target.value,
+                      filter: '',
+                      data: {},
+                    })
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                >
+                  <option value="">Selecione uma categoria</option>
+                  {RULE_CATEGORIES.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="space-y-2 text-xs font-semibold text-slate-600">
+                <span>Filtro</span>
+                <select
+                  value={rule.filter}
+                  onChange={(event) =>
+                    onUpdateRule(rule.id, {
+                      filter: event.target.value,
+                      data: {},
+                    })
+                  }
+                  disabled={!rule.category}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300 disabled:cursor-not-allowed disabled:bg-slate-100"
+                >
+                  <option value="">Selecione um filtro</option>
+                  {categoryFilters.map((filter) => (
+                    <option key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {filterDefinition ? (
+              <p className="mt-2 text-xs text-slate-500">
+                {filterDefinition.description}
+              </p>
+            ) : null}
+
+            {filterDefinition ? (
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {filterDefinition.fields.includes('days') ? (
+                  <label className="space-y-2 text-xs font-semibold text-slate-600">
+                    <span>Dias</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={rule.data.days ?? ''}
+                      onChange={(event) =>
+                        onUpdateRuleData(rule.id, { days: event.target.value })
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                    />
+                  </label>
+                ) : null}
+
+                {filterDefinition.fields.includes('operatorValue') ? (
+                  <>
+                    <label className="space-y-2 text-xs font-semibold text-slate-600">
+                      <span>Operador</span>
+                      <select
+                        value={rule.data.operator ?? ''}
+                        onChange={(event) =>
+                          onUpdateRuleData(rule.id, {
+                            operator: event.target.value,
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      >
+                        <option value="">Selecione</option>
+                        {OPERATOR_OPTIONS.map((operator) => (
+                          <option key={operator} value={operator}>
+                            {operator}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-2 text-xs font-semibold text-slate-600">
+                      <span>Valor</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={rule.data.value ?? ''}
+                        onChange={(event) =>
+                          onUpdateRuleData(rule.id, {
+                            value: event.target.value,
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      />
+                    </label>
+                  </>
+                ) : null}
+
+                {filterDefinition.fields.includes('boolean') ? (
+                  <label className="space-y-2 text-xs font-semibold text-slate-600">
+                    <span>Valor</span>
+                    <select
+                      value={rule.data.booleanValue ?? ''}
+                      onChange={(event) =>
+                        onUpdateRuleData(rule.id, {
+                          booleanValue: event.target.value as 'yes' | 'no',
+                        })
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="yes">Sim</option>
+                      <option value="no">Não</option>
+                    </select>
+                  </label>
+                ) : null}
+
+                {filterDefinition.fields.includes('product') ? (
+                  <label className="space-y-2 text-xs font-semibold text-slate-600 md:col-span-2">
+                    <span>Produto</span>
+                    <input
+                      type="text"
+                      value={rule.data.product ?? ''}
+                      onChange={(event) =>
+                        onUpdateRuleData(rule.id, {
+                          product: event.target.value,
+                        })
+                      }
+                      placeholder="Digite o nome do produto"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                    />
+                  </label>
+                ) : null}
+
+                {filterDefinition.fields.includes('category') ? (
+                  <label className="space-y-2 text-xs font-semibold text-slate-600 md:col-span-2">
+                    <span>Categoria</span>
+                    <input
+                      type="text"
+                      value={rule.data.category ?? ''}
+                      onChange={(event) =>
+                        onUpdateRuleData(rule.id, {
+                          category: event.target.value,
+                        })
+                      }
+                      placeholder="Digite a categoria"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                    />
+                  </label>
+                ) : null}
+
+                {filterDefinition.fields.includes('text') ? (
+                  <label className="space-y-2 text-xs font-semibold text-slate-600 md:col-span-2">
+                    <span>Valor</span>
+                    <input
+                      type="text"
+                      value={rule.data.text ?? ''}
+                      onChange={(event) =>
+                        onUpdateRuleData(rule.id, {
+                          text: event.target.value,
+                        })
+                      }
+                      placeholder="Digite o valor"
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                    />
+                  </label>
+                ) : null}
+
+                {filterDefinition.fields.includes('dateRange') ? (
+                  <>
+                    <label className="space-y-2 text-xs font-semibold text-slate-600">
+                      <span>Data inicial</span>
+                      <input
+                        type="date"
+                        value={rule.data.startDate ?? ''}
+                        onChange={(event) =>
+                          onUpdateRuleData(rule.id, {
+                            startDate: event.target.value,
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      />
+                    </label>
+                    <label className="space-y-2 text-xs font-semibold text-slate-600">
+                      <span>Data final</span>
+                      <input
+                        type="date"
+                        value={rule.data.endDate ?? ''}
+                        onChange={(event) =>
+                          onUpdateRuleData(rule.id, {
+                            endDate: event.target.value,
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      />
+                    </label>
+                  </>
+                ) : null}
+
+                {filterDefinition.fields.includes('preference') ? (
+                  <>
+                    <label className="space-y-2 text-xs font-semibold text-slate-600">
+                      <span>Chave</span>
+                      <input
+                        type="text"
+                        value={rule.data.preferenceKey ?? ''}
+                        onChange={(event) =>
+                          onUpdateRuleData(rule.id, {
+                            preferenceKey: event.target.value,
+                          })
+                        }
+                        placeholder="ex: newsletter"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      />
+                    </label>
+                    <label className="space-y-2 text-xs font-semibold text-slate-600">
+                      <span>Valor</span>
+                      <select
+                        value={rule.data.preferenceValue ?? ''}
+                        onChange={(event) =>
+                          onUpdateRuleData(rule.id, {
+                            preferenceValue: event.target.value as 'yes' | 'no',
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      >
+                        <option value="">Selecione</option>
+                        <option value="yes">Sim</option>
+                        <option value="no">Não</option>
+                      </select>
+                    </label>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        )
+      })}
+    </div>
+
+    {showPreview ? (
+      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-700">
+              Preview de clientes correspondentes
+            </p>
+            <p className="text-xs text-slate-500">
+              {previewCount === null
+                ? 'Clique em calcular para ver a estimativa.'
+                : `${previewCount} clientes encontrados.`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCalculatePreview}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+          >
+            Calcular Preview
+          </button>
+        </div>
+      </div>
+    ) : null}
+  </div>
+)
 
 const Segmentation = () => {
   const [segments, setSegments] = useState<Segment[]>([])
@@ -113,8 +855,11 @@ const Segmentation = () => {
   const [createError, setCreateError] = useState<string | null>(null)
   const [segmentForm, setSegmentForm] = useState({
     name: '',
-    rules: '',
   })
+  const [createRules, setCreateRules] = useState<SegmentRuleDraft[]>([
+    createEmptyRule(),
+  ])
+  const [previewCount, setPreviewCount] = useState<number | null>(null)
   const [createRulesError, setCreateRulesError] = useState<string | null>(null)
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
@@ -122,8 +867,9 @@ const Segmentation = () => {
   const [updateError, setUpdateError] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     name: '',
-    rules: '',
   })
+  const [editRules, setEditRules] = useState<SegmentRuleDraft[]>([])
+  const [editPreviewCount, setEditPreviewCount] = useState<number | null>(null)
   const [updateRulesError, setUpdateRulesError] = useState<string | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
 
@@ -191,8 +937,9 @@ const Segmentation = () => {
     if (!selectedSegment) return
     setEditForm({
       name: selectedSegment.name,
-      rules: JSON.stringify(selectedSegment.rules, null, 2),
     })
+    setEditRules(normalizeRulesToDrafts(selectedSegment.rules))
+    setEditPreviewCount(null)
     setIsEditOpen(false)
   }, [selectedSegment])
 
@@ -201,6 +948,9 @@ const Segmentation = () => {
     setCreateStatus('idle')
     setCreateError(null)
     setCreateRulesError(null)
+    setSegmentForm({ name: '' })
+    setCreateRules([createEmptyRule()])
+    setPreviewCount(null)
   }, [isCreateOpen])
 
   useEffect(() => {
@@ -208,6 +958,7 @@ const Segmentation = () => {
     setUpdateStatus('idle')
     setUpdateError(null)
     setUpdateRulesError(null)
+    setEditPreviewCount(null)
   }, [isEditOpen])
 
   const totals = useMemo(() => {
@@ -236,23 +987,35 @@ const Segmentation = () => {
     setCreateStatus('loading')
     setCreateError(null)
 
-    const rules = parseRulesInput(segmentForm.rules)
+    if (!segmentForm.name.trim()) {
+      setCreateRulesError('Informe o nome do segmento.')
+      setCreateStatus('error')
+      return
+    }
 
-    if (!rules) {
-      setCreateRulesError('Informe um JSON válido para as regras.')
+    if (createRules.length === 0) {
+      setCreateRulesError('Adicione ao menos uma regra de segmentação.')
+      setCreateStatus('error')
+      return
+    }
+
+    if (!createRules.every(isRuleComplete)) {
+      setCreateRulesError('Preencha todos os campos das regras.')
       setCreateStatus('error')
       return
     }
 
     const payload: CreateSegmentPayload = {
       name: segmentForm.name,
-      rules,
+      rules: createRules.map(buildRulePayload),
     }
 
     try {
       await createSegment(payload)
       setCreateStatus('success')
-      setSegmentForm({ name: '', rules: '' })
+      setSegmentForm({ name: '' })
+      setCreateRules([createEmptyRule()])
+      setPreviewCount(null)
       setIsCreateOpen(false)
       fetchSegments(1)
     } catch (err) {
@@ -269,17 +1032,27 @@ const Segmentation = () => {
     setUpdateStatus('loading')
     setUpdateError(null)
 
-    const rules = parseRulesInput(editForm.rules)
+    if (!editForm.name.trim()) {
+      setUpdateRulesError('Informe o nome do segmento.')
+      setUpdateStatus('error')
+      return
+    }
 
-    if (!rules) {
-      setUpdateRulesError('Informe um JSON válido para as regras.')
+    if (editRules.length === 0) {
+      setUpdateRulesError('Adicione ao menos uma regra de segmentação.')
+      setUpdateStatus('error')
+      return
+    }
+
+    if (!editRules.every(isRuleComplete)) {
+      setUpdateRulesError('Preencha todos os campos das regras.')
       setUpdateStatus('error')
       return
     }
 
     const payload: UpdateSegmentPayload = {
       name: editForm.name,
-      rules,
+      rules: editRules.map(buildRulePayload),
     }
 
     try {
@@ -302,18 +1075,98 @@ const Segmentation = () => {
 
   const isCreateValid =
     segmentForm.name.trim().length > 0 &&
-    segmentForm.rules.trim().length > 0 &&
-    parseRulesInput(segmentForm.rules) !== null
+    createRules.length > 0 &&
+    createRules.every(isRuleComplete)
 
   const isUpdateValid =
     editForm.name.trim().length > 0 &&
-    editForm.rules.trim().length > 0 &&
-    parseRulesInput(editForm.rules) !== null
+    editRules.length > 0 &&
+    editRules.every(isRuleComplete)
 
   const selectedRules = useMemo(() => {
     if (!selectedSegment) return []
-    return rulesEntriesForDetails(selectedSegment.rules)
+    return normalizeRulesToDrafts(selectedSegment.rules)
   }, [selectedSegment])
+
+  const handleAddRule = () => {
+    setCreateRules((prev) => [...prev, createEmptyRule()])
+    setCreateRulesError(null)
+  }
+
+  const handleRemoveRule = (id: string) => {
+    setCreateRules((prev) => prev.filter((rule) => rule.id !== id))
+    setCreateRulesError(null)
+  }
+
+  const handleUpdateRule = (
+    id: string,
+    updates: Partial<SegmentRuleDraft>,
+  ) => {
+    setCreateRules((prev) =>
+      prev.map((rule) => (rule.id === id ? { ...rule, ...updates } : rule)),
+    )
+    setCreateRulesError(null)
+  }
+
+  const handleUpdateRuleData = (
+    id: string,
+    data: Partial<RuleFieldValues>,
+  ) => {
+    setCreateRules((prev) =>
+      prev.map((rule) =>
+        rule.id === id ? { ...rule, data: { ...rule.data, ...data } } : rule,
+      ),
+    )
+    setCreateRulesError(null)
+  }
+
+  const handleAddEditRule = () => {
+    setEditRules((prev) => [...prev, createEmptyRule()])
+    setUpdateRulesError(null)
+  }
+
+  const handleRemoveEditRule = (id: string) => {
+    setEditRules((prev) => prev.filter((rule) => rule.id !== id))
+    setUpdateRulesError(null)
+  }
+
+  const handleUpdateEditRule = (
+    id: string,
+    updates: Partial<SegmentRuleDraft>,
+  ) => {
+    setEditRules((prev) =>
+      prev.map((rule) => (rule.id === id ? { ...rule, ...updates } : rule)),
+    )
+    setUpdateRulesError(null)
+  }
+
+  const handleUpdateEditRuleData = (
+    id: string,
+    data: Partial<RuleFieldValues>,
+  ) => {
+    setEditRules((prev) =>
+      prev.map((rule) =>
+        rule.id === id ? { ...rule, data: { ...rule.data, ...data } } : rule,
+      ),
+    )
+    setUpdateRulesError(null)
+  }
+
+  const handleCalculatePreview = () => {
+    const validRulesCount = createRules.filter(isRuleComplete).length
+    const estimate = Math.max(0, validRulesCount * 128)
+    setPreviewCount(estimate)
+  }
+
+  const handleCalculateEditPreview = () => {
+    const validRulesCount = editRules.filter(isRuleComplete).length
+    const estimate = Math.max(0, validRulesCount * 128)
+    setEditPreviewCount(estimate)
+  }
+
+  const handleCancelCreate = () => {
+    setIsCreateOpen(false)
+  }
 
   return (
     <DashboardPage
@@ -416,7 +1269,7 @@ const Segmentation = () => {
                 <>
                   <div className="mt-4 grid gap-4">
                     <label className="space-y-2 text-sm text-slate-600">
-                      <span>Nome</span>
+                      <span>Nome do segmento</span>
                       <input
                         type="text"
                         value={segmentForm.name}
@@ -431,24 +1284,26 @@ const Segmentation = () => {
                       />
                     </label>
 
-                    <label className="space-y-2 text-sm text-slate-600">
-                      <span>Regras (JSON)</span>
-                      <textarea
-                        value={segmentForm.rules}
-                        onChange={(event) => {
-                          setSegmentForm((prev) => ({
-                            ...prev,
-                            rules: event.target.value,
-                          }))
-                          setCreateRulesError(null)
-                        }}
-                        placeholder='[{ "filter":"last_purchase_within_days","days":90 }, { "filter":"average_ticket","operator":">=","value":100 }]'
-                        className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                      />
-                    </label>
+                    <RuleBuilder
+                      rules={createRules}
+                      onAddRule={handleAddRule}
+                      onRemoveRule={handleRemoveRule}
+                      onUpdateRule={handleUpdateRule}
+                      onUpdateRuleData={handleUpdateRuleData}
+                      previewCount={previewCount}
+                      onCalculatePreview={handleCalculatePreview}
+                      showPreview
+                    />
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCancelCreate}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300"
+                    >
+                      Cancelar
+                    </button>
                     <button
                       type="button"
                       onClick={handleCreateSegment}
@@ -676,24 +1531,27 @@ const Segmentation = () => {
                             className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
                           />
                         </label>
-
-                        <label className="space-y-2 text-sm text-slate-600">
-                          <span>Regras (JSON)</span>
-                          <textarea
-                            value={editForm.rules}
-                            onChange={(event) => {
-                              setEditForm((prev) => ({
-                                ...prev,
-                                rules: event.target.value,
-                              }))
-                              setUpdateRulesError(null)
-                            }}
-                            className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                          />
-                        </label>
                       </div>
 
+                      <RuleBuilder
+                        rules={editRules}
+                        onAddRule={handleAddEditRule}
+                        onRemoveRule={handleRemoveEditRule}
+                        onUpdateRule={handleUpdateEditRule}
+                        onUpdateRuleData={handleUpdateEditRuleData}
+                        previewCount={editPreviewCount}
+                        onCalculatePreview={handleCalculateEditPreview}
+                        showPreview
+                      />
+
                       <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditOpen(false)}
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300"
+                        >
+                          Cancelar
+                        </button>
                         <button
                           type="button"
                           onClick={handleUpdateSegment}
@@ -726,28 +1584,36 @@ const Segmentation = () => {
                   </p>
                   {selectedRules.length > 0 ? (
                     <div className="mt-3 space-y-2">
-                      {selectedRules.map(([ruleKey, rule]) => {
-                        const hasOperator = typeof rule.operator === 'string' && rule.operator.length > 0
-                        const hasValue = rule.value !== ''
-                      
+                      {selectedRules.map((rule) => {
+                        const filterDefinition = getFilterDefinition(
+                          rule.category,
+                          rule.filter,
+                        )
+                        const categoryLabel =
+                          RULE_CATEGORIES.find(
+                            (category) => category.value === rule.category,
+                          )?.label ?? 'Categoria'
+                        const filterLabel =
+                          filterDefinition?.label ?? formatRuleLabel(rule.filter)
+                        const summary = formatRuleValue(rule)
+
                         return (
-                          <div key={ruleKey} className="flex flex-wrap items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                          <div
+                            key={rule.id}
+                            className="flex flex-wrap items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600"
+                          >
                             <div>
-                              <p className="font-semibold text-slate-800">{formatRuleLabel(ruleKey)}</p>
-                              {hasOperator ? (
-                                <p className="text-xs text-slate-500">Operador {rule.operator}</p>
-                              ) : (
-                                <p className="text-xs text-slate-500">Regra cadastrada</p>
-                              )}
+                              <p className="font-semibold text-slate-800">
+                                {filterLabel}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {categoryLabel}
+                              </p>
                             </div>
-                      
-                            {hasOperator && hasValue ? (
-                              <span className="text-sm font-semibold text-slate-700">
-                                {rule.operator} {rule.value}
-                              </span>
-                            ) : (
-                              <span className="text-xs font-semibold text-slate-500">—</span>
-                            )}
+
+                            <span className="text-sm font-semibold text-slate-700">
+                              {summary || '—'}
+                            </span>
                           </div>
                         )
                       })}

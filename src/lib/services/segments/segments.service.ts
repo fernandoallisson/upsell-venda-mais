@@ -64,25 +64,70 @@ const asRuleValue = (value: unknown, field: string): number | string => {
 
 const parseRule = (data: unknown, field: string): SegmentRule => {
   if (!isRecord(data)) throw new ApiError(`Resposta inválida do servidor: ${field}`)
+
   return {
     value: asRuleValue(data.value, `${field}.value`),
-    operator: asString(data.operator, `${field}.operator`),
+    operator: asNullableStringLike(data.operator, `${field}.operator`) ?? '',
   }
 }
 
-/**
- * Aceita:
- * - rules como objeto: { lifetime_value: { value, operator }, ... }
- * - rules como array: ["lifetime_value", "total_orders"]
- */
+
 const parseRules = (data: unknown): SegmentRules => {
   if (Array.isArray(data)) {
+    const objectRules = data.filter(isRecord)
+
+    // ✅ array de objetos (novo formato)
+    if (objectRules.length > 0) {
+      return objectRules.map((rule, idx) => {
+        // filter é obrigatório
+        const filter = asString(rule.filter, `rules.${idx}.filter`)
+
+        // category é opcional (pode vir null/undefined)
+        const category =
+          asNullableStringLike(rule.category, `rules.${idx}.category`) ?? undefined
+
+        const operator =
+          asNullableStringLike(rule.operator, `rules.${idx}.operator`) ?? undefined
+
+        const value =
+          rule.value === undefined || rule.value === null
+            ? undefined
+            : asRuleValue(rule.value, `rules.${idx}.value`)
+
+        const days =
+          rule.days === undefined || rule.days === null
+            ? undefined
+            : Number(
+                asNullableStringLike(rule.days, `rules.${idx}.days`) ?? rule.days,
+              )
+
+        return {
+          filter,
+          category,
+          operator,
+          value,
+          days,
+          product:
+            asNullableStringLike(rule.product, `rules.${idx}.product`) ?? undefined,
+          start_date:
+            asNullableStringLike(rule.start_date, `rules.${idx}.start_date`) ??
+            undefined,
+          end_date:
+            asNullableStringLike(rule.end_date, `rules.${idx}.end_date`) ??
+            undefined,
+          key: asNullableStringLike(rule.key, `rules.${idx}.key`) ?? undefined,
+        }
+      })
+    }
+
+    // ✅ legado: array de strings
     return data
       .filter((v) => typeof v === 'string')
       .map((v) => v.trim())
       .filter(Boolean)
   }
 
+  // ✅ formato antigo: objeto chaveado
   if (!isRecord(data)) return {}
 
   const parsed: Record<string, SegmentRule> = {}
@@ -91,6 +136,8 @@ const parseRules = (data: unknown): SegmentRules => {
   })
   return parsed
 }
+
+
 
 /**
  * Alguns endpoints retornam:
