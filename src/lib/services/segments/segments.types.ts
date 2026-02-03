@@ -3,7 +3,22 @@ export type SegmentRule = {
   operator: string
 }
 
-export type SegmentRules = Record<string, SegmentRule> | string[]
+export type SegmentRuleObject = {
+  filter: string
+  category?: string
+  operator?: string
+  value?: number | string
+  days?: number
+  product?: string
+  start_date?: string
+  end_date?: string
+  key?: string
+}
+
+export type SegmentRules =
+  | Record<string, SegmentRule>
+  | string[]
+  | SegmentRuleObject[]
 
 export type Segment = {
   id: number
