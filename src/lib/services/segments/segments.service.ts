@@ -71,6 +71,7 @@ const parseRule = (data: unknown, field: string): SegmentRule => {
   }
 }
 
+
 /**
  * Aceita:
  * - rules como objeto: { lifetime_value: { value, operator }, ... }
