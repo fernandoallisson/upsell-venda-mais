@@ -52,6 +52,15 @@ const asNumber = (value: unknown, field: string): number => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNumberLoose = (value: unknown, field: string): number => {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (!Number.isNaN(parsed)) return parsed
+  }
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
 const asBoolean = (value: unknown, field: string): boolean => {
   if (typeof value === 'boolean') return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
@@ -175,7 +184,7 @@ const parseSegment = (input: unknown): Segment => {
   if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: segment')
 
   return {
-    id: asNumber(data.id, 'segment.id'),
+    id: asNumberLoose(data.id, 'segment.id'),
     tenant_id: parseTenantId(data),
     name: asString(data.name, 'segment.name'),
     rules: parseRules(data.rules),
@@ -198,26 +207,62 @@ const parsePaginationLink = (data: unknown): PaginationLink => {
 }
 
 const parseSegmentsResponse = (data: JsonValue): SegmentsResponse => {
+  if (Array.isArray(data)) {
+    return buildFallbackSegmentsResponse(data.map(parseSegment))
+  }
+
   if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor')
 
-  const items = Array.isArray(data.data) ? data.data : ([] as JsonArray)
+  const items = Array.isArray(data.data) ? data.data : null
+  if (!items) {
+    return buildFallbackSegmentsResponse([parseSegment(data)])
+  }
+
   const links = Array.isArray(data.links) ? data.links : ([] as JsonArray)
+  const hasPaginationFields =
+    data.current_page !== undefined &&
+    data.last_page !== undefined &&
+    data.per_page !== undefined &&
+    data.total !== undefined
+
+  if (!hasPaginationFields) {
+    return buildFallbackSegmentsResponse(items.map(parseSegment))
+  }
 
   return {
-    current_page: asNumber(data.current_page, 'current_page'),
+    current_page: asNumberLoose(data.current_page, 'current_page'),
     data: items.map(parseSegment),
 
     first_page_url: asString(data.first_page_url, 'first_page_url'),
     from: asNullableNumber(data.from, 'from'),
-    last_page: asNumber(data.last_page, 'last_page'),
+    last_page: asNumberLoose(data.last_page, 'last_page'),
     last_page_url: asString(data.last_page_url, 'last_page_url'),
     links: links.map(parsePaginationLink),
     next_page_url: asNullableString(data.next_page_url, 'next_page_url'),
     path: asString(data.path, 'path'),
-    per_page: asNumber(data.per_page, 'per_page'),
+    per_page: asNumberLoose(data.per_page, 'per_page'),
     prev_page_url: asNullableString(data.prev_page_url, 'prev_page_url'),
     to: asNullableNumber(data.to, 'to'),
-    total: asNumber(data.total, 'total'),
+    total: asNumberLoose(data.total, 'total'),
+  }
+}
+
+const buildFallbackSegmentsResponse = (items: Segment[]): SegmentsResponse => {
+  const total = items.length
+  return {
+    current_page: 1,
+    data: items,
+    first_page_url: '',
+    from: total > 0 ? 1 : null,
+    last_page: 1,
+    last_page_url: '',
+    links: [],
+    next_page_url: null,
+    path: '',
+    per_page: total,
+    prev_page_url: null,
+    to: total > 0 ? total : null,
+    total,
   }
 }
 
