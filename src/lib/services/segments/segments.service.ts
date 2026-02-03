@@ -62,13 +62,62 @@ const asRuleValue = (value: unknown, field: string): number | string => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
-const parseRule = (data: unknown, field: string): SegmentRule => {
-  if (!isRecord(data)) throw new ApiError(`Resposta inválida do servidor: ${field}`)
-  return {
-    value: asRuleValue(data.value, `${field}.value`),
-    operator: asString(data.operator, `${field}.operator`),
+/**
+ * Aceita:
+ * - rules como objeto: { lifetime_value: { value, operator }, ... }
+ * - rules como array de objetos: [{ filter, category, operator?, value?, days?, ... }]
+ * - rules como array de strings: ["lifetime_value", "total_orders"] (legado)
+ */
+const parseRules = (data: unknown): SegmentRules => {
+  // ✅ NOVO: array de objetos (como seu fetch mostrou)
+  if (Array.isArray(data)) {
+    // se for array de records, devolve como está (validando o mínimo)
+    const objectRules = data.filter(isRecord)
+
+    if (objectRules.length > 0) {
+      return objectRules.map((rule, idx) => {
+        // valida o mínimo pra você não carregar lixo
+        const filter = asNullableStringLike(rule.filter, `rules.${idx}.filter`)
+        const category = asNullableStringLike(rule.category, `rules.${idx}.category`)
+
+        if (!filter) throw new ApiError(`Resposta inválida do servidor: rules.${idx}.filter`)
+        if (!category) throw new ApiError(`Resposta inválida do servidor: rules.${idx}.category`)
+
+        return {
+          ...rule,
+          filter,
+          category,
+          // operator/value são comuns, mas podem faltar dependendo do tipo de filtro
+          operator: asNullableStringLike(rule.operator, `rules.${idx}.operator`) ?? undefined,
+          value:
+            rule.value === undefined || rule.value === null
+              ? undefined
+              : asRuleValue(rule.value, `rules.${idx}.value`),
+          days:
+            rule.days === undefined || rule.days === null
+              ? undefined
+              : asNullableStringLike(rule.days, `rules.${idx}.days`) ?? String(rule.days),
+        }
+      }) as unknown as SegmentRules
+    }
+
+    // ✅ legado: array de strings
+    return data
+      .filter((v) => typeof v === 'string')
+      .map((v) => v.trim())
+      .filter(Boolean) as unknown as SegmentRules
   }
+
+  // ✅ formato antigo: objeto chaveado
+  if (!isRecord(data)) return {}
+
+  const parsed: Record<string, SegmentRule> = {}
+  Object.entries(data).forEach(([key, value]) => {
+    parsed[key] = parseRule(value, `rules.${key}`)
+  })
+  return parsed
 }
+
 
 /**
  * Aceita:
