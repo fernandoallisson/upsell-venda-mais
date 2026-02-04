@@ -46,8 +46,8 @@ const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
     >
       <div className="flex items-start justify-between gap-2 px-2">
         <div className={collapsed ? 'hidden' : 'block'}>
-          <p className="text-xs font-semibold uppercase text-slate-400">Venda Mais</p>
-          <p className="text-lg font-semibold text-slate-900">Upsell Console</p>
+          <p className="text-xs font-semibold uppercase text-slate-400">Incrível Boost</p>
+          <p className="text-lg font-semibold text-slate-900">Console de Upsell</p>
         </div>
         <button
           type="button"

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronDown, LogOut, RefreshCcw, Settings, UserCircle } from 'lucide-react'
 import type { User } from '../../lib/services/users/users.types'
+import logoMark from '../../assets/logo.png'
 
 type DashboardHeaderProps = {
   user: User | null
@@ -16,7 +17,7 @@ const DashboardHeader = ({
   onRefresh,
   onLogout,
   title = 'Dashboard',
-  subtitle = 'Venda Mais',
+  subtitle = 'Incrível Boost',
 }: DashboardHeaderProps) => {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
@@ -32,9 +33,14 @@ const DashboardHeader = ({
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
-        <div>
-          <p className="text-xs font-semibold uppercase text-slate-400">{subtitle}</p>
-          <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50">
+            <img src={logoMark} alt="Logo Incrível Boost" className="h-9 w-9" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase text-slate-400">{subtitle}</p>
+            <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
