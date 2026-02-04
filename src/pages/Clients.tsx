@@ -10,6 +10,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   Mail,
   Pencil,
   Phone,
@@ -28,11 +29,13 @@ import {
   getCustomers,
   updateCustomer,
 } from '../lib/services/customers/customers.service'
+import { getOrders } from '../lib/services/orders/orders.service'
 import type {
   Customer,
   CustomerPayload,
   CustomersResponse,
 } from '../lib/services/customers/customers.types'
+import type { Order } from '../lib/services/orders/orders.types'
 import { getSegments } from '../lib/services/segments/segments.service'
 import type { Segment } from '../lib/services/segments/segments.types'
 
@@ -111,6 +114,18 @@ const Clients = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [isOrdersOpen, setIsOrdersOpen] = useState(false)
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([])
+  const [customerOrdersPage, setCustomerOrdersPage] = useState(1)
+  const [customerOrdersStatus, setCustomerOrdersStatus] = useState<
+    'idle' | 'loading' | 'error'
+  >('idle')
+  const [customerOrdersError, setCustomerOrdersError] = useState<string | null>(
+    null,
+  )
+  const [ordersCustomerId, setOrdersCustomerId] = useState<number | null>(null)
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createStatus, setCreateStatus] = useState<
@@ -237,6 +252,12 @@ const Clients = () => {
       segments: selectedCustomer.segments.map((segment) => String(segment.id)),
     })
     setIsEditOpen(false)
+    setIsOrdersOpen(false)
+    setCustomerOrders([])
+    setCustomerOrdersPage(1)
+    setCustomerOrdersStatus('idle')
+    setCustomerOrdersError(null)
+    setOrdersCustomerId(null)
   }, [selectedCustomer])
 
   useEffect(() => {
@@ -381,6 +402,62 @@ const Clients = () => {
     return buildPageItems(pagination.current_page, pagination.last_page)
   }, [pagination])
 
+  const filteredCustomers = useMemo(() => {
+    const query = customerSearch.trim().toLowerCase()
+    if (!query) return customers
+    return customers.filter((customer) =>
+      `${customer.first_name} ${customer.last_name}`
+        .toLowerCase()
+        .includes(query),
+    )
+  }, [customerSearch, customers])
+
+  const fetchCustomerOrders = useCallback(async (customerId: number) => {
+    setCustomerOrdersStatus('loading')
+    setCustomerOrdersError(null)
+
+    try {
+      const firstPage = await getOrders(1)
+      let allOrders = [...firstPage.data]
+
+      if (firstPage.last_page > 1) {
+        for (let current = 2; current <= firstPage.last_page; current += 1) {
+          const response = await getOrders(current)
+          allOrders = allOrders.concat(response.data)
+        }
+      }
+
+      const filtered = allOrders.filter(
+        (order) =>
+          order.customer_id === customerId || order.customer.id === customerId,
+      )
+
+      setCustomerOrders(filtered)
+      setCustomerOrdersPage(1)
+      setOrdersCustomerId(customerId)
+      setCustomerOrdersStatus('idle')
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Erro ao carregar pedidos do cliente.'
+      setCustomerOrdersError(message)
+      setCustomerOrdersStatus('error')
+    }
+  }, [])
+
+  const handleOpenOrdersModal = () => {
+    if (!selectedCustomer) return
+    setIsOrdersOpen(true)
+
+    if (
+      ordersCustomerId !== selectedCustomer.id ||
+      customerOrders.length === 0
+    ) {
+      fetchCustomerOrders(selectedCustomer.id)
+    }
+  }
+
   const isFormValid = (
     form: typeof customerForm | typeof editForm,
   ): boolean => {
@@ -397,6 +474,20 @@ const Clients = () => {
     if (!selectedCustomer) return []
     return selectedCustomer.segments
   }, [selectedCustomer])
+
+  const customerOrdersPerPage = 5
+  const customerOrdersLastPage = Math.max(
+    1,
+    Math.ceil(customerOrders.length / customerOrdersPerPage),
+  )
+  const customerOrdersPageItems = useMemo(
+    () => buildPageItems(customerOrdersPage, customerOrdersLastPage),
+    [customerOrdersLastPage, customerOrdersPage],
+  )
+  const visibleCustomerOrders = useMemo(() => {
+    const start = (customerOrdersPage - 1) * customerOrdersPerPage
+    return customerOrders.slice(start, start + customerOrdersPerPage)
+  }, [customerOrders, customerOrdersPage, customerOrdersPerPage])
 
   return (
     <DashboardPage
@@ -684,8 +775,24 @@ const Clients = () => {
                 Lista de clientes
               </div>
 
+              <div className="px-2 pb-4">
+                <label className="space-y-2 text-sm text-slate-600">
+                  <span>Buscar por nome</span>
+                  <input
+                    value={customerSearch}
+                    onChange={(event) => setCustomerSearch(event.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                    placeholder="Digite o nome do cliente"
+                  />
+                </label>
+                <p className="mt-2 text-xs text-slate-500">
+                  Exibindo {filteredCustomers.length} de {customers.length} clientes na
+                  página atual.
+                </p>
+              </div>
+
               <div className="space-y-3">
-                {customers.map((customer) => {
+                {filteredCustomers.map((customer) => {
                   const isActive = selectedCustomer?.id === customer.id
                   return (
                     <button
@@ -723,7 +830,13 @@ const Clients = () => {
                 })}
               </div>
 
-              {pagination ? (
+              {filteredCustomers.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+                  Nenhum cliente encontrado com esse nome.
+                </div>
+              ) : null}
+
+              {pagination && filteredCustomers.length > 0 ? (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-2">
                   <div className="text-xs text-slate-500">
                     Mostrando{' '}
@@ -846,7 +959,13 @@ const Clients = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Tag className="h-4 w-4 text-indigo-500" />
-                      {selectedCustomer.total_orders_count} pedidos no total
+                      <button
+                        type="button"
+                        onClick={handleOpenOrdersModal}
+                        className="text-left text-sm font-semibold text-indigo-600 transition hover:text-indigo-700"
+                      >
+                        {selectedCustomer.total_orders_count} pedidos no total
+                      </button>
                     </div>
                   </div>
 
@@ -1120,6 +1239,165 @@ const Clients = () => {
                 </div>
               ) : null}
             </section>
+          </div>
+        </div>
+      ) : null}
+
+      {isOrdersOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">
+                  Pedidos de {selectedCustomer?.first_name ?? 'cliente'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {customerOrders.length} pedidos encontrados
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOrdersOpen(false)}
+                className="rounded-xl border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              {customerOrdersStatus === 'loading' ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                      key={`loading-${index}`}
+                      className="h-20 animate-pulse rounded-2xl border border-slate-200 bg-white"
+                    />
+                  ))}
+                </div>
+              ) : null}
+
+              {customerOrdersStatus === 'error' ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                  <p className="font-semibold">
+                    Não foi possível carregar os pedidos.
+                  </p>
+                  <p className="text-xs text-rose-600">{customerOrdersError}</p>
+                </div>
+              ) : null}
+
+              {customerOrdersStatus === 'idle' &&
+              customerOrders.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                  Nenhum pedido encontrado para este cliente.
+                </div>
+              ) : null}
+
+              {customerOrdersStatus === 'idle' &&
+              customerOrders.length > 0 ? (
+                <div className="space-y-3">
+                  {visibleCustomerOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                          <ClipboardList className="h-4 w-4 text-indigo-500" />
+                          Pedido #{order.id}
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          {formatDate(order.placed_at)} · {order.items.length} itens
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {formatCurrency(order.total_amount, 'BRL')}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Status: {order.status}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {customerOrdersStatus === 'idle' && customerOrders.length > 0 ? (
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                <div className="text-xs text-slate-500">
+                  Mostrando{' '}
+                  <span className="font-semibold text-slate-700">
+                    {(customerOrdersPage - 1) * customerOrdersPerPage + 1}
+                  </span>{' '}
+                  –
+                  <span className="font-semibold text-slate-700">
+                    {Math.min(
+                      customerOrdersPage * customerOrdersPerPage,
+                      customerOrders.length,
+                    )}
+                  </span>{' '}
+                  de{' '}
+                  <span className="font-semibold text-slate-700">
+                    {customerOrders.length}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={customerOrdersPage === 1}
+                    onClick={() =>
+                      setCustomerOrdersPage((prev) => Math.max(1, prev - 1))
+                    }
+                    className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </button>
+
+                  <div className="mx-1 flex items-center gap-1">
+                    {customerOrdersPageItems.map((item, idx) =>
+                      item === '...' ? (
+                        <span
+                          key={`dots-${idx}`}
+                          className="px-2 text-xs text-slate-400"
+                        >
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => setCustomerOrdersPage(item)}
+                          className={`min-w-9 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                            item === customerOrdersPage
+                              ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      ),
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={customerOrdersPage === customerOrdersLastPage}
+                    onClick={() =>
+                      setCustomerOrdersPage((prev) =>
+                        Math.min(customerOrdersLastPage, prev + 1),
+                      )
+                    }
+                    className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Próxima
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

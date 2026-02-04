@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   DollarSign,
+  Filter,
   Image as ImageIcon,
   Package,
   Pencil,
@@ -103,6 +104,16 @@ const Products = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+
+  const [filters, setFilters] = useState({
+    name: '',
+    category_id: '',
+    price_min: '',
+    price_max: '',
+    created_from: '',
+    created_to: '',
+    status: 'all',
+  })
 
   // ✅ mesmo mecanismo expandir/recolher: CRIAR
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -371,6 +382,61 @@ const Products = () => {
     return buildPageItems(pagination.current_page, pagination.last_page)
   }, [pagination])
 
+  const filteredProducts = useMemo(() => {
+    const nameQuery = filters.name.trim().toLowerCase()
+    const categoryId = filters.category_id.trim()
+    const minPrice = parseNumber(filters.price_min)
+    const maxPrice = parseNumber(filters.price_max)
+    const createdFrom = filters.created_from
+      ? new Date(`${filters.created_from}T00:00:00`)
+      : null
+    const createdTo = filters.created_to
+      ? new Date(`${filters.created_to}T23:59:59`)
+      : null
+
+    return products.filter((product) => {
+      if (nameQuery && !product.name.toLowerCase().includes(nameQuery)) {
+        return false
+      }
+
+      if (categoryId && String(product.category_id ?? '') !== categoryId) {
+        return false
+      }
+
+      const priceValue = parseNumber(product.price) ?? 0
+      if (minPrice !== null && priceValue < minPrice) return false
+      if (maxPrice !== null && priceValue > maxPrice) return false
+
+      if (createdFrom || createdTo) {
+        const createdAt = new Date(product.created_at)
+        if (createdFrom && createdAt < createdFrom) return false
+        if (createdTo && createdAt > createdTo) return false
+      }
+
+      if (filters.status === 'active' && !product.is_active) return false
+      if (filters.status === 'inactive' && product.is_active) return false
+
+      return true
+    })
+  }, [filters, products])
+
+  const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
+    if (key === 'status') return value !== 'all'
+    return value.trim().length > 0
+  })
+
+  const handleClearFilters = () => {
+    setFilters({
+      name: '',
+      category_id: '',
+      price_min: '',
+      price_max: '',
+      created_from: '',
+      created_to: '',
+      status: 'all',
+    })
+  }
+
   const isFormValid = (
     form: typeof productForm | typeof editForm,
   ): boolean => {
@@ -467,6 +533,150 @@ const Products = () => {
       {status === 'idle' && products.length > 0 ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           <div className="space-y-6">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <Filter className="h-4 w-4 text-indigo-500" />
+                  Filtros
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  disabled={!hasActiveFilters}
+                  className="text-xs font-semibold text-indigo-600 disabled:text-slate-300"
+                >
+                  Limpar filtros
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-4">
+                <label className="space-y-2 text-sm text-slate-600">
+                  <span>Nome do produto</span>
+                  <input
+                    value={filters.name}
+                    onChange={(event) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        name: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                    placeholder="Buscar pelo nome"
+                  />
+                </label>
+
+                <label className="space-y-2 text-sm text-slate-600">
+                  <span>Categoria</span>
+                  <select
+                    value={filters.category_id}
+                    onChange={(event) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        category_id: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                  >
+                    <option value="">Todas</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2 text-sm text-slate-600">
+                    <span>Preço mínimo</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={filters.price_min}
+                      onChange={(event) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          price_min: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      placeholder="0,00"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm text-slate-600">
+                    <span>Preço máximo</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={filters.price_max}
+                      onChange={(event) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          price_max: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      placeholder="9999,00"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2 text-sm text-slate-600">
+                    <span>Criado a partir de</span>
+                    <input
+                      type="date"
+                      value={filters.created_from}
+                      onChange={(event) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          created_from: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm text-slate-600">
+                    <span>Criado até</span>
+                    <input
+                      type="date"
+                      value={filters.created_to}
+                      onChange={(event) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          created_to: event.target.value,
+                        }))
+                      }
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                    />
+                  </label>
+                </div>
+
+                <label className="space-y-2 text-sm text-slate-600">
+                  <span>Status</span>
+                  <select
+                    value={filters.status}
+                    onChange={(event) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        status: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="active">Ativos</option>
+                    <option value="inactive">Inativos</option>
+                  </select>
+                </label>
+
+                <p className="text-xs text-slate-500">
+                  Exibindo {filteredProducts.length} de {products.length} itens na
+                  página atual.
+                </p>
+              </div>
+            </section>
+
             {/* ✅ Criar com expandir/recolher */}
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <button
@@ -671,7 +881,7 @@ const Products = () => {
               </div>
 
               <div className="space-y-3">
-                {products.map((product) => {
+                {filteredProducts.map((product) => {
                   const isActive = selectedProduct?.id === product.id
                   return (
                     <button
@@ -714,7 +924,13 @@ const Products = () => {
                 })}
               </div>
 
-              {pagination ? (
+              {filteredProducts.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+                  Nenhum produto encontrado com os filtros aplicados.
+                </div>
+              ) : null}
+
+              {pagination && filteredProducts.length > 0 ? (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-2">
                   <div className="text-xs text-slate-500">
                     Mostrando{' '}
