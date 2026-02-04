@@ -66,8 +66,12 @@ const asBoolean = (value: unknown, field: string): boolean => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
-const asRuleValue = (value: unknown, field: string): number | string => {
-  if (typeof value === 'number' || typeof value === 'string') return value
+const asRuleValue = (value: unknown, field: string): number | string | boolean => {
+  if (
+    typeof value === 'number' ||
+    typeof value === 'string' ||
+    typeof value === 'boolean'
+  ) return value
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
