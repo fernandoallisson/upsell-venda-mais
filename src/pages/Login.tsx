@@ -18,6 +18,11 @@ const Login = () => {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
+    if (isLoading) {
+      return
+    }
+
     setError('')
 
     if (!email || !password) {
@@ -70,10 +75,11 @@ const Login = () => {
            
           </header>
 
-          <form className="form" onSubmit={handleSubmit}>
-            <label className="form__field">
+          <form className="form" method="post" onSubmit={handleSubmit}>
+            <label className="form__field" htmlFor="email">
               <span>E-mail</span>
               <input
+                id="email"
                 type="email"
                 name="email"
                 placeholder="user@tenant.com"
@@ -85,12 +91,13 @@ const Login = () => {
               />
             </label>
 
-            <label className="form__field">
+            <label className="form__field" htmlFor="password">
               <span>Senha</span>
               <input
+                id="password"
                 type="password"
                 name="password"
-                placeholder="secret123"
+                placeholder="Digite sua senha"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 disabled={isLoading}
@@ -99,7 +106,11 @@ const Login = () => {
               />
             </label>
 
-            {error ? <p className="form__error">{error}</p> : null}
+            {error ? (
+              <div className="form__error" role="alert" aria-live="polite">
+                {error}
+              </div>
+            ) : null}
 
             <button className="button" type="submit" disabled={isLoading}>
               {isLoading ? 'Entrando...' : 'Entrar'}
