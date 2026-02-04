@@ -67,7 +67,7 @@ const Login = () => {
               </div>
             </div>
             <h1 className="text-center">Acesse sua conta</h1>
-            <p className="text-center bg">Entre e acompanhe suas campanhas em tempo real.</p>
+           
           </header>
 
           <form className="form" onSubmit={handleSubmit}>
