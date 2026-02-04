@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import loginImage from '../assets/Img.png'
-import logoMark from '../assets/incrivel-logo.svg'
+import logoMark from '../assets/logo.png'
 
 const isValidEmail = (value: string) => {
   return /\S+@\S+\.\S+/.test(value)
