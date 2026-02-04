@@ -17,16 +17,21 @@ import {
   createCampaign,
   deleteCampaign,
   getCampaignById,
+  getCampaignProducts,
   getCampaigns,
+  updateCampaignProducts,
   updateCampaign,
 } from '../lib/services/campaigns/campaigns.service'
 import type {
   Campaign,
   CampaignDetails,
+  CampaignProduct,
   CampaignsResponse,
   CreateCampaignPayload,
   UpdateCampaignPayload,
 } from '../lib/services/campaigns/campaigns.types'
+import { getProducts } from '../lib/services/products/products.service'
+import type { Product } from '../lib/services/products/products.types'
 
 type PaginationMeta = Pick<
   CampaignsResponse,
@@ -143,6 +148,29 @@ const UpsellCampaigns = () => {
   const [error, setError] = useState<string | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
 
+  const [campaignProducts, setCampaignProducts] = useState<CampaignProduct[]>(
+    [],
+  )
+  const [campaignProductsStatus, setCampaignProductsStatus] = useState<
+    'idle' | 'loading' | 'error'
+  >('idle')
+  const [campaignProductsError, setCampaignProductsError] = useState<
+    string | null
+  >(null)
+  const [productList, setProductList] = useState<Product[]>([])
+  const [productListStatus, setProductListStatus] = useState<
+    'idle' | 'loading' | 'error'
+  >('idle')
+  const [productListError, setProductListError] = useState<string | null>(null)
+  const [isProductsOpen, setIsProductsOpen] = useState(false)
+  const [productSelection, setProductSelection] = useState<number[]>([])
+  const [updateProductsStatus, setUpdateProductsStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
+  const [updateProductsError, setUpdateProductsError] = useState<string | null>(
+    null,
+  )
+
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
 
@@ -191,6 +219,41 @@ const UpsellCampaigns = () => {
           : 'Erro ao carregar detalhes da campanha.'
       setDetailError(message)
       setDetailStatus('error')
+    }
+  }, [])
+
+  const fetchCampaignProducts = useCallback(async (id: number) => {
+    setCampaignProductsStatus('loading')
+    setCampaignProductsError(null)
+    try {
+      const response = await getCampaignProducts(id)
+      setCampaignProducts(response)
+      setProductSelection(response.map((product) => product.id))
+      setCampaignProductsStatus('idle')
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Erro ao carregar produtos da campanha.'
+      setCampaignProductsError(message)
+      setCampaignProductsStatus('error')
+    }
+  }, [])
+
+  const fetchProductList = useCallback(async () => {
+    setProductListStatus('loading')
+    setProductListError(null)
+    try {
+      const response = await getProducts(1)
+      setProductList(response.data)
+      setProductListStatus('idle')
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Erro ao carregar produtos.'
+      setProductListError(message)
+      setProductListStatus('error')
     }
   }, [])
 
@@ -248,7 +311,11 @@ const UpsellCampaigns = () => {
       end_date: toDateInputValue(selectedCampaign.end_date),
     })
     setIsEditOpen(false)
-  }, [selectedCampaign])
+    setIsProductsOpen(false)
+    setUpdateProductsStatus('idle')
+    setUpdateProductsError(null)
+    fetchCampaignProducts(selectedCampaign.id)
+  }, [fetchCampaignProducts, selectedCampaign])
 
   useEffect(() => {
     if (isCreateOpen) return
@@ -262,6 +329,12 @@ const UpsellCampaigns = () => {
     setUpdateError(null)
   }, [isEditOpen])
 
+  useEffect(() => {
+    if (!isProductsOpen) return
+    if (productList.length > 0 || productListStatus === 'loading') return
+    fetchProductList()
+  }, [fetchProductList, isProductsOpen, productList.length, productListStatus])
+
   const totals = useMemo(() => {
     return campaigns.reduce(
       (acc, campaign) => {
@@ -272,6 +345,11 @@ const UpsellCampaigns = () => {
       { count: 0, active: 0 },
     )
   }, [campaigns])
+
+  const selectedProductIds = useMemo(
+    () => new Set(productSelection),
+    [productSelection],
+  )
 
   const handleSelectCampaign = (campaign: Campaign) => {
     setSelectedCampaign(campaign)
@@ -371,6 +449,37 @@ const UpsellCampaigns = () => {
       const message =
         err instanceof ApiError ? err.message : 'Erro ao remover campanha.'
       setError(message)
+    }
+  }
+
+  const handleToggleProductSelection = (productId: number) => {
+    setProductSelection((prev) => {
+      if (prev.includes(productId)) {
+        return prev.filter((id) => id !== productId)
+      }
+      return [...prev, productId]
+    })
+  }
+
+  const handleSyncCampaignProducts = async () => {
+    if (!selectedCampaign) return
+    setUpdateProductsStatus('loading')
+    setUpdateProductsError(null)
+    try {
+      const response = await updateCampaignProducts(
+        selectedCampaign.id,
+        productSelection,
+      )
+      setCampaignProducts(response)
+      setProductSelection(response.map((product) => product.id))
+      setUpdateProductsStatus('success')
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Erro ao atualizar produtos da campanha.'
+      setUpdateProductsError(message)
+      setUpdateProductsStatus('error')
     }
   }
 
@@ -996,6 +1105,175 @@ const UpsellCampaigns = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">
+                        Produtos da campanha
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {campaignProducts.length} produto(s) vinculados
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsProductsOpen((prev) => !prev)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+                    >
+                      {isProductsOpen ? 'Fechar seleção' : 'Adicionar produtos'}
+                    </button>
+                  </div>
+
+                  {campaignProductsStatus === 'loading' ? (
+                    <p className="mt-4 text-xs text-slate-400">
+                      Carregando produtos da campanha...
+                    </p>
+                  ) : null}
+
+                  {campaignProductsStatus === 'error' ? (
+                    <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                      {campaignProductsError}
+                    </div>
+                  ) : null}
+
+                  {campaignProductsStatus === 'idle' ? (
+                    <div className="mt-4 space-y-3">
+                      {campaignProducts.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+                          Nenhum produto vinculado ainda.
+                        </div>
+                      ) : (
+                        campaignProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                          >
+                            <div>
+                              <p className="font-semibold text-slate-700">
+                                {product.name}
+                              </p>
+                              <p className="text-[11px] text-slate-400">
+                                {product.sku}
+                              </p>
+                            </div>
+                            <span className="font-semibold text-slate-700">
+                              {formatCurrency(Number(product.price))}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  ) : null}
+
+                  {isProductsOpen ? (
+                    <div className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-600">
+                            Selecione os produtos
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            Escolha os itens já cadastrados para a campanha.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={fetchProductList}
+                          className="text-xs font-semibold text-indigo-600"
+                        >
+                          Recarregar lista
+                        </button>
+                      </div>
+
+                      {productListStatus === 'loading' ? (
+                        <p className="text-xs text-slate-400">
+                          Carregando produtos...
+                        </p>
+                      ) : null}
+
+                      {productListStatus === 'error' ? (
+                        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                          {productListError}
+                        </div>
+                      ) : null}
+
+                      {productListStatus === 'idle' ? (
+                        <div className="max-h-64 space-y-2 overflow-auto pr-1">
+                          {productList.length === 0 ? (
+                            <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-center text-xs text-slate-400">
+                              Nenhum produto encontrado.
+                            </div>
+                          ) : (
+                            productList.map((product) => {
+                              const isSelected = selectedProductIds.has(
+                                product.id,
+                              )
+                              return (
+                                <label
+                                  key={product.id}
+                                  className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-xs transition ${
+                                    isSelected
+                                      ? 'border-indigo-200 bg-white'
+                                      : 'border-slate-200 bg-white'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() =>
+                                      handleToggleProductSelection(product.id)
+                                    }
+                                    className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                                  />
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-slate-700">
+                                      {product.name}
+                                    </p>
+                                    <p className="text-[11px] text-slate-400">
+                                      {product.sku} ·{' '}
+                                      {formatCurrency(Number(product.price))}
+                                    </p>
+                                  </div>
+                                  <span
+                                    className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                                      product.is_active
+                                        ? 'bg-emerald-50 text-emerald-600'
+                                        : 'bg-slate-100 text-slate-500'
+                                    }`}
+                                  >
+                                    {product.is_active ? 'Ativo' : 'Inativo'}
+                                  </span>
+                                </label>
+                              )
+                            })
+                          )}
+                        </div>
+                      ) : null}
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleSyncCampaignProducts}
+                          disabled={updateProductsStatus === 'loading'}
+                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Salvar seleção
+                        </button>
+                        {updateProductsStatus === 'success' ? (
+                          <span className="text-xs font-semibold text-emerald-600">
+                            Produtos atualizados!
+                          </span>
+                        ) : null}
+                        {updateProductsStatus === 'error' ? (
+                          <span className="text-xs font-semibold text-rose-600">
+                            {updateProductsError}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
