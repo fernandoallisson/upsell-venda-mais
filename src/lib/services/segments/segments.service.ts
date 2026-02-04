@@ -75,7 +75,10 @@ const parseRule = (data: unknown, field: string): SegmentRule => {
   if (!isRecord(data)) throw new ApiError(`Resposta inválida do servidor: ${field}`)
 
   return {
-    value: asRuleValue(data.value, `${field}.value`),
+    value:
+      data.value === null || data.value === undefined
+        ? ''
+        : asRuleValue(data.value, `${field}.value`),
     operator: asNullableStringLike(data.operator, `${field}.operator`) ?? '',
   }
 }
