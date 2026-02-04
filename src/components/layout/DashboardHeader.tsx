@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronDown, LogOut, RefreshCcw, Settings, UserCircle } from 'lucide-react'
 import type { User } from '../../lib/services/users/users.types'
-import logoMark from '../../assets/incrivel-logo.svg'
+import logoMark from '../../assets/logo.png'
 
 type DashboardHeaderProps = {
   user: User | null
