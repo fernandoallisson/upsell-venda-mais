@@ -1,3 +1,5 @@
+import type { Product, ProductCategory } from '../products/products.types'
+
 export type Campaign = {
   id: number
   name: string
@@ -109,4 +111,17 @@ export type CampaignDetails = {
   totals: CampaignTotals
   timeframe: CampaignTimeframe
   daily: CampaignDaily[]
+}
+
+export type CampaignProductPivot = {
+  upsell_campaign_id: number
+  product_id: number
+  tenant_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CampaignProduct = Product & {
+  category: ProductCategory | null
+  pivot: CampaignProductPivot
 }

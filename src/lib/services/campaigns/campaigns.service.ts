@@ -4,6 +4,8 @@ import type {
   CampaignDetails,
   CampaignOffer,
   CampaignOfferProduct,
+  CampaignProduct,
+  CampaignProductPivot,
   CampaignsResponse,
   CampaignTimeframe,
   CreateCampaignPayload,
@@ -21,6 +23,13 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const asNullableString = (value: unknown, field: string): string | null => {
   if (value === null || value === undefined) return null
   if (typeof value === 'string') return value
+  throw new ApiError(`Resposta inválida do servidor: ${field}`)
+}
+
+const asNullableStringLike = (value: unknown, field: string): string | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
@@ -129,6 +138,78 @@ const parseOfferProduct = (data: unknown): CampaignOfferProduct => {
     created_at: asString(data.created_at, 'offer.product.created_at'),
     updated_at: asString(data.updated_at, 'offer.product.updated_at'),
   }
+}
+
+const parseCampaignProductCategory = (data: unknown) => {
+  if (!isRecord(data)) {
+    throw new ApiError('Resposta inválida do servidor: product.category')
+  }
+
+  return {
+    id: asNumber(data.id, 'product.category.id'),
+    tenant_id: asNullableStringLike(data.tenant_id, 'product.category.tenant_id'),
+    external_id: asNullableStringLike(
+      data.external_id,
+      'product.category.external_id',
+    ),
+    name: asString(data.name, 'product.category.name'),
+    created_at: asString(data.created_at, 'product.category.created_at'),
+    updated_at: asString(data.updated_at, 'product.category.updated_at'),
+  }
+}
+
+const parseCampaignProductPivot = (data: unknown): CampaignProductPivot => {
+  if (!isRecord(data)) {
+    throw new ApiError('Resposta inválida do servidor: product.pivot')
+  }
+
+  return {
+    upsell_campaign_id: asNumber(
+      data.upsell_campaign_id,
+      'product.pivot.upsell_campaign_id',
+    ),
+    product_id: asNumber(data.product_id, 'product.pivot.product_id'),
+    tenant_id: asNullableStringLike(
+      data.tenant_id,
+      'product.pivot.tenant_id',
+    ),
+    created_at: asString(data.created_at, 'product.pivot.created_at'),
+    updated_at: asString(data.updated_at, 'product.pivot.updated_at'),
+  }
+}
+
+const parseCampaignProduct = (data: unknown): CampaignProduct => {
+  if (!isRecord(data)) {
+    throw new ApiError('Resposta inválida do servidor: product')
+  }
+
+  return {
+    id: asNumber(data.id, 'product.id'),
+    tenant_id: asNullableStringLike(data.tenant_id, 'product.tenant_id'),
+    category_id: asNullableNumberLike(data.category_id, 'product.category_id'),
+    external_id: asNullableStringLike(data.external_id, 'product.external_id'),
+    sku: asString(data.sku, 'product.sku'),
+    name: asString(data.name, 'product.name'),
+    image_url: asString(data.image_url, 'product.image_url'),
+    price: asString(data.price, 'product.price'),
+    compare_at_price: asString(data.compare_at_price, 'product.compare_at_price'),
+    cost_price: asString(data.cost_price, 'product.cost_price'),
+    is_active: asBoolean(data.is_active, 'product.is_active'),
+    deleted_at: asNullableString(data.deleted_at, 'product.deleted_at'),
+    created_at: asString(data.created_at, 'product.created_at'),
+    updated_at: asString(data.updated_at, 'product.updated_at'),
+    category: data.category ? parseCampaignProductCategory(data.category) : null,
+    pivot: parseCampaignProductPivot(data.pivot),
+  }
+}
+
+const parseCampaignProductsResponse = (data: JsonValue): CampaignProduct[] => {
+  if (!data) return []
+  if (!Array.isArray(data)) {
+    throw new ApiError('Resposta inválida do servidor: products')
+  }
+
+  return data.map(parseCampaignProduct)
 }
 
 const parseOffer = (data: unknown): CampaignOffer => {
@@ -313,4 +394,38 @@ export const deleteCampaign = async (id: number): Promise<void> => {
     errorMessage: 'Erro ao remover campanha',
     networkErrorMessage: 'Falha de rede ao remover campanha',
   })
+}
+
+export const getCampaignProducts = async (
+  id: number,
+): Promise<CampaignProduct[]> => {
+  const data = await apiFetch<JsonValue>(
+    `${CAMPAIGNS_ENDPOINT}/${id}/products`,
+    {
+      method: 'GET',
+      auth: true,
+      errorMessage: 'Erro ao carregar produtos da campanha',
+      networkErrorMessage: 'Falha de rede ao carregar produtos da campanha',
+    },
+  )
+
+  return parseCampaignProductsResponse(data)
+}
+
+export const updateCampaignProducts = async (
+  id: number,
+  products: number[],
+): Promise<CampaignProduct[]> => {
+  const data = await apiFetch<JsonValue>(
+    `${CAMPAIGNS_ENDPOINT}/${id}/products`,
+    {
+      method: 'PUT',
+      auth: true,
+      body: JSON.stringify({ products }),
+      errorMessage: 'Erro ao atualizar produtos da campanha',
+      networkErrorMessage: 'Falha de rede ao atualizar produtos da campanha',
+    },
+  )
+
+  return parseCampaignProductsResponse(data)
 }
