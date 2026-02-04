@@ -1,13 +1,16 @@
+export type SegmentRuleValue = number | string | boolean
+
 export type SegmentRule = {
-  value: number | string
+  value: SegmentRuleValue
   operator: string
 }
+
 
 export type SegmentRuleObject = {
   filter: string
   category?: string
   operator?: string
-  value?: number | string
+  value?: SegmentRuleValue
   days?: number
   product?: string
   start_date?: string
