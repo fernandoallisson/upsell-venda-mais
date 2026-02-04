@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import loginImage from '../assets/Img.png'
 import logoMark from '../assets/logo.png'
+import SplashOverlay from '../components/SplashOverlay'
 
 const isValidEmail = (value: string) => {
   return /\S+@\S+\.\S+/.test(value)
@@ -11,10 +13,12 @@ const isValidEmail = (value: string) => {
 
 const Login = () => {
   const { signIn } = useAuth()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSplashActive, setIsSplashActive] = useState(false)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -34,6 +38,14 @@ const Login = () => {
 
     try {
       await signIn(email, password)
+
+      // Login bem-sucedido: ativa o splash antes de navegar.
+      setIsSplashActive(true)
+
+      // Aguarda um tick para garantir que o overlay renderize antes da navegação.
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      navigate('/dashboard')
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError('Credenciais inválidas')
@@ -42,13 +54,15 @@ const Login = () => {
       } else {
         setError('Não foi possível conectar. Tente novamente.')
       }
-    } finally {
+
+      // Em caso de erro, reabilita o formulário.
       setIsLoading(false)
     }
   }
 
   return (
     <main className="page page--login">
+      <SplashOverlay isVisible={isSplashActive} />
       <section className="login">
         <div className="login__media">
           <img src={loginImage} alt="Incrível Boost em ação" />
@@ -79,7 +93,7 @@ const Login = () => {
                 placeholder="user@tenant.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isSplashActive}
                 autoComplete="email"
                 required
               />
@@ -93,7 +107,7 @@ const Login = () => {
                 placeholder="secret123"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isSplashActive}
                 autoComplete="current-password"
                 required
               />
@@ -101,8 +115,8 @@ const Login = () => {
 
             {error ? <p className="form__error">{error}</p> : null}
 
-            <button className="button" type="submit" disabled={isLoading}>
-              {isLoading ? 'Entrando...' : 'Entrar'}
+            <button className="button" type="submit" disabled={isLoading || isSplashActive}>
+              {isLoading || isSplashActive ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
         </section>
