@@ -57,10 +57,29 @@ const asNumberLoose = (value: unknown): number => {
 
 const parseRules = (data: unknown): SegmentRules => {
   if (Array.isArray(data)) {
-    return data
+    const stringRules = data
       .filter((v) => typeof v === 'string')
       .map((v) => v.trim())
       .filter(Boolean)
+    if (stringRules.length > 0) return stringRules
+
+    const objectRules = data.filter(isRecord).map((rule) => ({
+      filter: typeof rule.filter === 'string' ? rule.filter : '',
+      category: typeof rule.category === 'string' ? rule.category : undefined,
+      operator: typeof rule.operator === 'string' ? rule.operator : undefined,
+      value:
+        typeof rule.value === 'string' || typeof rule.value === 'number'
+          ? rule.value
+          : undefined,
+      days: typeof rule.days === 'number' ? rule.days : undefined,
+      product: typeof rule.product === 'string' ? rule.product : undefined,
+      start_date:
+        typeof rule.start_date === 'string' ? rule.start_date : undefined,
+      end_date: typeof rule.end_date === 'string' ? rule.end_date : undefined,
+      key: typeof rule.key === 'string' ? rule.key : undefined,
+    }))
+
+    return objectRules
   }
 
   if (!isRecord(data)) return {}
@@ -147,6 +166,7 @@ const parseCustomer = (raw: unknown): Customer => {
     external_id: asNullableStringLike(raw.external_id),
 
     email: asStringOrEmpty(raw.email),
+    birth_date: asNullableStringLike(raw.birth_date),
     phone: asStringOrEmpty(raw.phone),
 
     first_name: asStringOrEmpty(raw.first_name),

@@ -22,6 +22,7 @@ export type Customer = {
   tenant_id: string | null
   external_id: string | null
   email: string
+  birth_date: string | null
   phone: string
   first_name: string
   last_name: string
@@ -62,6 +63,7 @@ export type CustomersResponse = {
 export type CustomerPayload = {
   external_id: string | null
   email: string
+  birth_date: string | null
   phone: string
   first_name: string
   last_name: string
