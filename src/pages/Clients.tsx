@@ -55,6 +55,13 @@ const formatDate = (value: string | null) => {
   return parsed.toLocaleString('pt-BR')
 }
 
+const formatDateOnly = (value: string | null) => {
+  if (!value) return '—'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return parsed.toLocaleDateString('pt-BR')
+}
+
 type PaginationMeta = Pick<
   CustomersResponse,
   | 'current_page'
@@ -135,6 +142,7 @@ const Clients = () => {
   const [customerForm, setCustomerForm] = useState({
     external_id: '',
     email: '',
+    birth_date: '',
     phone: '',
     first_name: '',
     last_name: '',
@@ -153,6 +161,7 @@ const Clients = () => {
   const [editForm, setEditForm] = useState({
     external_id: '',
     email: '',
+    birth_date: '',
     phone: '',
     first_name: '',
     last_name: '',
@@ -242,6 +251,7 @@ const Clients = () => {
     setEditForm({
       external_id: selectedCustomer.external_id ?? '',
       email: selectedCustomer.email,
+      birth_date: selectedCustomer.birth_date ?? '',
       phone: selectedCustomer.phone,
       first_name: selectedCustomer.first_name,
       last_name: selectedCustomer.last_name,
@@ -317,6 +327,7 @@ const Clients = () => {
     const payload: CustomerPayload = {
       external_id: customerForm.external_id.trim() || null,
       email: customerForm.email.trim(),
+      birth_date: customerForm.birth_date.trim() || null,
       phone: customerForm.phone.trim(),
       first_name: customerForm.first_name.trim(),
       last_name: customerForm.last_name.trim(),
@@ -330,6 +341,7 @@ const Clients = () => {
       setCustomerForm({
         external_id: '',
         email: '',
+        birth_date: '',
         phone: '',
         first_name: '',
         last_name: '',
@@ -358,6 +370,7 @@ const Clients = () => {
     const payload: CustomerPayload = {
       external_id: editForm.external_id.trim() || null,
       email: editForm.email.trim(),
+      birth_date: editForm.birth_date.trim() || null,
       phone: editForm.phone.trim(),
       first_name: editForm.first_name.trim(),
       last_name: editForm.last_name.trim(),
@@ -635,6 +648,20 @@ const Clients = () => {
                     </label>
 
                     <div className="grid gap-4 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-600">
+                        <span>Data de nascimento (opcional)</span>
+                        <input
+                          type="date"
+                          value={customerForm.birth_date}
+                          onChange={(event) =>
+                            setCustomerForm((prev) => ({
+                              ...prev,
+                              birth_date: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        />
+                      </label>
                       <label className="space-y-2 text-sm text-slate-600">
                         <span>Telefone</span>
                         <input
@@ -955,6 +982,10 @@ const Clients = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-indigo-500" />
+                      Nascimento: {formatDateOnly(selectedCustomer.birth_date)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-indigo-500" />
                       Última compra: {formatDate(selectedCustomer.last_purchase_at)}
                     </div>
                     <div className="flex items-center gap-2">
@@ -1081,6 +1112,20 @@ const Clients = () => {
                           </label>
 
                           <div className="grid gap-4 md:grid-cols-2">
+                            <label className="space-y-2 text-sm text-slate-600">
+                              <span>Data de nascimento (opcional)</span>
+                              <input
+                                type="date"
+                                value={editForm.birth_date}
+                                onChange={(event) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    birth_date: event.target.value,
+                                  }))
+                                }
+                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                              />
+                            </label>
                             <label className="space-y-2 text-sm text-slate-600">
                               <span>Telefone</span>
                               <input
