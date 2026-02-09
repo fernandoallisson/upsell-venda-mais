@@ -3,6 +3,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Download,
   Filter,
   Pencil,
   PlusCircle,
@@ -12,6 +13,7 @@ import {
   UserCircle2,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
+import ExportSegmentModal from '../components/segments/ExportSegmentModal'
 import { ApiError } from '../lib/api'
 import {
   createSegment,
@@ -872,6 +874,7 @@ const Segmentation = () => {
   const [editPreviewCount, setEditPreviewCount] = useState<number | null>(null)
   const [updateRulesError, setUpdateRulesError] = useState<string | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isExportOpen, setIsExportOpen] = useState(false)
 
   const fetchSegmentDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
@@ -1453,9 +1456,21 @@ const Segmentation = () => {
                   {selectedSegment?.name ?? 'Selecione um segmento'}
                 </p>
               </div>
-              {detailStatus === 'loading' ? (
-                <span className="text-xs text-slate-400">Atualizando...</span>
-              ) : null}
+              <div className="flex items-center gap-2">
+                {selectedSegment ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsExportOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-teal-300 hover:text-teal-700"
+                  >
+                    <Download className="h-4 w-4" />
+                    Exportar
+                  </button>
+                ) : null}
+                {detailStatus === 'loading' ? (
+                  <span className="text-xs text-slate-400">Atualizando...</span>
+                ) : null}
+              </div>
             </div>
 
             {selectedSegment ? (
@@ -1632,6 +1647,14 @@ const Segmentation = () => {
             )}
           </section>
         </div>
+      ) : null}
+      {selectedSegment ? (
+        <ExportSegmentModal
+          segmentId={selectedSegment.id}
+          segmentName={selectedSegment.name}
+          open={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+        />
       ) : null}
     </DashboardPage>
   )

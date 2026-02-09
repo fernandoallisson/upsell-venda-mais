@@ -69,3 +69,23 @@ export type UpdateSegmentPayload = {
   name: string
   rules: SegmentRulesPayload
 }
+
+export type ExportColumn = {
+  key: string
+  label: string
+}
+
+export type ExportStartResponse = {
+  export_id: string
+  message?: string
+}
+
+export type ExportStatusResponse = {
+  export_id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  progress?: number
+  message?: string
+  download_url?: string
+}
+
+export type ExportMode = 'sync' | 'async'

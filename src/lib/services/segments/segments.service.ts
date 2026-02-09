@@ -1,6 +1,9 @@
 import { ApiError, apiFetch } from '../../api'
 import type {
   CreateSegmentPayload,
+  ExportColumn,
+  ExportStartResponse,
+  ExportStatusResponse,
   Segment,
   SegmentRule,
   SegmentsResponse,
@@ -317,3 +320,93 @@ export const updateSegment = async (
 
   return parseSegment(data)
 }
+
+export const getExportColumns = async (): Promise<ExportColumn[]> => {
+  const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}/export/columns`, {
+    method: 'GET',
+    auth: true,
+    errorMessage: 'Erro ao carregar colunas de exportação',
+    networkErrorMessage: 'Falha de rede ao carregar colunas',
+  })
+
+  if (Array.isArray(data)) {
+    return data.map((item) => {
+      const record = item as Record<string, unknown>
+      return {
+        key: String(record.key ?? record.column ?? ''),
+        label: String(record.label ?? record.name ?? record.key ?? ''),
+      }
+    })
+  }
+
+  if (isRecord(data) && Array.isArray(data.data)) {
+    return (data.data as unknown[]).map((item) => {
+      const record = item as Record<string, unknown>
+      return {
+        key: String(record.key ?? record.column ?? ''),
+        label: String(record.label ?? record.name ?? record.key ?? ''),
+      }
+    })
+  }
+
+  return []
+}
+
+export const startAsyncExport = async (
+  segmentId: number,
+): Promise<ExportStartResponse> => {
+  const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}/${segmentId}/export`, {
+    method: 'POST',
+    auth: true,
+    errorMessage: 'Erro ao iniciar exportação',
+    networkErrorMessage: 'Falha de rede ao iniciar exportação',
+  })
+
+  if (!isRecord(data))
+    throw new ApiError('Resposta inválida ao iniciar exportação')
+
+  const nested = isRecord(data.data) ? data.data : data
+
+  return {
+    export_id: String(nested.export_id ?? nested.id ?? ''),
+    message: typeof nested.message === 'string' ? nested.message : undefined,
+  }
+}
+
+export const getExportStatus = async (
+  segmentId: number,
+  exportId: string,
+): Promise<ExportStatusResponse> => {
+  const data = await apiFetch<JsonValue>(
+    `${SEGMENTS_ENDPOINT}/${segmentId}/export/status/${exportId}`,
+    {
+      method: 'GET',
+      auth: true,
+      errorMessage: 'Erro ao verificar status da exportação',
+      networkErrorMessage: 'Falha de rede ao verificar status',
+    },
+  )
+
+  if (!isRecord(data))
+    throw new ApiError('Resposta inválida do status de exportação')
+
+  const nested = isRecord(data.data) ? data.data : data
+
+  return {
+    export_id: String(nested.export_id ?? nested.id ?? exportId),
+    status: String(nested.status ?? 'pending') as ExportStatusResponse['status'],
+    progress: typeof nested.progress === 'number' ? nested.progress : undefined,
+    message: typeof nested.message === 'string' ? nested.message : undefined,
+    download_url:
+      typeof nested.download_url === 'string' ? nested.download_url : undefined,
+  }
+}
+
+export const getAsyncExportDownloadUrl = (
+  segmentId: number,
+  exportId: string,
+): string =>
+  `${SEGMENTS_ENDPOINT}/${segmentId}/export/download/${exportId}`
+
+export const getSyncExportStreamUrl = (segmentId: number): string =>
+  `${SEGMENTS_ENDPOINT}/${segmentId}/export/stream`
