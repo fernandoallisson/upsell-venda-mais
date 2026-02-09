@@ -28,8 +28,13 @@ export type Segment = {
   tenant_id: string | null
   name: string
   rules: SegmentRules
+  matched_customers_count: number | null
   created_at: string
   updated_at: string
+}
+
+export type PreviewSegmentResponse = {
+  matched_customers_count: number
 }
 
 export type PaginationLink = {

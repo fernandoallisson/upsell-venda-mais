@@ -4,8 +4,10 @@ import type {
   ExportColumn,
   ExportStartResponse,
   ExportStatusResponse,
+  PreviewSegmentResponse,
   Segment,
   SegmentRule,
+  SegmentRulesPayload,
   SegmentsResponse,
   UpdateSegmentPayload,
   SegmentRules,
@@ -183,7 +185,16 @@ const parseTenantId = (data: Record<string, unknown>): string | null => {
   return null
 }
 
+const extractMatchedCount = (input: unknown): number | null => {
+  if (!isRecord(input)) return null
+  if (typeof input.matched_customers_count === 'number') return input.matched_customers_count
+  if (isRecord(input.data) && typeof input.data.matched_customers_count === 'number')
+    return input.data.matched_customers_count
+  return null
+}
+
 const parseSegment = (input: unknown): Segment => {
+  const matchedCount = extractMatchedCount(input)
   const data = unwrapSegment(input)
 
   if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: segment')
@@ -193,6 +204,8 @@ const parseSegment = (input: unknown): Segment => {
     tenant_id: parseTenantId(data),
     name: asString(data.name, 'segment.name'),
     rules: parseRules(data.rules),
+    matched_customers_count:
+      matchedCount ?? (typeof data.matched_customers_count === 'number' ? data.matched_customers_count : null),
     created_at: asString(data.created_at, 'segment.created_at'),
     updated_at: asString(data.updated_at, 'segment.updated_at'),
   }
@@ -319,6 +332,33 @@ export const updateSegment = async (
   })
 
   return parseSegment(data)
+}
+
+export const previewSegmentRules = async (
+  rules: SegmentRulesPayload,
+): Promise<PreviewSegmentResponse> => {
+  const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}/preview`, {
+    method: 'POST',
+    auth: true,
+    body: JSON.stringify({ rules }),
+    errorMessage: 'Erro ao calcular preview do segmento',
+    networkErrorMessage: 'Falha de rede ao calcular preview',
+  })
+
+  if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor')
+
+  const nested = isRecord(data.data) ? data.data : data
+
+  return {
+    matched_customers_count:
+      typeof nested.matched_customers_count === 'number'
+        ? nested.matched_customers_count
+        : typeof nested.count === 'number'
+          ? nested.count
+          : typeof nested.total === 'number'
+            ? nested.total
+            : 0,
+  }
 }
 
 export const getExportColumns = async (): Promise<ExportColumn[]> => {

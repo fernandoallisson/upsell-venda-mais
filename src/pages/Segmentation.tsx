@@ -19,6 +19,7 @@ import {
   createSegment,
   getSegmentById,
   getSegments,
+  previewSegmentRules,
   updateSegment,
 } from '../lib/services/segments/segments.service'
 import type {
@@ -1155,16 +1156,36 @@ const Segmentation = () => {
     setUpdateRulesError(null)
   }
 
-  const handleCalculatePreview = () => {
-    const validRulesCount = createRules.filter(isRuleComplete).length
-    const estimate = Math.max(0, validRulesCount * 128)
-    setPreviewCount(estimate)
+  const handleCalculatePreview = async () => {
+    const validRules = createRules.filter(isRuleComplete)
+    if (validRules.length === 0) {
+      setPreviewCount(0)
+      return
+    }
+
+    try {
+      const result = await previewSegmentRules(validRules.map(buildRulePayload))
+      setPreviewCount(result.matched_customers_count)
+    } catch {
+      setPreviewCount(null)
+      setCreateRulesError('Erro ao calcular preview.')
+    }
   }
 
-  const handleCalculateEditPreview = () => {
-    const validRulesCount = editRules.filter(isRuleComplete).length
-    const estimate = Math.max(0, validRulesCount * 128)
-    setEditPreviewCount(estimate)
+  const handleCalculateEditPreview = async () => {
+    const validRules = editRules.filter(isRuleComplete)
+    if (validRules.length === 0) {
+      setEditPreviewCount(0)
+      return
+    }
+
+    try {
+      const result = await previewSegmentRules(validRules.map(buildRulePayload))
+      setEditPreviewCount(result.matched_customers_count)
+    } catch {
+      setEditPreviewCount(null)
+      setUpdateRulesError('Erro ao calcular preview.')
+    }
   }
 
   const handleCancelCreate = () => {
@@ -1503,13 +1524,25 @@ const Segmentation = () => {
                     <p className="text-xs font-semibold uppercase text-slate-400">
                       Resumo
                     </p>
-                    <div className="mt-2 space-y-2 text-sm text-slate-600">
-                      <p className="text-xs text-slate-500">
-                        Regras cadastradas
-                      </p>
-                      <p className="text-2xl font-semibold text-slate-900">
-                        {selectedRules.length}
-                      </p>
+                    <div className="mt-2 space-y-3 text-sm text-slate-600">
+                      <div>
+                        <p className="text-xs text-slate-500">
+                          Regras cadastradas
+                        </p>
+                        <p className="text-2xl font-semibold text-slate-900">
+                          {selectedRules.length}
+                        </p>
+                      </div>
+                      {selectedSegment.matched_customers_count !== null && (
+                        <div>
+                          <p className="text-xs text-slate-500">
+                            Clientes correspondentes
+                          </p>
+                          <p className="text-2xl font-semibold text-slate-900">
+                            {selectedSegment.matched_customers_count.toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
