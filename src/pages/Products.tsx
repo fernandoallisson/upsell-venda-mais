@@ -575,9 +575,13 @@ const Products = () => {
                   )}
                 </button>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-indigo-600">
+                  <button
+                    type="button"
+                    onClick={() => setIsFiltersOpen((prev) => !prev)}
+                    className="text-xs font-semibold text-indigo-600"
+                  >
                     {isFiltersOpen ? 'Recolher' : 'Expandir'}
-                  </span>
+                  </button>
                   <button
                     type="button"
                     onClick={handleClearFilters}
