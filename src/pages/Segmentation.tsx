@@ -21,6 +21,7 @@ import {
   getSegments,
   previewSegmentRules,
   updateSegment,
+  deleteSegment,
 } from '../lib/services/segments/segments.service'
 import type {
   CreateSegmentPayload,
@@ -876,6 +877,8 @@ const Segmentation = () => {
   const [updateRulesError, setUpdateRulesError] = useState<string | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
+  const [deleteStatus, setDeleteStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const fetchSegmentDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
@@ -1027,6 +1030,32 @@ const Segmentation = () => {
         err instanceof ApiError ? err.message : 'Erro ao criar segmento.'
       setCreateError(message)
       setCreateStatus('error')
+    }
+  }
+
+  const handleDeleteSegment = async () => {
+    if (!selectedSegment) return
+
+    const confirmed = window.confirm(
+      'Tem certeza que deseja remover este segmento?',
+    )
+    if (!confirmed) return
+
+    setDeleteStatus('loading')
+    setDeleteError(null)
+
+    try {
+      await deleteSegment(selectedSegment.id)
+      setDeleteStatus('idle')
+      setSelectedSegment(null)
+      setIsEditOpen(false)
+      setIsExportOpen(false)
+      fetchSegments(1)
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'Erro ao remover segmento.'
+      setDeleteError(message)
+      setDeleteStatus('error')
     }
   }
 
@@ -1623,6 +1652,30 @@ const Segmentation = () => {
                         ) : null}
                       </div>
                     </>
+                  ) : null}
+                </div>
+
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
+                    <Trash2 className="h-4 w-4" />
+                    Remover segmento
+                  </div>
+                  <p className="mt-2 text-xs text-rose-600">
+                    Esta ação é irreversível e remove o segmento da lista.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleDeleteSegment}
+                    disabled={deleteStatus === 'loading'}
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {deleteStatus === 'loading' ? 'Excluindo...' : 'Excluir segmento'}
+                  </button>
+                  {deleteStatus === 'error' ? (
+                    <p className="mt-2 text-xs font-semibold text-rose-600">
+                      {deleteError}
+                    </p>
                   ) : null}
                 </div>
 

@@ -13,6 +13,8 @@ import {
   RefreshCcw,
   Tag,
   Trash2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
 import { ApiError } from '../lib/api'
@@ -115,6 +117,8 @@ const Products = () => {
     created_to: '',
     status: 'all',
   })
+
+  const [isFiltersOpen, setIsFiltersOpen] = useState(true)
 
   // ✅ mesmo mecanismo expandir/recolher: CRIAR
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -557,21 +561,36 @@ const Products = () => {
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <Filter className="h-4 w-4 text-indigo-500" />
-                  Filtros
-                </div>
                 <button
                   type="button"
-                  onClick={handleClearFilters}
-                  disabled={!hasActiveFilters}
-                  className="text-xs font-semibold text-indigo-600 disabled:text-slate-300"
+                  onClick={() => setIsFiltersOpen((prev) => !prev)}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
                 >
-                  Limpar filtros
+                  <Filter className="h-4 w-4 text-indigo-500" />
+                  Filtros
+                  {isFiltersOpen ? (
+                    <ChevronUp className="h-4 w-4 text-slate-500" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-slate-500" />
+                  )}
                 </button>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-indigo-600">
+                    {isFiltersOpen ? 'Recolher' : 'Expandir'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearFilters}
+                    disabled={!hasActiveFilters}
+                    className="text-xs font-semibold text-indigo-600 disabled:text-slate-300"
+                  >
+                    Limpar filtros
+                  </button>
+                </div>
               </div>
 
-              <div className="mt-4 grid gap-4">
+              {isFiltersOpen ? (
+                <div className="mt-4 grid gap-4">
                 <label className="space-y-2 text-sm text-slate-600">
                   <span>Nome do produto</span>
                   <input
@@ -697,6 +716,7 @@ const Products = () => {
                   página atual.
                 </p>
               </div>
+              ) : null}
             </section>
 
             {/* ✅ Criar com expandir/recolher */}
