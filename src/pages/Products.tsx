@@ -101,6 +101,7 @@ const Products = () => {
     'idle' | 'loading' | 'error'
   >('idle')
   const [error, setError] = useState<string | null>(null)
+  const [categoryModal, setCategoryModal] = useState<Category | null>(null)
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
@@ -219,6 +220,27 @@ const Products = () => {
           : 'Erro ao carregar categorias para produtos.'
       setError(message)
     }
+  }, [])
+
+  const handleOpenCategoryModal = useCallback(() => {
+    if (!selectedProduct?.category_id) return
+
+    const fullCategory = categories.find(
+      (category) => category.id === selectedProduct.category_id,
+    )
+
+    if (fullCategory) {
+      setCategoryModal(fullCategory)
+      return
+    }
+
+    if (selectedProduct.category) {
+      setCategoryModal(selectedProduct.category)
+    }
+  }, [categories, selectedProduct])
+
+  const handleCloseCategoryModal = useCallback(() => {
+    setCategoryModal(null)
   }, [])
 
   useEffect(() => {
@@ -1032,9 +1054,17 @@ const Products = () => {
                       <p className="text-base font-semibold text-slate-900">
                         {selectedProduct.name}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {selectedProduct.category?.name ?? 'Sem categoria'}
-                      </p>
+                      {selectedProduct.category ? (
+                        <button
+                          type="button"
+                          onClick={handleOpenCategoryModal}
+                          className="text-xs font-medium text-indigo-600 transition hover:text-indigo-500"
+                        >
+                          {selectedProduct.category.name}
+                        </button>
+                      ) : (
+                        <p className="text-xs text-slate-500">Sem categoria</p>
+                      )}
                       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                         <span className="inline-flex items-center gap-1">
                           <Barcode className="h-3.5 w-3.5 text-indigo-500" />
@@ -1309,6 +1339,75 @@ const Products = () => {
               </div>
             )}
           </section>
+
+          {categoryModal ? (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+              role="presentation"
+              onClick={handleCloseCategoryModal}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="category-modal-title"
+                className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                      Categoria
+                    </p>
+                    <h3
+                      id="category-modal-title"
+                      className="mt-1 text-lg font-semibold text-slate-900"
+                    >
+                      {categoryModal.name}
+                    </h3>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCloseCategoryModal}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Fechar
+                  </button>
+                </div>
+
+                <dl className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-slate-400">ID</dt>
+                    <dd className="mt-1 font-medium text-slate-900">{categoryModal.id}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-slate-400">
+                      ID externo
+                    </dt>
+                    <dd className="mt-1 font-medium text-slate-900">
+                      {categoryModal.external_id ?? 'Não informado'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-slate-400">
+                      Criada em
+                    </dt>
+                    <dd className="mt-1 font-medium text-slate-900">
+                      {formatDate(categoryModal.created_at)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-slate-400">
+                      Atualizada em
+                    </dt>
+                    <dd className="mt-1 font-medium text-slate-900">
+                      {formatDate(categoryModal.updated_at)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </DashboardPage>
