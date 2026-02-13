@@ -334,6 +334,15 @@ export const updateSegment = async (
   return parseSegment(data)
 }
 
+export const deleteSegment = async (id: number): Promise<void> => {
+  await apiFetch<void>(`${SEGMENTS_ENDPOINT}/${id}`, {
+    method: 'DELETE',
+    auth: true,
+    errorMessage: 'Erro ao remover segmento',
+    networkErrorMessage: 'Falha de rede ao remover segmento',
+  })
+}
+
 export const previewSegmentRules = async (
   rules: SegmentRulesPayload,
 ): Promise<PreviewSegmentResponse> => {
