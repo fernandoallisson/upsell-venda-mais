@@ -27,6 +27,10 @@ import type {
   OffersResponse,
   UpdateOfferPayload,
 } from '../lib/services/offers/offers.types'
+import { getCampaigns, getCampaignProducts } from '../lib/services/campaigns/campaigns.service'
+import type { Campaign, CampaignProduct } from '../lib/services/campaigns/campaigns.types'
+import { getSegments } from '../lib/services/segments/segments.service'
+import type { Segment } from '../lib/services/segments/segments.types'
 
 type PaginationMeta = Pick<
   OffersResponse,
@@ -160,14 +164,128 @@ const buildDateLabels = (reference: string, days: number) => {
   })
 }
 
+type FormState = {
+  upsell_campaign_id: string
+  product_id: string
+  segment_id: string
+  type: string
+  discount_type: string
+  discount_value: string
+  headline: string
+  description: string
+}
+
+const emptyForm = (): FormState => ({
+  upsell_campaign_id: '',
+  product_id: '',
+  segment_id: '',
+  type: offerTypes[0]?.value ?? '',
+  discount_type: discountTypes[0]?.value ?? '',
+  discount_value: '',
+  headline: '',
+  description: '',
+})
+
+type CampaignFieldsProps = {
+  form: FormState
+  campaigns: Campaign[]
+  campaignProducts: CampaignProduct[]
+  campaignProductsLoading: boolean
+  segments: Segment[]
+  onChange: (patch: Partial<FormState>) => void
+  onCampaignChange: (campaignId: string) => void
+}
+
+const CampaignFields = ({
+  form,
+  campaigns,
+  campaignProducts,
+  campaignProductsLoading,
+  segments,
+  onChange,
+  onCampaignChange,
+}: CampaignFieldsProps) => (
+  <div className="grid gap-4 md:grid-cols-2">
+    <label className="space-y-2 text-sm text-slate-600">
+      <span>Campanha</span>
+      <select
+        value={form.upsell_campaign_id}
+        onChange={(event) => onCampaignChange(event.target.value)}
+        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700"
+      >
+        <option value="">Selecione uma campanha</option>
+        {campaigns.map((c) => (
+          <option key={c.id} value={String(c.id)}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    </label>
+
+    <label className="space-y-2 text-sm text-slate-600">
+      <span>Produto</span>
+      <select
+        value={form.product_id}
+        disabled={!form.upsell_campaign_id || campaignProductsLoading}
+        onChange={(event) => onChange({ product_id: event.target.value })}
+        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <option value="">
+          {!form.upsell_campaign_id
+            ? 'Selecione uma campanha primeiro'
+            : campaignProductsLoading
+              ? 'Carregando produtos...'
+              : campaignProducts.length === 0
+                ? 'Nenhum produto nessa campanha'
+                : 'Selecione um produto'}
+        </option>
+        {campaignProducts.map((p) => (
+          <option key={p.id} value={String(p.id)}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+    </label>
+
+    <label className="space-y-2 text-sm text-slate-600">
+      <span>Segmento (opcional)</span>
+      <select
+        value={form.segment_id}
+        onChange={(event) => onChange({ segment_id: event.target.value })}
+        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700"
+      >
+        <option value="">Nenhum segmento</option>
+        {segments.map((s) => (
+          <option key={s.id} value={String(s.id)}>
+            {s.name}
+          </option>
+        ))}
+      </select>
+    </label>
+
+    <label className="space-y-2 text-sm text-slate-600">
+      <span>Tipo de oferta</span>
+      <select
+        value={form.type}
+        onChange={(event) => onChange({ type: event.target.value })}
+        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700"
+      >
+        {offerTypes.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  </div>
+)
+
 const UpsellOffers = () => {
   const [offers, setOffers] = useState<Offer[]>([])
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null)
   const [details, setDetails] = useState<Offer | null>(null)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [detailStatus, setDetailStatus] = useState<
-    'idle' | 'loading' | 'error'
-  >('idle')
+  const [detailStatus, setDetailStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
 
@@ -176,39 +294,69 @@ const UpsellOffers = () => {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [createStatus, setCreateStatus] = useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
+  const [createStatus, setCreateStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [createError, setCreateError] = useState<string | null>(null)
-  const [updateStatus, setUpdateStatus] = useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [updateError, setUpdateError] = useState<string | null>(null)
 
   const [metricFilter, setMetricFilter] = useState<MetricKey>('views')
   const [pieGroup, setPieGroup] = useState<PieGroupKey>('funnel')
 
-  const [offerForm, setOfferForm] = useState({
-    upsell_campaign_id: '',
-    product_id: '',
-    segment_id: '',
-    type: offerTypes[0]?.value ?? '',
-    discount_type: discountTypes[0]?.value ?? '',
-    discount_value: '',
-    headline: '',
-    description: '',
-  })
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [segments, setSegments] = useState<Segment[]>([])
 
-  const [editForm, setEditForm] = useState({
-    upsell_campaign_id: '',
-    product_id: '',
-    segment_id: '',
-    type: offerTypes[0]?.value ?? '',
-    discount_type: discountTypes[0]?.value ?? '',
-    discount_value: '',
-    headline: '',
-    description: '',
-  })
+  const [createCampaignProducts, setCreateCampaignProducts] = useState<CampaignProduct[]>([])
+  const [createCampaignProductsLoading, setCreateCampaignProductsLoading] = useState(false)
+  const [editCampaignProducts, setEditCampaignProducts] = useState<CampaignProduct[]>([])
+  const [editCampaignProductsLoading, setEditCampaignProductsLoading] = useState(false)
+
+  const [offerForm, setOfferForm] = useState<FormState>(emptyForm())
+  const [editForm, setEditForm] = useState<FormState>(emptyForm())
+
+  useEffect(() => {
+    const loadMeta = async () => {
+      try {
+        const [campaignsRes, segmentsRes] = await Promise.all([
+          getCampaigns(1),
+          getSegments(1),
+        ])
+        setCampaigns(campaignsRes.data)
+        setSegments(segmentsRes.data)
+      } catch {
+      }
+    }
+    loadMeta()
+  }, [])
+
+  const loadCampaignProducts = async (
+    campaignId: string,
+    setter: (products: CampaignProduct[]) => void,
+    setLoading: (loading: boolean) => void,
+  ) => {
+    if (!campaignId) {
+      setter([])
+      return
+    }
+    setLoading(true)
+    try {
+      const products = await getCampaignProducts(Number(campaignId))
+      setter(products)
+    } catch {
+      setter([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateCampaignChange = (campaignId: string) => {
+    setOfferForm((prev) => ({ ...prev, upsell_campaign_id: campaignId, product_id: '' }))
+    loadCampaignProducts(campaignId, setCreateCampaignProducts, setCreateCampaignProductsLoading)
+  }
+
+  const handleEditCampaignChange = (campaignId: string) => {
+    setEditForm((prev) => ({ ...prev, upsell_campaign_id: campaignId, product_id: '' }))
+    loadCampaignProducts(campaignId, setEditCampaignProducts, setEditCampaignProductsLoading)
+  }
 
   const fetchOfferDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
@@ -273,8 +421,9 @@ const UpsellOffers = () => {
 
   useEffect(() => {
     if (!selectedOffer) return
+    const campaignId = String(selectedOffer.upsell_campaign_id)
     setEditForm({
-      upsell_campaign_id: String(selectedOffer.upsell_campaign_id),
+      upsell_campaign_id: campaignId,
       product_id: String(selectedOffer.product_id),
       segment_id:
         selectedOffer.segment_id === null
@@ -287,6 +436,8 @@ const UpsellOffers = () => {
       description: selectedOffer.description,
     })
     setIsEditOpen(false)
+    loadCampaignProducts(campaignId, setEditCampaignProducts, setEditCampaignProductsLoading)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOffer])
 
   useEffect(() => {
@@ -323,7 +474,7 @@ const UpsellOffers = () => {
     fetchOffers(nextPage)
   }
 
-  const isFormValid = (form: typeof offerForm | typeof editForm): boolean => {
+  const isFormValid = (form: FormState): boolean => {
     return (
       form.upsell_campaign_id.trim().length > 0 &&
       form.product_id.trim().length > 0 &&
@@ -335,9 +486,7 @@ const UpsellOffers = () => {
     )
   }
 
-  const buildPayload = (
-    form: typeof offerForm | typeof editForm,
-  ): CreateOfferPayload => {
+  const buildPayload = (form: FormState): CreateOfferPayload => {
     return {
       upsell_campaign_id: parseNumber(form.upsell_campaign_id) ?? 0,
       product_id: parseNumber(form.product_id) ?? 0,
@@ -359,16 +508,8 @@ const UpsellOffers = () => {
     try {
       await createOffer(payload)
       setCreateStatus('success')
-      setOfferForm({
-        upsell_campaign_id: '',
-        product_id: '',
-        segment_id: '',
-        type: offerTypes[0]?.value ?? '',
-        discount_type: discountTypes[0]?.value ?? '',
-        discount_value: '',
-        headline: '',
-        description: '',
-      })
+      setOfferForm(emptyForm())
+      setCreateCampaignProducts([])
       setIsCreateOpen(false)
       fetchOffers(1)
     } catch (err) {
@@ -577,10 +718,10 @@ const UpsellOffers = () => {
                 className="flex w-full items-center justify-between text-left"
               >
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <PlusCircle className="h-4 w-4 text-indigo-500" />
+                  <PlusCircle className="h-4 w-4 text-blue-500" />
                   Nova oferta
                 </div>
-                <span className="text-xs font-semibold text-indigo-600">
+                <span className="text-xs font-semibold text-blue-600">
                   {isCreateOpen ? 'Recolher' : 'Expandir'}
                 </span>
               </button>
@@ -588,75 +729,15 @@ const UpsellOffers = () => {
               {isCreateOpen ? (
                 <>
                   <div className="mt-4 grid gap-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="space-y-2 text-sm text-slate-600">
-                        <span>ID da campanha</span>
-                        <input
-                          type="number"
-                          value={offerForm.upsell_campaign_id}
-                          onChange={(event) =>
-                            setOfferForm((prev) => ({
-                              ...prev,
-                              upsell_campaign_id: event.target.value,
-                            }))
-                          }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                          placeholder="16"
-                        />
-                      </label>
-                      <label className="space-y-2 text-sm text-slate-600">
-                        <span>ID do produto</span>
-                        <input
-                          type="number"
-                          value={offerForm.product_id}
-                          onChange={(event) =>
-                            setOfferForm((prev) => ({
-                              ...prev,
-                              product_id: event.target.value,
-                            }))
-                          }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                          placeholder="16"
-                        />
-                      </label>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="space-y-2 text-sm text-slate-600">
-                        <span>ID do segmento (opcional)</span>
-                        <input
-                          type="number"
-                          value={offerForm.segment_id}
-                          onChange={(event) =>
-                            setOfferForm((prev) => ({
-                              ...prev,
-                              segment_id: event.target.value,
-                            }))
-                          }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                          placeholder="2"
-                        />
-                      </label>
-                      <label className="space-y-2 text-sm text-slate-600">
-                        <span>Tipo de oferta</span>
-                        <select
-                          value={offerForm.type}
-                          onChange={(event) =>
-                            setOfferForm((prev) => ({
-                              ...prev,
-                              type: event.target.value,
-                            }))
-                          }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700"
-                        >
-                          {offerTypes.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
+                    <CampaignFields
+                      form={offerForm}
+                      campaigns={campaigns}
+                      campaignProducts={createCampaignProducts}
+                      campaignProductsLoading={createCampaignProductsLoading}
+                      segments={segments}
+                      onChange={(patch) => setOfferForm((prev) => ({ ...prev, ...patch }))}
+                      onCampaignChange={handleCreateCampaignChange}
+                    />
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <label className="space-y-2 text-sm text-slate-600">
@@ -689,7 +770,7 @@ const UpsellOffers = () => {
                               discount_value: event.target.value,
                             }))
                           }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-300"
                           placeholder="20"
                         />
                       </label>
@@ -705,7 +786,7 @@ const UpsellOffers = () => {
                             headline: event.target.value,
                           }))
                         }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-300"
                         placeholder="Oferta especial: Kit completo"
                       />
                     </label>
@@ -720,7 +801,7 @@ const UpsellOffers = () => {
                             description: event.target.value,
                           }))
                         }
-                        className="min-h-[96px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        className="min-h-[96px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-300"
                         placeholder="Detalhe as condições e benefícios desta oferta."
                       />
                     </label>
@@ -731,7 +812,7 @@ const UpsellOffers = () => {
                       type="button"
                       onClick={handleCreateOffer}
                       disabled={!isFormValid(offerForm) || createStatus === 'loading'}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Zap className="h-4 w-4" />
                       Criar oferta
@@ -754,7 +835,7 @@ const UpsellOffers = () => {
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
-                <Tag className="h-4 w-4 text-indigo-500" />
+                <Tag className="h-4 w-4 text-blue-500" />
                 Lista de ofertas
               </div>
 
@@ -773,7 +854,7 @@ const UpsellOffers = () => {
                       onClick={() => handleSelectOffer(offer)}
                       className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                         isActive
-                          ? 'border-indigo-200 bg-indigo-50'
+                          ? 'border-blue-200 bg-blue-50'
                           : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
@@ -852,7 +933,7 @@ const UpsellOffers = () => {
                             onClick={() => handleGoToPage(item)}
                             className={`min-w-9 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                               item === pagination.current_page
-                                ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                ? 'border-blue-200 bg-blue-50 text-blue-700'
                                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                             }`}
                           >
@@ -910,7 +991,7 @@ const UpsellOffers = () => {
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                         <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5 text-indigo-500" />
+                          <Calendar className="h-3.5 w-3.5 text-blue-500" />
                           {formatDate(details.created_at)}
                         </span>
                         <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-500">
@@ -923,7 +1004,7 @@ const UpsellOffers = () => {
                         </span>
                       </div>
                     </div>
-                    <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600">
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
                       {details.type.replace('_', ' ')}
                     </span>
                   </div>
@@ -974,7 +1055,7 @@ const UpsellOffers = () => {
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <LineChart className="h-4 w-4 text-indigo-500" />
+                        <LineChart className="h-4 w-4 text-blue-500" />
                         Evolução simulada
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -1008,7 +1089,7 @@ const UpsellOffers = () => {
                         >
                           <polyline
                             fill="none"
-                            stroke="#6366F1"
+                            stroke="#3B82F6"
                             strokeWidth="2"
                             points={linePoints
                               .map((point) => `${point.x},${point.y}`)
@@ -1020,7 +1101,7 @@ const UpsellOffers = () => {
                               cx={point.x}
                               cy={point.y}
                               r="1.8"
-                              fill="#6366F1"
+                              fill="#3B82F6"
                             />
                           ))}
                         </svg>
@@ -1035,7 +1116,7 @@ const UpsellOffers = () => {
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <PieChart className="h-4 w-4 text-indigo-500" />
+                        <PieChart className="h-4 w-4 text-blue-500" />
                         Composição da oferta
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -1101,10 +1182,10 @@ const UpsellOffers = () => {
                     className="flex w-full items-center justify-between text-left"
                   >
                     <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <Pencil className="h-4 w-4 text-indigo-500" />
+                      <Pencil className="h-4 w-4 text-blue-500" />
                       Editar oferta
                     </div>
-                    <span className="text-xs font-semibold text-indigo-600">
+                    <span className="text-xs font-semibold text-blue-600">
                       {isEditOpen ? 'Recolher' : 'Expandir'}
                     </span>
                   </button>
@@ -1112,72 +1193,15 @@ const UpsellOffers = () => {
                   {isEditOpen ? (
                     <>
                       <div className="mt-4 grid gap-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <label className="space-y-2 text-sm text-slate-600">
-                            <span>ID da campanha</span>
-                            <input
-                              type="number"
-                              value={editForm.upsell_campaign_id}
-                              onChange={(event) =>
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  upsell_campaign_id: event.target.value,
-                                }))
-                              }
-                              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                            />
-                          </label>
-                          <label className="space-y-2 text-sm text-slate-600">
-                            <span>ID do produto</span>
-                            <input
-                              type="number"
-                              value={editForm.product_id}
-                              onChange={(event) =>
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  product_id: event.target.value,
-                                }))
-                              }
-                              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                            />
-                          </label>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <label className="space-y-2 text-sm text-slate-600">
-                            <span>ID do segmento (opcional)</span>
-                            <input
-                              type="number"
-                              value={editForm.segment_id}
-                              onChange={(event) =>
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  segment_id: event.target.value,
-                                }))
-                              }
-                              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                            />
-                          </label>
-                          <label className="space-y-2 text-sm text-slate-600">
-                            <span>Tipo de oferta</span>
-                            <select
-                              value={editForm.type}
-                              onChange={(event) =>
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  type: event.target.value,
-                                }))
-                              }
-                              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700"
-                            >
-                              {offerTypes.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        </div>
+                        <CampaignFields
+                          form={editForm}
+                          campaigns={campaigns}
+                          campaignProducts={editCampaignProducts}
+                          campaignProductsLoading={editCampaignProductsLoading}
+                          segments={segments}
+                          onChange={(patch) => setEditForm((prev) => ({ ...prev, ...patch }))}
+                          onCampaignChange={handleEditCampaignChange}
+                        />
 
                         <div className="grid gap-4 md:grid-cols-2">
                           <label className="space-y-2 text-sm text-slate-600">
@@ -1210,7 +1234,7 @@ const UpsellOffers = () => {
                                   discount_value: event.target.value,
                                 }))
                               }
-                              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-300"
                             />
                           </label>
                         </div>
@@ -1224,8 +1248,8 @@ const UpsellOffers = () => {
                                 ...prev,
                                 headline: event.target.value,
                               }))
-                            }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                          }
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-300"
                           />
                         </label>
 
@@ -1239,7 +1263,7 @@ const UpsellOffers = () => {
                                 description: event.target.value,
                               }))
                             }
-                            className="min-h-[96px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                            className="min-h-[96px] w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-300"
                           />
                         </label>
                       </div>
@@ -1249,7 +1273,7 @@ const UpsellOffers = () => {
                           type="button"
                           onClick={handleUpdateOffer}
                           disabled={!isFormValid(editForm) || updateStatus === 'loading'}
-                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <Pencil className="h-4 w-4" />
                           Salvar alterações
