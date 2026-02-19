@@ -9,6 +9,7 @@ import Profile from './pages/Profile'
 import Products from './pages/Products'
 import Segmentation from './pages/Segmentation'
 import CreateCampaign from './pages/CreateCampaign'
+import EditCampaign from './pages/EditCampaign'
 import UpsellCampaigns from './pages/UpsellCampaigns'
 import UpsellOffers from './pages/UpsellOffers'
 import Users from './pages/Users'
@@ -89,6 +90,14 @@ function App() {
         element={
           <ProtectedRoute>
             <CreateCampaign />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/upsell/campanhas/:id/editar"
+        element={
+          <ProtectedRoute>
+            <EditCampaign />
           </ProtectedRoute>
         }
       />
