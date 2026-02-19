@@ -38,13 +38,35 @@ export type CampaignsResponse = {
 
 export type CreateCampaignPayload = {
   name: string
-  priority: number
-  is_active: boolean
-  start_date: string
-  end_date: string
+  is_active?: boolean
+  priority?: number
+  display_locations?: string[]
+  headline?: string
+  description?: string
+  image_url?: string
+  video_url?: string
+  cta_text?: string
+  cta_link?: string
+  cta_new_tab?: boolean
+  start_date?: string
+  start_time?: string
+  end_date?: string
+  end_time?: string
+  active_days?: string[]
+  active_hours?: string[]
+  cooldown_minutes?: number
+  max_per_session?: number
+  max_per_day?: number
+  max_total?: number
+  block_after_conversion_days?: number
+  widget_css?: string
+  widget_html?: string
+  segment_ids?: number[]
 }
 
 export type UpdateCampaignPayload = CreateCampaignPayload
+
+export type DisplayLocationsResponse = Record<string, string>
 
 export type CampaignOfferProduct = {
   id: number

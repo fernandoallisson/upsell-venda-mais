@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Calendar,
   ChevronLeft,
@@ -14,7 +15,6 @@ import {
 import DashboardPage from '../components/layout/DashboardPage'
 import { ApiError } from '../lib/api'
 import {
-  createCampaign,
   deleteCampaign,
   getCampaignById,
   getCampaignProducts,
@@ -27,7 +27,6 @@ import type {
   CampaignDetails,
   CampaignProduct,
   CampaignsResponse,
-  CreateCampaignPayload,
   UpdateCampaignPayload,
 } from '../lib/services/campaigns/campaigns.types'
 import { getProducts } from '../lib/services/products/products.service'
@@ -138,6 +137,7 @@ const chartColors = [
 ]
 
 const UpsellCampaigns = () => {
+  const navigate = useNavigate()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
   const [details, setDetails] = useState<CampaignDetails | null>(null)
@@ -174,12 +174,7 @@ const UpsellCampaigns = () => {
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
 
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [createStatus, setCreateStatus] = useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
-  const [createError, setCreateError] = useState<string | null>(null)
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -188,14 +183,6 @@ const UpsellCampaigns = () => {
   const [metricFilter, setMetricFilter] = useState<MetricKey>('views')
   const [pieMetric, setPieMetric] = useState<PieMetricKey>('revenue')
   const [offerTypeFilter, setOfferTypeFilter] = useState('all')
-
-  const [campaignForm, setCampaignForm] = useState({
-    name: '',
-    priority: '',
-    is_active: true,
-    start_date: '',
-    end_date: '',
-  })
 
   const [editForm, setEditForm] = useState({
     name: '',
@@ -318,12 +305,6 @@ const UpsellCampaigns = () => {
   }, [fetchCampaignProducts, selectedCampaign])
 
   useEffect(() => {
-    if (isCreateOpen) return
-    setCreateStatus('idle')
-    setCreateError(null)
-  }, [isCreateOpen])
-
-  useEffect(() => {
     if (isEditOpen) return
     setUpdateStatus('idle')
     setUpdateError(null)
@@ -362,47 +343,13 @@ const UpsellCampaigns = () => {
     fetchCampaigns(nextPage)
   }
 
-  const isFormValid = (
-    form: typeof campaignForm | typeof editForm,
-  ): boolean => {
+  const isFormValid = (form: typeof editForm): boolean => {
     return (
       form.name.trim().length > 0 &&
       form.priority.trim().length > 0 &&
       Boolean(form.start_date) &&
       Boolean(form.end_date)
     )
-  }
-
-  const handleCreateCampaign = async () => {
-    setCreateStatus('loading')
-    setCreateError(null)
-
-    const payload: CreateCampaignPayload = {
-      name: campaignForm.name,
-      priority: parseNumber(campaignForm.priority) ?? 0,
-      is_active: campaignForm.is_active,
-      start_date: toIsoDate(campaignForm.start_date),
-      end_date: toIsoDate(campaignForm.end_date),
-    }
-
-    try {
-      await createCampaign(payload)
-      setCreateStatus('success')
-      setCampaignForm({
-        name: '',
-        priority: '',
-        is_active: true,
-        start_date: '',
-        end_date: '',
-      })
-      setIsCreateOpen(false)
-      fetchCampaigns(1)
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : 'Erro ao criar campanha.'
-      setCreateError(message)
-      setCreateStatus('error')
-    }
   }
 
   const handleUpdateCampaign = async () => {
@@ -635,131 +582,19 @@ const UpsellCampaigns = () => {
       {status === 'idle' ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.6fr]">
           <div className="space-y-6">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen((prev) => !prev)}
-                className="flex w-full items-center justify-between text-left"
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <PlusCircle className="h-4 w-4 text-indigo-500" />
-                  Nova campanha
-                </div>
-                <span className="text-xs font-semibold text-indigo-600">
-                  {isCreateOpen ? 'Recolher' : 'Expandir'}
-                </span>
-              </button>
-
-              {isCreateOpen ? (
-                <>
-                  <div className="mt-4 grid gap-4">
-                    <label className="space-y-2 text-sm text-slate-600">
-                      <span>Nome da campanha</span>
-                      <input
-                        value={campaignForm.name}
-                        onChange={(event) =>
-                          setCampaignForm((prev) => ({
-                            ...prev,
-                            name: event.target.value,
-                          }))
-                        }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                        placeholder="Campanha VIP de fevereiro"
-                      />
-                    </label>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="space-y-2 text-sm text-slate-600">
-                        <span>Prioridade</span>
-                        <input
-                          type="number"
-                          value={campaignForm.priority}
-                          onChange={(event) =>
-                            setCampaignForm((prev) => ({
-                              ...prev,
-                              priority: event.target.value,
-                            }))
-                          }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                          placeholder="1"
-                        />
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-slate-600">
-                        <input
-                          type="checkbox"
-                          checked={campaignForm.is_active}
-                          onChange={(event) =>
-                            setCampaignForm((prev) => ({
-                              ...prev,
-                              is_active: event.target.checked,
-                            }))
-                          }
-                          className="h-4 w-4 rounded border-slate-300 text-indigo-600"
-                        />
-                        Campanha ativa
-                      </label>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="space-y-2 text-sm text-slate-600">
-                        <span>Data de início</span>
-                        <input
-                          type="date"
-                          value={campaignForm.start_date}
-                          onChange={(event) =>
-                            setCampaignForm((prev) => ({
-                              ...prev,
-                              start_date: event.target.value,
-                            }))
-                          }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                        />
-                      </label>
-                      <label className="space-y-2 text-sm text-slate-600">
-                        <span>Data de término</span>
-                        <input
-                          type="date"
-                          value={campaignForm.end_date}
-                          onChange={(event) =>
-                            setCampaignForm((prev) => ({
-                              ...prev,
-                              end_date: event.target.value,
-                            }))
-                          }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleCreateCampaign}
-                      disabled={
-                        !isFormValid(campaignForm) ||
-                        createStatus === 'loading'
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Zap className="h-4 w-4" />
-                      Criar campanha
-                    </button>
-
-                    {createStatus === 'success' ? (
-                      <span className="text-xs font-semibold text-emerald-600">
-                        Campanha criada!
-                      </span>
-                    ) : null}
-                    {createStatus === 'error' ? (
-                      <span className="text-xs font-semibold text-rose-600">
-                        {createError}
-                      </span>
-                    ) : null}
-                  </div>
-                </>
-              ) : null}
-            </section>
+            <button
+              type="button"
+              onClick={() => navigate('/upsell/campanhas/nova')}
+              className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:bg-blue-50"
+            >
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-blue-600">
+                <PlusCircle className="h-4 w-4 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-slate-800">Nova campanha</p>
+                <p className="text-xs text-slate-500">Criar com preview em tempo real</p>
+              </div>
+            </button>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">

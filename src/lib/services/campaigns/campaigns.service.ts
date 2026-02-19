@@ -9,6 +9,7 @@ import type {
   CampaignsResponse,
   CampaignTimeframe,
   CreateCampaignPayload,
+  DisplayLocationsResponse,
   UpdateCampaignPayload,
 } from './campaigns.types'
 
@@ -428,4 +429,23 @@ export const updateCampaignProducts = async (
   )
 
   return parseCampaignProductsResponse(data)
+}
+
+export const getDisplayLocations = async (): Promise<DisplayLocationsResponse> => {
+  const data = await apiFetch<JsonValue>(
+    `${CAMPAIGNS_ENDPOINT}/display-locations`,
+    {
+      method: 'GET',
+      auth: true,
+      errorMessage: 'Erro ao carregar locais de exibição',
+      networkErrorMessage: 'Falha de rede ao carregar locais de exibição',
+    },
+  )
+
+  if (!isRecord(data)) return {}
+  const result: DisplayLocationsResponse = {}
+  Object.entries(data).forEach(([key, value]) => {
+    if (typeof value === 'string') result[key] = value
+  })
+  return result
 }
