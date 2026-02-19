@@ -364,7 +364,7 @@ const Products = () => {
       external_id: editForm.external_id,
       sku: editForm.sku,
       name: editForm.name,
-      image_url: editForm.image_url,
+      ...(editForm.image_url.trim() ? { image_url: editForm.image_url } : {}),
       price: parseNumber(editForm.price) ?? 0,
       compare_at_price: parseNumber(editForm.compare_at_price) ?? 0,
       cost_price: parseNumber(editForm.cost_price) ?? 0,
@@ -465,12 +465,13 @@ const Products = () => {
 
   const isFormValid = (
     form: typeof productForm | typeof editForm,
+    requireImage = true,
   ): boolean => {
     const requiredFields =
       form.external_id.trim() &&
       form.sku.trim() &&
       form.name.trim() &&
-      form.image_url.trim() &&
+      (!requireImage || form.image_url.trim()) &&
       form.category_id.trim()
 
     const priceValues = [
@@ -1316,7 +1317,7 @@ const Products = () => {
                           type="button"
                           onClick={handleUpdateProduct}
                           disabled={
-                            !isFormValid(editForm) || updateStatus === 'loading'
+                            !isFormValid(editForm, false) || updateStatus === 'loading'
                           }
                           className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >

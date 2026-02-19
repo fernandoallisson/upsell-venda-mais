@@ -61,4 +61,6 @@ export type CreateProductPayload = {
   is_active: boolean
 }
 
-export type UpdateProductPayload = CreateProductPayload
+export type UpdateProductPayload = Omit<CreateProductPayload, 'image_url'> & {
+  image_url?: string
+}
