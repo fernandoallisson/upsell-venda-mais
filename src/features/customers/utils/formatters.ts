@@ -20,10 +20,10 @@ export const formatDate = (value: string | null) => {
 export const formatDateOnly = (value: string | null) => {
   if (!value) return '—'
 
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value
+  const [year, month, day] = value.split('T')[0].split('-').map(Number)
+  if (!year || !month || !day) return value
 
-  return parsed.toLocaleDateString('pt-BR')
+  return new Date(year, month - 1, day).toLocaleDateString('pt-BR')
 }
 
 export const formatLifecycleStage = (value: string) =>
