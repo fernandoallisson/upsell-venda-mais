@@ -1,5 +1,6 @@
 import { Image, Link, Video } from 'lucide-react'
 import type { CampaignFormState } from '../types'
+import CollapsibleSection from '../../../../components/layout/CollapsibleSection'
 
 type Props = {
   form: CampaignFormState
@@ -7,14 +8,7 @@ type Props = {
 }
 
 const ContentSection = ({ form, onSet }: Props) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <div className="mb-5 flex items-center gap-2">
-      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
-        2
-      </span>
-      <p className="text-sm font-semibold text-slate-800">Conteudo</p>
-    </div>
-
+  <CollapsibleSection number={2} title="Conteúdo" defaultOpen={true}>
     <div className="space-y-4">
       <label className="block space-y-1.5">
         <span className="text-xs font-semibold text-slate-600">Titulo</span>
@@ -108,7 +102,7 @@ const ContentSection = ({ form, onSet }: Props) => (
         </div>
       </div>
     </div>
-  </section>
+  </CollapsibleSection>
 )
 
 export default ContentSection

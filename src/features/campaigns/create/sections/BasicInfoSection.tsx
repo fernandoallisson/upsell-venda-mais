@@ -11,6 +11,7 @@ import {
 import type { Segment } from '../../../../lib/services/segments/segments.types'
 import { DISPLAY_LOCATIONS } from '../constants'
 import type { CampaignFormState } from '../types'
+import CollapsibleSection from '../../../../components/layout/CollapsibleSection'
 
 const LOCATION_ICONS: Record<string, React.ReactNode> = {
   ShoppingBag: <ShoppingBag className="h-5 w-5" />,
@@ -41,14 +42,7 @@ const BasicInfoSection = ({
     .filter(Boolean)
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-5 flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
-          1
-        </span>
-        <p className="text-sm font-semibold text-slate-800">Informacoes Basicas</p>
-      </div>
-
+    <CollapsibleSection number={1} title="Informações Básicas" defaultOpen={true}>
       <div className="space-y-5">
         <label className="block space-y-1.5">
           <span className="text-xs font-semibold text-slate-600">
@@ -92,7 +86,7 @@ const BasicInfoSection = ({
         </div>
 
         <div className="space-y-1.5">
-          <span className="text-xs font-semibold text-slate-600">Segmentacao</span>
+          <span className="text-xs font-semibold text-slate-600">Segmentação</span>
           <div className="relative">
             <button
               type="button"
@@ -178,7 +172,7 @@ const BasicInfoSection = ({
 
         <div className="space-y-1.5">
           <span className="text-xs font-semibold text-slate-600">
-            Local de Exibicao
+            Local de Exibição
           </span>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {DISPLAY_LOCATIONS.map((loc) => {
@@ -226,7 +220,7 @@ const BasicInfoSection = ({
           </div>
         </div>
       </div>
-    </section>
+    </CollapsibleSection>
   )
 }
 

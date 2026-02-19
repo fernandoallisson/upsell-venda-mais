@@ -1,6 +1,7 @@
 import { Info, Palette } from 'lucide-react'
 import { DISPLAY_LOCATIONS, COLOR_PRESETS, type ColorPresetKey } from '../constants'
 import type { CampaignFormColors, CampaignFormState } from '../types'
+import CollapsibleSection from '../../../../components/layout/CollapsibleSection'
 
 type Props = {
   form: CampaignFormState
@@ -36,18 +37,19 @@ const VisualSection = ({ form, onSetColors, onSetColor }: Props) => {
     form.display_locations.includes(loc.key),
   )
 
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-5 flex items-center gap-2">
-        <Palette className="h-4 w-4 text-slate-400" />
-        <p className="text-sm font-semibold text-slate-800">Personalizacao Visual</p>
-        {firstLocation && (
-          <span className="ml-auto rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-            {firstLocation.widgetType}
-          </span>
-        )}
-      </div>
+  const badge = firstLocation ? (
+    <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+      {firstLocation.widgetType}
+    </span>
+  ) : undefined
 
+  return (
+    <CollapsibleSection
+      icon={<Palette className="h-4 w-4" />}
+      title="Personalização Visual"
+      badge={badge}
+      defaultOpen={true}
+    >
       <div className="space-y-5">
         <div className="space-y-2">
           <p className="text-xs font-semibold text-slate-600">Presets de Cores</p>
@@ -118,7 +120,7 @@ const VisualSection = ({ form, onSetColors, onSetColor }: Props) => {
           </div>
         )}
       </div>
-    </section>
+    </CollapsibleSection>
   )
 }
 

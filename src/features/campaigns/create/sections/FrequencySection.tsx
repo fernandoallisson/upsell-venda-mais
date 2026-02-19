@@ -1,5 +1,6 @@
 import { Repeat } from 'lucide-react'
 import type { CampaignFormState } from '../types'
+import CollapsibleSection from '../../../../components/layout/CollapsibleSection'
 
 type Props = {
   form: CampaignFormState
@@ -25,12 +26,11 @@ const FREQUENCY_FIELDS: FieldConfig[] = [
 ]
 
 const FrequencySection = ({ form, onSet }: Props) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <div className="mb-5 flex items-center gap-2">
-      <Repeat className="h-4 w-4 text-slate-400" />
-      <p className="text-sm font-semibold text-slate-800">Frequencia</p>
-    </div>
-
+  <CollapsibleSection
+    icon={<Repeat className="h-4 w-4" />}
+    title="Frequência"
+    defaultOpen={true}
+  >
     <div className="grid gap-4 sm:grid-cols-2">
       {FREQUENCY_FIELDS.map((field) => (
         <label key={field.key} className="block space-y-1">
@@ -50,7 +50,7 @@ const FrequencySection = ({ form, onSet }: Props) => (
         </label>
       ))}
     </div>
-  </section>
+  </CollapsibleSection>
 )
 
 export default FrequencySection

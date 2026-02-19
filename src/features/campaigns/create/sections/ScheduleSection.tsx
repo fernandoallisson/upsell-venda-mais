@@ -1,6 +1,7 @@
 import { Calendar } from 'lucide-react'
 import { DAYS_OF_WEEK, HOURS_OF_DAY } from '../constants'
 import type { CampaignFormState } from '../types'
+import CollapsibleSection from '../../../../components/layout/CollapsibleSection'
 
 type Props = {
   form: CampaignFormState
@@ -19,12 +20,11 @@ const ScheduleSection = ({
   onSelectAllHours,
   onClearHours,
 }: Props) => (
-  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <div className="mb-5 flex items-center gap-2">
-      <Calendar className="h-4 w-4 text-slate-400" />
-      <p className="text-sm font-semibold text-slate-800">Periodo de Exibicao</p>
-    </div>
-
+  <CollapsibleSection
+    icon={<Calendar className="h-4 w-4" />}
+    title="Período de Exibição"
+    defaultOpen={true}
+  >
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
@@ -131,7 +131,7 @@ const ScheduleSection = ({
         </p>
       </div>
     </div>
-  </section>
+  </CollapsibleSection>
 )
 
 export default ScheduleSection
