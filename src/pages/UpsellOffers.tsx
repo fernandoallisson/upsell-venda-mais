@@ -567,16 +567,7 @@ const UpsellOffers = () => {
         </div>
       ) : null}
 
-      {status === 'idle' && offers.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
-          <p className="font-semibold">Nenhuma oferta encontrada.</p>
-          <p className="text-sm text-slate-500">
-            Assim que houver ofertas, elas aparecerão aqui.
-          </p>
-        </div>
-      ) : null}
-
-      {status === 'idle' && offers.length > 0 ? (
+      {status === 'idle' ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.6fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -768,6 +759,11 @@ const UpsellOffers = () => {
               </div>
 
               <div className="space-y-3">
+                {offers.length === 0 ? (
+                  <p className="px-2 py-4 text-center text-sm text-slate-400">
+                    Nenhuma oferta encontrada.
+                  </p>
+                ) : null}
                 {offers.map((offer) => {
                   const isActive = selectedOffer?.id === offer.id
                   return (

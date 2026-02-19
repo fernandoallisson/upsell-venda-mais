@@ -1291,16 +1291,7 @@ const Segmentation = () => {
         </div>
       ) : null}
 
-      {status === 'idle' && segments.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
-          <p className="font-semibold">Nenhum segmento encontrado.</p>
-          <p className="text-sm text-slate-500">
-            Assim que houver segmentos, eles serão listados aqui.
-          </p>
-        </div>
-      ) : null}
-
-      {status === 'idle' && segments.length > 0 ? (
+      {status === 'idle' ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -1390,6 +1381,11 @@ const Segmentation = () => {
               </div>
 
               <div className="space-y-3">
+                {segments.length === 0 ? (
+                  <p className="px-2 py-4 text-center text-sm text-slate-400">
+                    Nenhum segmento encontrado.
+                  </p>
+                ) : null}
                 {segments.map((segment) => {
                   const isActive = selectedSegment?.id === segment.id
                   const rulesCount = Object.keys(segment.rules).length

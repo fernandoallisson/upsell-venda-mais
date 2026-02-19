@@ -88,16 +88,7 @@ const Clients = () => {
         </div>
       ) : null}
 
-      {status === 'idle' && customers.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
-          <p className="font-semibold">Nenhum cliente encontrado.</p>
-          <p className="text-sm text-slate-500">
-            Assim que houver clientes, eles aparecerão aqui.
-          </p>
-        </div>
-      ) : null}
-
-      {status === 'idle' && customers.length > 0 ? (
+      {status === 'idle' ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           <div className="space-y-6">
             <CustomerCreateSection

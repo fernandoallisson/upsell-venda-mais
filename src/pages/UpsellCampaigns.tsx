@@ -632,16 +632,7 @@ const UpsellCampaigns = () => {
         </div>
       ) : null}
 
-      {status === 'idle' && campaigns.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
-          <p className="font-semibold">Nenhuma campanha encontrada.</p>
-          <p className="text-sm text-slate-500">
-            Assim que houver campanhas, elas aparecerão aqui.
-          </p>
-        </div>
-      ) : null}
-
-      {status === 'idle' && campaigns.length > 0 ? (
+      {status === 'idle' ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.6fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -777,6 +768,11 @@ const UpsellCampaigns = () => {
               </div>
 
               <div className="space-y-3">
+                {campaigns.length === 0 ? (
+                  <p className="px-2 py-4 text-center text-sm text-slate-400">
+                    Nenhuma campanha encontrada.
+                  </p>
+                ) : null}
                 {campaigns.map((campaign) => {
                   const isActive = selectedCampaign?.id === campaign.id
                   return (
