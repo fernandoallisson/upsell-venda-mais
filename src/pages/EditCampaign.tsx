@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
-  Code2,
   HelpCircle,
   Loader2,
   Maximize2,
@@ -90,7 +89,6 @@ const EditCampaign = () => {
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [showJson, setShowJson] = useState(false)
   const [showFullPreview, setShowFullPreview] = useState(false)
 
   const isValid = form.name.trim().length > 0
@@ -112,8 +110,6 @@ const EditCampaign = () => {
       setSaveStatus('error')
     }
   }
-
-  const jsonPayload = buildCampaignPayload(form)
 
   if (loadStatus === 'loading') {
     return (
@@ -232,15 +228,6 @@ const EditCampaign = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setShowJson(true)}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              <Code2 className="h-4 w-4" />
-              Ver JSON
-            </button>
-
-            <button
-              type="button"
               onClick={() => setShowFullPreview(true)}
               className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
             >
@@ -264,33 +251,6 @@ const EditCampaign = () => {
           </div>
         </div>
       </div>
-
-      {showJson && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50">
-          <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <div className="flex items-center gap-2">
-                <Code2 className="h-4 w-4 text-slate-500" />
-                <p className="text-sm font-semibold text-slate-800">
-                  Payload JSON
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowJson(false)}
-                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <pre className="overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs leading-relaxed text-emerald-400">
-                {JSON.stringify(jsonPayload, null, 2)}
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showFullPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4">
