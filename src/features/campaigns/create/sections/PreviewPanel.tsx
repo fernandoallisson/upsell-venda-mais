@@ -1,4 +1,5 @@
-import { Eye, MapPin } from 'lucide-react'
+import { useState } from 'react'
+import { Eye, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 import { DISPLAY_LOCATIONS } from '../constants'
 import type { CampaignFormState } from '../types'
 
@@ -119,6 +120,80 @@ const LOCATION_TYPES: Record<string, 'modal' | 'inline'> = {
   post_purchase: 'modal',
 }
 
+const FullscreenPreview = ({
+  form,
+  locations,
+}: {
+  form: CampaignFormState
+  locations: typeof DISPLAY_LOCATIONS
+}) => {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const loc = locations[activeIndex]
+  const type = LOCATION_TYPES[loc.key] ?? 'modal'
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+      <div className="mb-5 flex items-center gap-2">
+        <Eye className="h-4 w-4 text-slate-400" />
+        <p className="text-sm font-semibold text-slate-800">
+          Preview por Local de Exibicao
+        </p>
+      </div>
+
+      <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-1">
+        {locations.map((l, i) => (
+          <button
+            key={l.key}
+            type="button"
+            onClick={() => setActiveIndex(i)}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              i === activeIndex
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <MapPin className="h-3 w-3" />
+            {l.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+        {type === 'modal' ? (
+          <ModalWrapper form={form} />
+        ) : (
+          <InlineWrapper form={form} />
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-xs text-slate-400">{loc.description}</p>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
+            disabled={activeIndex === 0}
+            className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 disabled:opacity-30"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="min-w-[3rem] text-center text-xs text-slate-400">
+            {activeIndex + 1} / {locations.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setActiveIndex((i) => Math.min(locations.length - 1, i + 1))}
+            disabled={activeIndex === locations.length - 1}
+            className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 disabled:opacity-30"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const PreviewPanel = ({ form, fullscreen = false }: Props) => {
   const selectedLocations = DISPLAY_LOCATIONS.filter((loc) =>
     form.display_locations.includes(loc.key),
@@ -130,41 +205,7 @@ const PreviewPanel = ({ form, fullscreen = false }: Props) => {
     const locationsToShow =
       selectedLocations.length > 0 ? selectedLocations : DISPLAY_LOCATIONS
 
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-        <div className="mb-5 flex items-center gap-2">
-          <Eye className="h-4 w-4 text-slate-400" />
-          <p className="text-sm font-semibold text-slate-800">
-            Preview por Local de Exibicao
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          {locationsToShow.map((loc) => {
-            const type = LOCATION_TYPES[loc.key] ?? 'modal'
-            return (
-              <div key={loc.key}>
-                <div className="mb-2 flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                    <MapPin className="h-3 w-3" />
-                    {loc.label}
-                  </div>
-                  <span className="text-xs text-slate-400">{loc.widgetType}</span>
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                  {type === 'modal' ? (
-                    <ModalWrapper form={form} />
-                  ) : (
-                    <InlineWrapper form={form} />
-                  )}
-                </div>
-                <p className="mt-1.5 text-xs text-slate-400">{loc.description}</p>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    )
+    return <FullscreenPreview form={form} locations={locationsToShow} />
   }
 
   return (
