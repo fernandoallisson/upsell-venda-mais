@@ -263,7 +263,7 @@ const Products = () => {
       external_id: selectedProduct.external_id ?? '',
       sku: selectedProduct.sku,
       name: selectedProduct.name,
-      image_url: selectedProduct.image_url,
+      image_url: selectedProduct.image_url ?? '',
       price: selectedProduct.price,
       compare_at_price: selectedProduct.compare_at_price,
       cost_price: selectedProduct.cost_price,

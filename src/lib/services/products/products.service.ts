@@ -100,7 +100,7 @@ const parseProduct = (data: unknown): Product => {
     external_id: asNullableStringLike(data.external_id, 'product.external_id'),
     sku: asString(data.sku, 'product.sku'),
     name: asString(data.name, 'product.name'),
-    image_url: asString(data.image_url, 'product.image_url'),
+    image_url: asNullableString(data.image_url, 'product.image_url'),
     price: asString(data.price, 'product.price'),
     compare_at_price: asString(data.compare_at_price, 'product.compare_at_price'),
     cost_price: asString(data.cost_price, 'product.cost_price'),

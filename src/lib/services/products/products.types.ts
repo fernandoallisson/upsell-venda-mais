@@ -14,7 +14,7 @@ export type Product = {
   external_id: string | null
   sku: string
   name: string
-  image_url: string
+  image_url: string | null
   price: string
   compare_at_price: string
   cost_price: string
