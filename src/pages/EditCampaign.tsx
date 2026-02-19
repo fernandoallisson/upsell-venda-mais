@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ import ScheduleSection from '../features/campaigns/create/sections/ScheduleSecti
 import FrequencySection from '../features/campaigns/create/sections/FrequencySection'
 import VisualSection from '../features/campaigns/create/sections/VisualSection'
 import PreviewPanel from '../features/campaigns/create/sections/PreviewPanel'
+import CampaignTour from '../features/campaigns/tour/CampaignTour'
 
 const EditCampaign = () => {
   const { id } = useParams<{ id: string }>()
@@ -91,6 +92,11 @@ const EditCampaign = () => {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [showFullPreview, setShowFullPreview] = useState(false)
 
+  const openTourRef = useRef<(() => void) | null>(null)
+  const handleTourOpen = useCallback((fn: () => void) => {
+    openTourRef.current = fn
+  }, [])
+
   const isValid = form.name.trim().length > 0
 
   const handleSave = async () => {
@@ -143,6 +149,8 @@ const EditCampaign = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <CampaignTour onOpen={handleTourOpen} />
+
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
@@ -167,9 +175,7 @@ const EditCampaign = () => {
           <button
             type="button"
             className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:bg-slate-50"
-            onClick={() =>
-              window.open('https://docs.vendamais.top/campanhas', '_blank')
-            }
+            onClick={() => openTourRef.current?.()}
           >
             <HelpCircle className="h-4 w-4" />
             Como criar uma campanha?
@@ -189,36 +195,46 @@ const EditCampaign = () => {
       <div className="mx-auto max-w-7xl px-6 py-6">
         <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
           <div className="space-y-6">
-            <BasicInfoSection
-              form={form}
-              segments={segments}
-              onSet={set}
-              onToggleLocation={toggleDisplayLocation}
-              onToggleSegment={toggleSegment}
-            />
-            <ContentSection form={form} onSet={set} />
+            <div id="tour-info-basicas">
+              <BasicInfoSection
+                form={form}
+                segments={segments}
+                onSet={set}
+                onToggleLocation={toggleDisplayLocation}
+                onToggleSegment={toggleSegment}
+              />
+            </div>
+            <div id="tour-conteudo">
+              <ContentSection form={form} onSet={set} />
+            </div>
           </div>
 
           <div className="space-y-6">
-            <ScheduleSection
-              form={form}
-              onSet={set}
-              onToggleDay={toggleDay}
-              onToggleHour={toggleHour}
-              onSelectAllHours={setAllHours}
-              onClearHours={clearHours}
-            />
-            <FrequencySection form={form} onSet={set} />
-            <VisualSection
-              form={form}
-              onSetColors={setColors}
-              onSetColor={setColor}
-            />
+            <div id="tour-periodo">
+              <ScheduleSection
+                form={form}
+                onSet={set}
+                onToggleDay={toggleDay}
+                onToggleHour={toggleHour}
+                onSelectAllHours={setAllHours}
+                onClearHours={clearHours}
+              />
+            </div>
+            <div id="tour-frequencia">
+              <FrequencySection form={form} onSet={set} />
+            </div>
+            <div id="tour-visual">
+              <VisualSection
+                form={form}
+                onSetColors={setColors}
+                onSetColor={setColor}
+              />
+            </div>
             <PreviewPanel form={form} />
           </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6">
+        <div id="tour-acoes" className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6">
           <div>
             {saveStatus === 'error' && saveError && (
               <p className="text-sm font-medium text-rose-600">{saveError}</p>
