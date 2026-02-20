@@ -20,6 +20,10 @@ import type {
 import { logout } from '../lib/services/auth/auth.service'
 import { getUser } from '../lib/services/users/users.service'
 import type { User } from '../lib/services/users/users.types'
+import { getCampaigns } from '../lib/services/campaigns/campaigns.service'
+import type { Campaign } from '../lib/services/campaigns/campaigns.types'
+import { getProducts } from '../lib/services/products/products.service'
+import type { Product } from '../lib/services/products/products.types'
 import { useAuth } from '../contexts/AuthContext'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
 import KpiCard from '../components/dashboard/KpiCard'
@@ -39,12 +43,12 @@ const calcRate = (numerator: number, denominator: number) =>
 const Dashboard = () => {
   const { signOut } = useAuth()
   const [offers, setOffers] = useState<OfferAnalytics[]>([])
-  const [overview, setOverview] = useState<AnalyticsOverviewResponse | null>(
-    null,
-  )
+  const [overview, setOverview] = useState<AnalyticsOverviewResponse | null>(null)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [products, setProducts] = useState<Product[]>([])
 
   const [search, setSearch] = useState('')
   const [selectedCampaign, setSelectedCampaign] = useState('')
@@ -55,12 +59,31 @@ const Dashboard = () => {
     setStatus('loading')
     setError(null)
     try {
-      const [offersResponse, overviewResponse] = await Promise.all([
-        getOffersAnalytics(),
-        getAnalyticsOverview(),
-      ])
-      setOffers(offersResponse.data)
+      const [offersResponse, overviewResponse, campaignsResponse, productsResponse] =
+        await Promise.all([
+          getOffersAnalytics(),
+          getAnalyticsOverview(),
+          getCampaigns(1),
+          getProducts(1),
+        ])
+
+      const campaignMap = new Map<number, string>(
+        campaignsResponse.data.map((c) => [c.id, c.name]),
+      )
+      const productMap = new Map<number, string>(
+        productsResponse.data.map((p) => [p.id, p.name]),
+      )
+
+      const enriched = offersResponse.data.map((offer) => ({
+        ...offer,
+        campaign_name: campaignMap.get(offer.upsell_campaign_id),
+        product_name: productMap.get(offer.product_id),
+      }))
+
+      setOffers(enriched)
       setOverview(overviewResponse)
+      setCampaigns(campaignsResponse.data)
+      setProducts(productsResponse.data)
       setStatus('idle')
     } catch (err) {
       const message =
@@ -84,18 +107,6 @@ const Dashboard = () => {
     fetchUser()
   }, [fetchAnalytics, fetchUser])
 
-  const campaigns = useMemo(() => {
-    const ids = new Set<number>()
-    offers.forEach((offer) => ids.add(offer.upsell_campaign_id))
-    return Array.from(ids).sort((a, b) => a - b)
-  }, [offers])
-
-  const products = useMemo(() => {
-    const ids = new Set<number>()
-    offers.forEach((offer) => ids.add(offer.product_id))
-    return Array.from(ids).sort((a, b) => a - b)
-  }, [offers])
-
   const filteredOffers = useMemo(() => {
     let data = [...offers]
 
@@ -112,9 +123,13 @@ const Dashboard = () => {
     if (search.trim()) {
       const term = search.trim().toLowerCase()
       data = data.filter((offer) =>
-        [offer.id, offer.product_id, offer.upsell_campaign_id]
-          .map(String)
-          .some((value) => value.toLowerCase().includes(term)),
+        [
+          String(offer.id),
+          String(offer.product_id),
+          String(offer.upsell_campaign_id),
+          offer.product_name ?? '',
+          offer.campaign_name ?? '',
+        ].some((value) => value.toLowerCase().includes(term)),
       )
     }
 

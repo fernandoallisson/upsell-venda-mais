@@ -9,6 +9,9 @@ const formatCurrency = (value: number) =>
 const calcRate = (numerator: number, denominator: number) =>
   denominator > 0 ? numerator / denominator : 0
 
+const offerLabel = (offer: OfferAnalytics) =>
+  offer.product_name ?? `#${offer.id}`
+
 type OffersChartsProps = {
   offers: OfferAnalytics[]
 }
@@ -44,7 +47,7 @@ const OffersCharts = ({ offers }: OffersChartsProps) => {
               <span className="h-2 w-2 rounded-full bg-sky-500" /> Views
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-indigo-500" /> Clicks
+              <span className="h-2 w-2 rounded-full bg-blue-500" /> Clicks
             </span>
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-emerald-500" /> Accepted
@@ -55,7 +58,9 @@ const OffersCharts = ({ offers }: OffersChartsProps) => {
           {offers.map((offer) => (
             <div key={offer.id} className="space-y-2">
               <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>Offer #{offer.id}</span>
+                <span className="max-w-[160px] truncate font-medium text-slate-700" title={offerLabel(offer)}>
+                  {offerLabel(offer)}
+                </span>
                 <span>
                   {offer.views_count} views · {offer.clicks_count} clicks ·{' '}
                   {offer.accepted_count} accepted
@@ -70,7 +75,7 @@ const OffersCharts = ({ offers }: OffersChartsProps) => {
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                   <div
-                    className="h-full rounded-full bg-indigo-500"
+                    className="h-full rounded-full bg-blue-500"
                     style={{ width: `${(offer.clicks_count / maxClicks) * 100}%` }}
                   />
                 </div>
@@ -96,13 +101,18 @@ const OffersCharts = ({ offers }: OffersChartsProps) => {
               const height = (revenue / maxRevenue) * 120
 
               return (
-                <div key={offer.id} className="flex flex-1 flex-col items-center">
+                <div key={offer.id} className="group relative flex flex-1 flex-col items-center">
                   <div
-                    className="w-full rounded-t-lg bg-indigo-500/80"
+                    className="w-full rounded-t-lg bg-blue-500/80"
                     style={{ height: `${Math.max(6, height)}px` }}
-                    title={formatCurrency(revenue)}
                   />
-                  <span className="mt-2 text-xs text-slate-500">#{offer.id}</span>
+                  <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 shadow-lg group-hover:block">
+                    <p className="font-medium">{offerLabel(offer)}</p>
+                    <p>{formatCurrency(revenue)}</p>
+                  </div>
+                  <span className="mt-2 max-w-full truncate text-xs text-slate-500" title={offerLabel(offer)}>
+                    {offerLabel(offer)}
+                  </span>
                 </div>
               )}
             )}
@@ -124,6 +134,7 @@ const OffersCharts = ({ offers }: OffersChartsProps) => {
           {topOffers.map((offer, index) => {
             const revenue = Number(offer.revenue_generated) || 0
             const ctr = calcRate(offer.clicks_count, offer.views_count)
+            const label = offerLabel(offer)
 
             return (
               <div
@@ -131,8 +142,19 @@ const OffersCharts = ({ offers }: OffersChartsProps) => {
                 className="rounded-xl border border-slate-100 bg-slate-50 p-4"
               >
                 <p className="text-xs font-semibold uppercase text-slate-400">
-                  #{index + 1} · Offer {offer.id}
+                  #{index + 1}
                 </p>
+                <p
+                  className="mt-1 truncate text-sm font-semibold text-slate-700"
+                  title={label}
+                >
+                  {label}
+                </p>
+                {offer.campaign_name ? (
+                  <p className="truncate text-xs text-slate-400" title={offer.campaign_name}>
+                    {offer.campaign_name}
+                  </p>
+                ) : null}
                 <p className="mt-2 text-lg font-semibold text-slate-900">
                   {formatCurrency(revenue)}
                 </p>

@@ -7,6 +7,8 @@ export type OfferAnalytics = {
   accepted_count: number
   revenue_generated: string
   product: unknown | null
+  product_name?: string
+  campaign_name?: string
 }
 
 export type OffersAnalyticsResponse = {
