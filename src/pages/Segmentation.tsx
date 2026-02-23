@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Calendar,
   ChevronLeft,
@@ -18,6 +18,7 @@ import { ApiError } from '../lib/api'
 import {
   createSegment,
   getSegmentById,
+  getSegmentProgress,
   getSegments,
   previewSegmentRules,
   updateSegment,
@@ -26,6 +27,7 @@ import {
 import type {
   CreateSegmentPayload,
   Segment,
+  SegmentStatus,
   SegmentsResponse,
   UpdateSegmentPayload,
   SegmentRules,
@@ -841,6 +843,20 @@ const RuleBuilder = ({
   </div>
 )
 
+const STATUS_LABELS: Record<SegmentStatus, string> = {
+  pending: 'Pendente',
+  processing: 'Processando',
+  completed: 'Concluído',
+  failed: 'Falhou',
+}
+
+const STATUS_STYLES: Record<SegmentStatus, string> = {
+  pending: 'bg-amber-100 text-amber-700',
+  processing: 'bg-blue-100 text-blue-700',
+  completed: 'bg-emerald-100 text-emerald-700',
+  failed: 'bg-rose-100 text-rose-700',
+}
+
 const Segmentation = () => {
   const [segments, setSegments] = useState<Segment[]>([])
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null)
@@ -849,6 +865,8 @@ const Segmentation = () => {
     'idle' | 'loading' | 'error'
   >('idle')
   const [error, setError] = useState<string | null>(null)
+  const [pollingSegmentId, setPollingSegmentId] = useState<number | null>(null)
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
@@ -880,6 +898,16 @@ const Segmentation = () => {
   const [deleteStatus, setDeleteStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current)
+      pollingRef.current = null
+    }
+    setPollingSegmentId(null)
+  }, [])
+
+  useEffect(() => () => stopPolling(), [stopPolling])
+
   const fetchSegmentDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
     try {
@@ -895,6 +923,54 @@ const Segmentation = () => {
       setDetailStatus('error')
     }
   }, [])
+
+  const startProgressPolling = useCallback(
+    (segmentId: number) => {
+      stopPolling()
+      setPollingSegmentId(segmentId)
+
+      const poll = async () => {
+        try {
+          const progress = await getSegmentProgress(segmentId)
+          setSelectedSegment((prev) => {
+            if (!prev || prev.id !== segmentId) return prev
+            return {
+              ...prev,
+              status: progress.status,
+              customers_count: progress.customers_count,
+              processed_count: progress.processed_count,
+              processing_started_at: progress.processing_started_at,
+              processing_completed_at: progress.processing_completed_at,
+            }
+          })
+          setSegments((prev) =>
+            prev.map((s) =>
+              s.id === segmentId
+                ? {
+                    ...s,
+                    status: progress.status,
+                    customers_count: progress.customers_count,
+                    processed_count: progress.processed_count,
+                  }
+                : s,
+            ),
+          )
+          if (progress.status === 'completed' || progress.status === 'failed') {
+            stopPolling()
+            if (progress.status === 'completed') {
+              fetchSegmentDetails(segmentId)
+            }
+          }
+        } catch {
+          stopPolling()
+        }
+      }
+
+      poll()
+      pollingRef.current = setInterval(poll, 4000)
+    },
+    [stopPolling, fetchSegmentDetails],
+  )
 
   const fetchSegments = useCallback(
     async (targetPage = page) => {
@@ -1018,13 +1094,16 @@ const Segmentation = () => {
     }
 
     try {
-      await createSegment(payload)
+      const created = await createSegment(payload)
       setCreateStatus('success')
       setSegmentForm({ name: '' })
       setCreateRules([createEmptyRule()])
       setPreviewCount(null)
       setIsCreateOpen(false)
-      fetchSegments(1)
+      await fetchSegments(1)
+      if (created.status === 'processing' || created.status === 'pending') {
+        startProgressPolling(created.id)
+      }
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Erro ao criar segmento.'
@@ -1093,6 +1172,9 @@ const Segmentation = () => {
       setSelectedSegment(updated)
       setUpdateStatus('success')
       fetchSegments(page)
+      if (updated.status === 'processing' || updated.status === 'pending') {
+        startProgressPolling(updated.id)
+      }
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Erro ao atualizar segmento.'
@@ -1194,7 +1276,7 @@ const Segmentation = () => {
 
     try {
       const result = await previewSegmentRules(validRules.map(buildRulePayload))
-      setPreviewCount(result.matched_customers_count)
+      setPreviewCount(result.estimated_customers_count)
     } catch {
       setPreviewCount(null)
       setCreateRulesError('Erro ao calcular preview.')
@@ -1210,7 +1292,7 @@ const Segmentation = () => {
 
     try {
       const result = await previewSegmentRules(validRules.map(buildRulePayload))
-      setEditPreviewCount(result.matched_customers_count)
+      setEditPreviewCount(result.estimated_customers_count)
     } catch {
       setEditPreviewCount(null)
       setUpdateRulesError('Erro ao calcular preview.')
@@ -1388,7 +1470,8 @@ const Segmentation = () => {
                 ) : null}
                 {segments.map((segment) => {
                   const isActive = selectedSegment?.id === segment.id
-                  const rulesCount = Object.keys(segment.rules).length
+                  const count = rulesCount(segment.rules)
+                  const segStatus = segment.status
 
                   return (
                     <button
@@ -1397,28 +1480,42 @@ const Segmentation = () => {
                       onClick={() => handleSelectSegment(segment)}
                       className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                         isActive
-                          ? 'border-indigo-200 bg-indigo-50'
+                          ? 'border-blue-200 bg-blue-50'
                           : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900">
                             {segment.name}
                           </p>
-                          <p className="text-xs text-slate-500">
-                            {segment.tenant_id}
-                          </p>
+                          {segment.customers_count !== null &&
+                          segment.customers_count !== undefined ? (
+                            <p className="text-xs text-slate-500">
+                              {segment.customers_count.toLocaleString('pt-BR')} clientes
+                            </p>
+                          ) : null}
                         </div>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                          {rulesCount} regra{rulesCount === 1 ? '' : 's'}
-                        </span>
+                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                            {count} regra{count === 1 ? '' : 's'}
+                          </span>
+                          {segStatus ? (
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[segStatus]}`}
+                            >
+                              {STATUS_LABELS[segStatus]}
+                            </span>
+                          ) : null}
+                          {pollingSegmentId === segment.id ? (
+                            <span className="text-xs text-blue-500">
+                              Atualizando...
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                        <span>{formatDate(segment.created_at)}</span>
-                        <span className="font-semibold text-slate-700">
-                          Atualizado: {formatDate(segment.updated_at)}
-                        </span>
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                        <span>{formatDate(segment.updated_at)}</span>
                       </div>
                     </button>
                   )
@@ -1528,15 +1625,26 @@ const Segmentation = () => {
                     </p>
                     <div className="mt-2 space-y-2 text-sm text-slate-600">
                       <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-indigo-500" />
+                        <Tag className="h-4 w-4 text-blue-500" />
                         {selectedSegment.name}
                       </div>
+                      {selectedSegment.status ? (
+                        <div className="flex items-center gap-2">
+                          <UserCircle2 className="h-4 w-4 text-blue-500" />
+                          <span
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[selectedSegment.status]}`}
+                          >
+                            {STATUS_LABELS[selectedSegment.status]}
+                          </span>
+                          {pollingSegmentId === selectedSegment.id ? (
+                            <span className="text-xs text-blue-500">
+                              Atualizando...
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
                       <div className="flex items-center gap-2">
-                        <UserCircle2 className="h-4 w-4 text-indigo-500" />
-                        {selectedSegment.tenant_id}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-indigo-500" />
+                        <Calendar className="h-4 w-4 text-blue-500" />
                         Criado em {formatDate(selectedSegment.created_at)}
                       </div>
                       <div className="text-xs text-slate-500">
@@ -1558,16 +1666,27 @@ const Segmentation = () => {
                           {selectedRules.length}
                         </p>
                       </div>
-                      {selectedSegment.matched_customers_count !== null && (
+                      {(selectedSegment.customers_count ?? selectedSegment.matched_customers_count) !== null && (
                         <div>
                           <p className="text-xs text-slate-500">
-                            Clientes correspondentes
+                            Clientes no segmento
                           </p>
                           <p className="text-2xl font-semibold text-slate-900">
-                            {selectedSegment.matched_customers_count.toLocaleString('pt-BR')}
+                            {(selectedSegment.customers_count ?? selectedSegment.matched_customers_count)!.toLocaleString('pt-BR')}
                           </p>
                         </div>
                       )}
+                      {selectedSegment.processed_count !== null &&
+                      selectedSegment.processed_count !== undefined ? (
+                        <div>
+                          <p className="text-xs text-slate-500">
+                            Clientes processados
+                          </p>
+                          <p className="text-lg font-semibold text-slate-900">
+                            {selectedSegment.processed_count.toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -1674,6 +1793,51 @@ const Segmentation = () => {
                     </p>
                   ) : null}
                 </div>
+
+                {selectedSegment.customers && selectedSegment.customers.length > 0 ? (
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      Clientes no segmento
+                    </p>
+                    <div className="mt-3 overflow-hidden rounded-xl border border-slate-200">
+                      <table className="w-full text-xs text-slate-600">
+                        <thead>
+                          <tr className="border-b border-slate-100 bg-slate-50">
+                            <th className="px-4 py-2 text-left font-semibold text-slate-500">
+                              Nome
+                            </th>
+                            <th className="px-4 py-2 text-left font-semibold text-slate-500">
+                              E-mail
+                            </th>
+                            <th className="px-4 py-2 text-left font-semibold text-slate-500">
+                              Telefone
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedSegment.customers.map((customer) => (
+                            <tr
+                              key={customer.id}
+                              className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                            >
+                              <td className="px-4 py-2">
+                                {[customer.first_name, customer.last_name]
+                                  .filter(Boolean)
+                                  .join(' ') || '—'}
+                              </td>
+                              <td className="px-4 py-2 text-slate-500">
+                                {customer.email ?? '—'}
+                              </td>
+                              <td className="px-4 py-2 text-slate-500">
+                                {customer.phone ?? '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
 
                 <div>
                   <p className="text-sm font-semibold text-slate-700">

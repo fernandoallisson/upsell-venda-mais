@@ -23,18 +23,35 @@ export type SegmentRules =
   | string[]
   | SegmentRuleObject[]
 
+export type SegmentCustomer = {
+  id: number
+  external_id?: string | null
+  email?: string | null
+  phone?: string | null
+  first_name?: string | null
+  last_name?: string | null
+}
+
+export type SegmentStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
 export type Segment = {
   id: number
   tenant_id: string | null
   name: string
   rules: SegmentRules
+  status?: SegmentStatus
+  customers_count?: number | null
+  processed_count?: number | null
   matched_customers_count: number | null
+  processing_started_at?: string | null
+  processing_completed_at?: string | null
+  customers?: SegmentCustomer[]
   created_at: string
   updated_at: string
 }
 
 export type PreviewSegmentResponse = {
-  matched_customers_count: number
+  estimated_customers_count: number
 }
 
 export type PaginationLink = {
@@ -94,3 +111,16 @@ export type ExportStatusResponse = {
 }
 
 export type ExportMode = 'sync' | 'async'
+
+export type SegmentProgressResponse = {
+  segment_id: number
+  status: SegmentStatus
+  customers_count: number | null
+  processed_count: number | null
+  progress_percentage: number | null
+  processing_started_at: string | null
+  processing_completed_at: string | null
+  estimated_time_remaining: number | null
+  error_message: string | null
+  job_id: string | null
+}

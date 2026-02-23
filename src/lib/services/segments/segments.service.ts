@@ -6,6 +6,8 @@ import type {
   ExportStatusResponse,
   PreviewSegmentResponse,
   Segment,
+  SegmentCustomer,
+  SegmentProgressResponse,
   SegmentRule,
   SegmentRulesPayload,
   SegmentsResponse,
@@ -193,19 +195,60 @@ const extractMatchedCount = (input: unknown): number | null => {
   return null
 }
 
+const parseSegmentCustomers = (data: unknown): SegmentCustomer[] => {
+  if (!Array.isArray(data)) return []
+  return data.filter(isRecord).map((item) => ({
+    id: typeof item.id === 'number' ? item.id : Number(item.id ?? 0),
+    external_id: asNullableStringLike(item.external_id, 'customer.external_id'),
+    email: asNullableStringLike(item.email, 'customer.email'),
+    phone: asNullableStringLike(item.phone, 'customer.phone'),
+    first_name: asNullableStringLike(item.first_name, 'customer.first_name'),
+    last_name: asNullableStringLike(item.last_name, 'customer.last_name'),
+  }))
+}
+
 const parseSegment = (input: unknown): Segment => {
   const matchedCount = extractMatchedCount(input)
   const data = unwrapSegment(input)
 
   if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: segment')
 
+  const customersCount =
+    typeof data.customers_count === 'number'
+      ? data.customers_count
+      : asNullableNumber(data.customers_count, 'segment.customers_count')
+
+  const processedCount =
+    typeof data.processed_count === 'number'
+      ? data.processed_count
+      : asNullableNumber(data.processed_count, 'segment.processed_count')
+
   return {
     id: asNumberLoose(data.id, 'segment.id'),
     tenant_id: parseTenantId(data),
     name: asString(data.name, 'segment.name'),
     rules: parseRules(data.rules),
+    status:
+      typeof data.status === 'string'
+        ? (data.status as Segment['status'])
+        : undefined,
+    customers_count: customersCount,
+    processed_count: processedCount,
     matched_customers_count:
-      matchedCount ?? (typeof data.matched_customers_count === 'number' ? data.matched_customers_count : null),
+      matchedCount ??
+      customersCount ??
+      (typeof data.matched_customers_count === 'number'
+        ? data.matched_customers_count
+        : null),
+    processing_started_at: asNullableStringLike(
+      data.processing_started_at,
+      'segment.processing_started_at',
+    ),
+    processing_completed_at: asNullableStringLike(
+      data.processing_completed_at,
+      'segment.processing_completed_at',
+    ),
+    customers: parseSegmentCustomers(data.customers),
     created_at: asString(data.created_at, 'segment.created_at'),
     updated_at: asString(data.updated_at, 'segment.updated_at'),
   }
@@ -359,14 +402,16 @@ export const previewSegmentRules = async (
   const nested = isRecord(data.data) ? data.data : data
 
   return {
-    matched_customers_count:
-      typeof nested.matched_customers_count === 'number'
-        ? nested.matched_customers_count
-        : typeof nested.count === 'number'
-          ? nested.count
-          : typeof nested.total === 'number'
-            ? nested.total
-            : 0,
+    estimated_customers_count:
+      typeof nested.estimated_customers_count === 'number'
+        ? nested.estimated_customers_count
+        : typeof nested.matched_customers_count === 'number'
+          ? nested.matched_customers_count
+          : typeof nested.count === 'number'
+            ? nested.count
+            : typeof nested.total === 'number'
+              ? nested.total
+              : 0,
   }
 }
 
@@ -378,24 +423,25 @@ export const getExportColumns = async (): Promise<ExportColumn[]> => {
     networkErrorMessage: 'Falha de rede ao carregar colunas',
   })
 
-  if (Array.isArray(data)) {
-    return data.map((item) => {
-      const record = item as Record<string, unknown>
-      return {
-        key: String(record.key ?? record.column ?? ''),
-        label: String(record.label ?? record.name ?? record.key ?? ''),
-      }
-    })
+  const mapColumn = (item: unknown): ExportColumn => {
+    const record = item as Record<string, unknown>
+    return {
+      key: String(record.key ?? record.column ?? ''),
+      label: String(record.label ?? record.name ?? record.key ?? ''),
+    }
   }
 
-  if (isRecord(data) && Array.isArray(data.data)) {
-    return (data.data as unknown[]).map((item) => {
-      const record = item as Record<string, unknown>
-      return {
-        key: String(record.key ?? record.column ?? ''),
-        label: String(record.label ?? record.name ?? record.key ?? ''),
-      }
-    })
+  if (Array.isArray(data)) {
+    return data.map(mapColumn)
+  }
+
+  if (isRecord(data)) {
+    if (Array.isArray(data.available_columns)) {
+      return (data.available_columns as unknown[]).map(mapColumn)
+    }
+    if (Array.isArray(data.data)) {
+      return (data.data as unknown[]).map(mapColumn)
+    }
   }
 
   return []
@@ -459,3 +505,47 @@ export const getAsyncExportDownloadUrl = (
 
 export const getSyncExportStreamUrl = (segmentId: number): string =>
   `${SEGMENTS_ENDPOINT}/${segmentId}/export/stream`
+
+export const getSegmentProgress = async (
+  segmentId: number,
+): Promise<SegmentProgressResponse> => {
+  const data = await apiFetch<JsonValue>(
+    `${SEGMENTS_ENDPOINT}/${segmentId}/progress`,
+    {
+      method: 'GET',
+      auth: true,
+      errorMessage: 'Erro ao verificar progresso do segmento',
+      networkErrorMessage: 'Falha de rede ao verificar progresso',
+    },
+  )
+
+  if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor')
+
+  const nested = isRecord(data.data) ? data.data : data
+
+  const toNullableNumber = (v: unknown): number | null =>
+    typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) || null : null
+
+  return {
+    segment_id:
+      typeof nested.segment_id === 'number'
+        ? nested.segment_id
+        : segmentId,
+    status: String(nested.status ?? 'pending') as SegmentProgressResponse['status'],
+    customers_count: toNullableNumber(nested.customers_count),
+    processed_count: toNullableNumber(nested.processed_count),
+    progress_percentage: toNullableNumber(nested.progress_percentage),
+    processing_started_at:
+      typeof nested.processing_started_at === 'string'
+        ? nested.processing_started_at
+        : null,
+    processing_completed_at:
+      typeof nested.processing_completed_at === 'string'
+        ? nested.processing_completed_at
+        : null,
+    estimated_time_remaining: toNullableNumber(nested.estimated_time_remaining),
+    error_message:
+      typeof nested.error_message === 'string' ? nested.error_message : null,
+    job_id: typeof nested.job_id === 'string' ? nested.job_id : null,
+  }
+}
