@@ -19,6 +19,11 @@ import {
   getUsers,
   updateUserById,
 } from '../lib/services/users/users.service'
+import {
+  getAllPermissions,
+  getUserPermissions,
+  syncUserPermissionsBySlugs,
+} from '../lib/services/permissions/permissions.service'
 import type {
   CreateUserPayload,
   UpdateUserPayload,
@@ -26,6 +31,10 @@ import type {
   UserListItem,
   UsersResponse,
 } from '../lib/services/users/users.types'
+import type {
+  Permission,
+} from '../lib/services/permissions/permissions.types'
+import { PermissionsSection } from '../features/users/components/PermissionsSection'
 
 const formatDate = (value: string) => {
   const parsed = new Date(value)
@@ -97,6 +106,7 @@ const Users = () => {
     password: '',
     password_confirmation: '',
   })
+  const [createPermissionSlugs, setCreatePermissionSlugs] = useState<string[]>([])
 
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [updateStatus, setUpdateStatus] = useState<
@@ -110,11 +120,41 @@ const Users = () => {
     password_confirmation: '',
   })
 
+  const [allPermissions, setAllPermissions] = useState<Record<string, Permission[]>>({})
+  const [permCategories, setPermCategories] = useState<string[]>([])
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false)
+
+  const [userPermissionSlugs, setUserPermissionSlugs] = useState<string[]>([])
+  const [permSyncStatus, setPermSyncStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
+  const [permSyncError, setPermSyncError] = useState<string | null>(null)
+
+  const loadAllPermissions = useCallback(async () => {
+    if (permissionsLoaded) return
+    try {
+      const res = await getAllPermissions()
+      setAllPermissions(res.permissions)
+      setPermCategories(res.categories)
+      setPermissionsLoaded(true)
+    } catch {
+      // silently fail
+    }
+  }, [permissionsLoaded])
+
   const fetchUserDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
+    setPermSyncStatus('idle')
+    setPermSyncError(null)
     try {
-      const response = await getUserById(id)
-      setSelectedUser(response)
+      const [userRes, permRes] = await Promise.all([
+        getUserById(id),
+        getUserPermissions(id).catch(() => null),
+      ])
+      setSelectedUser(userRes)
+      setUserPermissionSlugs(
+        permRes?.permissions?.map((p) => p.slug) ?? [],
+      )
       setDetailStatus('idle')
     } catch (err) {
       const message =
@@ -168,6 +208,7 @@ const Users = () => {
 
   useEffect(() => {
     fetchUsers(1)
+    loadAllPermissions()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -183,10 +224,14 @@ const Users = () => {
   }, [selectedUser])
 
   useEffect(() => {
-    if (isCreateOpen) return
+    if (isCreateOpen) {
+      loadAllPermissions()
+      return
+    }
     setCreateStatus('idle')
     setCreateError(null)
-  }, [isCreateOpen])
+    setCreatePermissionSlugs([])
+  }, [isCreateOpen, loadAllPermissions])
 
   useEffect(() => {
     if (isEditOpen) return
@@ -237,7 +282,14 @@ const Users = () => {
     setCreateError(null)
 
     try {
-      await createUser(userForm)
+      const newUser = await createUser(userForm)
+
+      if (createPermissionSlugs.length > 0) {
+        await syncUserPermissionsBySlugs(newUser.id, {
+          permissions: createPermissionSlugs,
+        }).catch(() => null)
+      }
+
       setCreateStatus('success')
       setUserForm({
         name: '',
@@ -245,6 +297,7 @@ const Users = () => {
         password: '',
         password_confirmation: '',
       })
+      setCreatePermissionSlugs([])
       fetchUsers(1)
     } catch (err) {
       const message =
@@ -279,6 +332,25 @@ const Users = () => {
         err instanceof ApiError ? err.message : 'Erro ao atualizar usuário.'
       setUpdateError(message)
       setUpdateStatus('error')
+    }
+  }
+
+  const handleSyncPermissions = async () => {
+    if (!selectedUserId) return
+    setPermSyncStatus('loading')
+    setPermSyncError(null)
+
+    try {
+      const res = await syncUserPermissionsBySlugs(selectedUserId, {
+        permissions: userPermissionSlugs,
+      })
+      setUserPermissionSlugs(res.permissions?.map((p) => p.slug) ?? userPermissionSlugs)
+      setPermSyncStatus('success')
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'Erro ao atualizar permissões.'
+      setPermSyncError(message)
+      setPermSyncStatus('error')
     }
   }
 
@@ -382,10 +454,10 @@ const Users = () => {
                 className="flex w-full items-center justify-between text-left"
               >
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <PlusCircle className="h-4 w-4 text-indigo-500" />
+                  <PlusCircle className="h-4 w-4 text-sky-500" />
                   Novo usuário
                 </div>
-                <span className="text-xs font-semibold text-indigo-600">
+                <span className="text-xs font-semibold text-sky-600">
                   {isCreateOpen ? 'Recolher' : 'Expandir'}
                 </span>
               </button>
@@ -403,7 +475,7 @@ const Users = () => {
                             name: event.target.value,
                           }))
                         }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-300"
                         placeholder="Ex: João Silva"
                       />
                     </label>
@@ -418,7 +490,7 @@ const Users = () => {
                             email: event.target.value,
                           }))
                         }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-300"
                         placeholder="joao@empresa.com"
                       />
                     </label>
@@ -434,7 +506,7 @@ const Users = () => {
                             password: event.target.value,
                           }))
                         }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-300"
                         placeholder="Senha forte"
                       />
                     </label>
@@ -450,10 +522,22 @@ const Users = () => {
                             password_confirmation: event.target.value,
                           }))
                         }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-300"
                         placeholder="Repita a senha"
                       />
                     </label>
+
+                    {permissionsLoaded && (
+                      <PermissionsSection
+                        title="Permissões"
+                        allPermissions={allPermissions}
+                        categories={permCategories}
+                        selectedSlugs={createPermissionSlugs}
+                        onChange={setCreatePermissionSlugs}
+                        defaultOpen={false}
+                        showSelectAll={true}
+                      />
+                    )}
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -461,7 +545,7 @@ const Users = () => {
                       type="button"
                       onClick={handleCreateUser}
                       disabled={!isCreateValid || createStatus === 'loading'}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <UserIcon className="h-4 w-4" />
                       Criar usuário
@@ -485,7 +569,7 @@ const Users = () => {
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
-                <UserIcon className="h-4 w-4 text-indigo-500" />
+                <UserIcon className="h-4 w-4 text-sky-500" />
                 Lista de usuários
               </div>
 
@@ -499,7 +583,7 @@ const Users = () => {
                       onClick={() => handleSelectUser(user)}
                       className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                         isActive
-                          ? 'border-indigo-200 bg-indigo-50'
+                          ? 'border-sky-200 bg-sky-50'
                           : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
@@ -566,7 +650,7 @@ const Users = () => {
                             onClick={() => handleGoToPage(item)}
                             className={`min-w-9 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                               item === pagination.current_page
-                                ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                ? 'border-sky-200 bg-sky-50 text-sky-700'
                                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                             }`}
                           >
@@ -605,7 +689,7 @@ const Users = () => {
             </div>
 
             {selectedUser ? (
-              <div className="mt-6 space-y-6">
+              <div className="mt-6 space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-semibold uppercase text-slate-400">
@@ -613,15 +697,15 @@ const Users = () => {
                     </p>
                     <div className="mt-2 space-y-2 text-sm text-slate-600">
                       <div className="flex items-center gap-2">
-                        <UserIcon className="h-4 w-4 text-indigo-500" />
+                        <UserIcon className="h-4 w-4 text-sky-500" />
                         {selectedUser.name}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-indigo-500" />
+                        <Mail className="h-4 w-4 text-sky-500" />
                         {selectedUser.email}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-indigo-500" />
+                        <Calendar className="h-4 w-4 text-sky-500" />
                         Criado em {formatDate(selectedUser.created_at)}
                       </div>
                     </div>
@@ -633,7 +717,7 @@ const Users = () => {
                     </p>
                     <div className="mt-2 space-y-2 text-sm text-slate-600">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-indigo-500" />
+                        <Calendar className="h-4 w-4 text-sky-500" />
                         Atualizado em {formatDate(selectedUser.updated_at)}
                       </div>
                       <div className="text-xs text-slate-500">
@@ -650,10 +734,10 @@ const Users = () => {
                     className="flex w-full items-center justify-between text-left"
                   >
                     <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <Pencil className="h-4 w-4 text-indigo-500" />
+                      <Pencil className="h-4 w-4 text-sky-500" />
                       Editar usuário
                     </div>
-                    <span className="text-xs font-semibold text-indigo-600">
+                    <span className="text-xs font-semibold text-sky-600">
                       {isEditOpen ? 'Recolher' : 'Expandir'}
                     </span>
                   </button>
@@ -671,7 +755,7 @@ const Users = () => {
                                 name: event.target.value,
                               }))
                             }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-300"
                           />
                         </label>
 
@@ -685,7 +769,7 @@ const Users = () => {
                                 email: event.target.value,
                               }))
                             }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-300"
                           />
                         </label>
 
@@ -700,7 +784,7 @@ const Users = () => {
                                 password: event.target.value,
                               }))
                             }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-300"
                           />
                         </label>
 
@@ -715,7 +799,7 @@ const Users = () => {
                                 password_confirmation: event.target.value,
                               }))
                             }
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-sky-300"
                           />
                         </label>
                       </div>
@@ -725,7 +809,7 @@ const Users = () => {
                           type="button"
                           onClick={handleUpdateUser}
                           disabled={!isUpdateValid || updateStatus === 'loading'}
-                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <Pencil className="h-4 w-4" />
                           Salvar alterações
@@ -746,6 +830,23 @@ const Users = () => {
                     </>
                   ) : null}
                 </div>
+
+                {permissionsLoaded && (
+                  <PermissionsSection
+                    title="Permissões do usuário"
+                    allPermissions={allPermissions}
+                    categories={permCategories}
+                    selectedSlugs={userPermissionSlugs}
+                    onChange={setUserPermissionSlugs}
+                    defaultOpen={false}
+                    showSelectAll={false}
+                    onSave={handleSyncPermissions}
+                    saveLabel="Salvar permissões"
+                    saveDisabled={permSyncStatus === 'loading'}
+                    status={permSyncStatus}
+                    statusMessage={permSyncError}
+                  />
+                )}
 
                 <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
                   <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
