@@ -6,8 +6,8 @@ import CollapsibleSection from '../../../../components/layout/CollapsibleSection
 type Props = {
   form: CampaignFormState
   onSet: <K extends keyof CampaignFormState>(key: K, value: CampaignFormState[K]) => void
-  onToggleDay: (day: string) => void
-  onToggleHour: (hour: string) => void
+  onToggleDay: (day: number) => void
+  onToggleHour: (hour: number) => void
   onSelectAllHours: () => void
   onClearHours: () => void
 }

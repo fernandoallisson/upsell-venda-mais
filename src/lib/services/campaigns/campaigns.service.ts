@@ -6,6 +6,7 @@ import type {
   CampaignOfferProduct,
   CampaignProduct,
   CampaignProductPivot,
+  CampaignSegmentWithPivot,
   CampaignsResponse,
   CampaignTimeframe,
   CreateCampaignPayload,
@@ -79,6 +80,25 @@ const asBoolean = (value: unknown, field: string): boolean => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNumberArray = (value: unknown, field: string): number[] => {
+  if (value === null || value === undefined) return []
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    if (typeof item === 'number') return item
+    if (typeof item === 'string') {
+      const parsed = Number(item)
+      if (!Number.isNaN(parsed)) return parsed
+    }
+    throw new ApiError(`Resposta inválida do servidor: ${field}`)
+  })
+}
+
+const asStringArray = (value: unknown): string[] => {
+  if (value === null || value === undefined) return []
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
 const parseCampaign = (data: unknown): Campaign => {
   if (!isRecord(data)) {
     throw new ApiError('Resposta inválida do servidor: campaign')
@@ -89,11 +109,32 @@ const parseCampaign = (data: unknown): Campaign => {
     name: asString(data.name, 'campaign.name'),
     priority: asNumber(data.priority, 'campaign.priority'),
     is_active: asBoolean(data.is_active, 'campaign.is_active'),
-    start_date: asString(data.start_date, 'campaign.start_date'),
-    end_date: asString(data.end_date, 'campaign.end_date'),
+    display_locations: asStringArray(data.display_locations),
+    headline: asNullableString(data.headline, 'campaign.headline'),
+    description: asNullableString(data.description, 'campaign.description'),
+    image_url: asNullableString(data.image_url, 'campaign.image_url'),
+    video_url: asNullableString(data.video_url, 'campaign.video_url'),
+    cta_text: asNullableString(data.cta_text, 'campaign.cta_text'),
+    cta_link: asNullableString(data.cta_link, 'campaign.cta_link'),
+    cta_new_tab: typeof data.cta_new_tab === 'boolean' ? data.cta_new_tab : true,
+    start_date: asNullableString(data.start_date, 'campaign.start_date'),
+    start_time: asNullableString(data.start_time, 'campaign.start_time'),
+    end_date: asNullableString(data.end_date, 'campaign.end_date'),
+    end_time: asNullableString(data.end_time, 'campaign.end_time'),
+    active_days: asNumberArray(data.active_days, 'campaign.active_days'),
+    active_hours: asNumberArray(data.active_hours, 'campaign.active_hours'),
+    cooldown_minutes: typeof data.cooldown_minutes === 'number' ? data.cooldown_minutes : 0,
+    max_per_session: typeof data.max_per_session === 'number' ? data.max_per_session : 0,
+    max_per_day: typeof data.max_per_day === 'number' ? data.max_per_day : 0,
+    max_total: typeof data.max_total === 'number' ? data.max_total : 0,
+    block_after_conversion_days: typeof data.block_after_conversion_days === 'number' ? data.block_after_conversion_days : 0,
+    widget_css: asNullableString(data.widget_css, 'campaign.widget_css'),
+    widget_html: asNullableString(data.widget_html, 'campaign.widget_html'),
+    segment_ids: asNumberArray(data.segment_ids, 'campaign.segment_ids'),
+    domains: asStringArray(data.domains),
     deleted_at: asNullableString(data.deleted_at, 'campaign.deleted_at'),
-    created_at: asString(data.created_at, 'campaign.created_at'),
-    updated_at: asString(data.updated_at, 'campaign.updated_at'),
+    created_at: typeof data.created_at === 'string' ? data.created_at : '',
+    updated_at: typeof data.updated_at === 'string' ? data.updated_at : '',
   }
 }
 
@@ -266,14 +307,7 @@ const parseCampaignDetails = (data: JsonValue): CampaignDetails => {
   const totals = isRecord(data.totals) ? data.totals : {}
 
   return {
-    campaign: {
-      id: asNumber(campaignData.id, 'campaign.id'),
-      name: asString(campaignData.name, 'campaign.name'),
-      priority: asNumber(campaignData.priority, 'campaign.priority'),
-      is_active: asBoolean(campaignData.is_active, 'campaign.is_active'),
-      start_date: asString(campaignData.start_date, 'campaign.start_date'),
-      end_date: asString(campaignData.end_date, 'campaign.end_date'),
-    },
+    campaign: parseCampaign(campaignData),
     offers: offersData.map(parseOffer),
     totals: {
       views: asNumberLike(totals.views, 'totals.views'),
@@ -335,17 +369,6 @@ const parseCampaignsResponse = (data: JsonValue): CampaignsResponse => {
     to: asNullableNumber(data.to, 'to'),
     total: asNumber(data.total, 'total'),
   }
-}
-
-export const getCampaigns = async (page = 1): Promise<CampaignsResponse> => {
-  const data = await apiFetch<JsonValue>(`${CAMPAIGNS_ENDPOINT}?page=${page}`, {
-    method: 'GET',
-    auth: true,
-    errorMessage: 'Erro ao carregar campanhas',
-    networkErrorMessage: 'Falha de rede ao carregar campanhas',
-  })
-
-  return parseCampaignsResponse(data)
 }
 
 export const getCampaignById = async (id: number): Promise<CampaignDetails> => {
@@ -448,4 +471,85 @@ export const getDisplayLocations = async (): Promise<DisplayLocationsResponse> =
     if (typeof value === 'string') result[key] = value
   })
   return result
+}
+
+const parseCampaignSegment = (data: unknown): CampaignSegmentWithPivot => {
+  if (!isRecord(data)) {
+    throw new ApiError('Resposta inválida do servidor: segment')
+  }
+
+  const pivotData = isRecord(data.pivot) ? data.pivot : {}
+
+  return {
+    id: asNumber(data.id, 'segment.id'),
+    name: asString(data.name, 'segment.name'),
+    matched_customers_count: asNullableNumber(data.matched_customers_count, 'segment.matched_customers_count'),
+    created_at: typeof data.created_at === 'string' ? data.created_at : '',
+    updated_at: typeof data.updated_at === 'string' ? data.updated_at : '',
+    pivot: {
+      upsell_campaign_id: typeof pivotData.upsell_campaign_id === 'number' ? pivotData.upsell_campaign_id : 0,
+      segment_id: typeof pivotData.segment_id === 'number' ? pivotData.segment_id : 0,
+      tenant_id: asNullableStringLike(pivotData.tenant_id, 'segment.pivot.tenant_id'),
+      created_at: typeof pivotData.created_at === 'string' ? pivotData.created_at : '',
+      updated_at: typeof pivotData.updated_at === 'string' ? pivotData.updated_at : '',
+    },
+  }
+}
+
+const parseCampaignSegmentsResponse = (data: JsonValue): CampaignSegmentWithPivot[] => {
+  if (!data) return []
+  if (!Array.isArray(data)) return []
+  return data.map(parseCampaignSegment)
+}
+
+export const getCampaignSegments = async (
+  id: number,
+): Promise<CampaignSegmentWithPivot[]> => {
+  const data = await apiFetch<JsonValue>(
+    `${CAMPAIGNS_ENDPOINT}/${id}/segments`,
+    {
+      method: 'GET',
+      auth: true,
+      errorMessage: 'Erro ao carregar segmentos da campanha',
+      networkErrorMessage: 'Falha de rede ao carregar segmentos da campanha',
+    },
+  )
+
+  return parseCampaignSegmentsResponse(data)
+}
+
+export const updateCampaignSegments = async (
+  id: number,
+  segments: number[],
+): Promise<CampaignSegmentWithPivot[]> => {
+  const data = await apiFetch<JsonValue>(
+    `${CAMPAIGNS_ENDPOINT}/${id}/segments`,
+    {
+      method: 'PUT',
+      auth: true,
+      body: JSON.stringify({ segments }),
+      errorMessage: 'Erro ao atualizar segmentos da campanha',
+      networkErrorMessage: 'Falha de rede ao atualizar segmentos da campanha',
+    },
+  )
+
+  return parseCampaignSegmentsResponse(data)
+}
+
+export const getCampaigns = async (
+  page = 1,
+  filters?: { is_active?: boolean; display_location?: string },
+): Promise<CampaignsResponse> => {
+  const params = new URLSearchParams({ page: String(page) })
+  if (filters?.is_active !== undefined) params.set('is_active', filters.is_active ? '1' : '0')
+  if (filters?.display_location) params.set('display_location', filters.display_location)
+
+  const data = await apiFetch<JsonValue>(`${CAMPAIGNS_ENDPOINT}?${params.toString()}`, {
+    method: 'GET',
+    auth: true,
+    errorMessage: 'Erro ao carregar campanhas',
+    networkErrorMessage: 'Falha de rede ao carregar campanhas',
+  })
+
+  return parseCampaignsResponse(data)
 }

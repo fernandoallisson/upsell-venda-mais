@@ -18,17 +18,22 @@ import {
   deleteCampaign,
   getCampaignById,
   getCampaignProducts,
+  getCampaignSegments,
   getCampaigns,
   updateCampaignProducts,
+  updateCampaignSegments,
 } from '../lib/services/campaigns/campaigns.service'
 import type {
   Campaign,
   CampaignDetails,
   CampaignProduct,
   CampaignsResponse,
+  CampaignSegmentWithPivot,
 } from '../lib/services/campaigns/campaigns.types'
 import { getProducts } from '../lib/services/products/products.service'
 import type { Product } from '../lib/services/products/products.types'
+import { getSegments } from '../lib/services/segments/segments.service'
+import type { Segment } from '../lib/services/segments/segments.types'
 
 type PaginationMeta = Pick<
   CampaignsResponse,
@@ -109,7 +114,7 @@ type MetricKey = (typeof metricOptions)[number]['value']
 type PieMetricKey = (typeof pieMetricOptions)[number]['value']
 
 const chartColors = [
-  '#6366F1',
+  '#2563EB',
   '#10B981',
   '#F97316',
   '#EF4444',
@@ -151,6 +156,16 @@ const UpsellCampaigns = () => {
   const [updateProductsError, setUpdateProductsError] = useState<string | null>(
     null,
   )
+
+  const [campaignSegments, setCampaignSegments] = useState<CampaignSegmentWithPivot[]>([])
+  const [campaignSegmentsStatus, setCampaignSegmentsStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [campaignSegmentsError, setCampaignSegmentsError] = useState<string | null>(null)
+  const [segmentList, setSegmentList] = useState<Segment[]>([])
+  const [segmentListStatus, setSegmentListStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [isSegmentsOpen, setIsSegmentsOpen] = useState(false)
+  const [segmentSelection, setSegmentSelection] = useState<number[]>([])
+  const [updateSegmentsStatus, setUpdateSegmentsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [updateSegmentsError, setUpdateSegmentsError] = useState<string | null>(null)
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
@@ -211,6 +226,35 @@ const UpsellCampaigns = () => {
     }
   }, [])
 
+  const fetchCampaignSegments = useCallback(async (id: number) => {
+    setCampaignSegmentsStatus('loading')
+    setCampaignSegmentsError(null)
+    try {
+      const response = await getCampaignSegments(id)
+      setCampaignSegments(response)
+      setSegmentSelection(response.map((s) => s.id))
+      setCampaignSegmentsStatus('idle')
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Erro ao carregar segmentos da campanha.'
+      setCampaignSegmentsError(message)
+      setCampaignSegmentsStatus('error')
+    }
+  }, [])
+
+  const fetchSegmentList = useCallback(async () => {
+    setSegmentListStatus('loading')
+    try {
+      const response = await getSegments(1)
+      setSegmentList(response.data)
+      setSegmentListStatus('idle')
+    } catch {
+      setSegmentListStatus('error')
+    }
+  }, [])
+
   const fetchCampaigns = useCallback(
     async (targetPage = page) => {
       setStatus('loading')
@@ -258,16 +302,26 @@ const UpsellCampaigns = () => {
   useEffect(() => {
     if (!selectedCampaign) return
     setIsProductsOpen(false)
+    setIsSegmentsOpen(false)
     setUpdateProductsStatus('idle')
     setUpdateProductsError(null)
+    setUpdateSegmentsStatus('idle')
+    setUpdateSegmentsError(null)
     fetchCampaignProducts(selectedCampaign.id)
-  }, [fetchCampaignProducts, selectedCampaign])
+    fetchCampaignSegments(selectedCampaign.id)
+  }, [fetchCampaignProducts, fetchCampaignSegments, selectedCampaign])
 
   useEffect(() => {
     if (!isProductsOpen) return
     if (productList.length > 0 || productListStatus === 'loading') return
     fetchProductList()
   }, [fetchProductList, isProductsOpen, productList.length, productListStatus])
+
+  useEffect(() => {
+    if (!isSegmentsOpen) return
+    if (segmentList.length > 0 || segmentListStatus === 'loading') return
+    fetchSegmentList()
+  }, [fetchSegmentList, isSegmentsOpen, segmentList.length, segmentListStatus])
 
   const totals = useMemo(() => {
     return campaigns.reduce(
@@ -283,6 +337,11 @@ const UpsellCampaigns = () => {
   const selectedProductIds = useMemo(
     () => new Set(productSelection),
     [productSelection],
+  )
+
+  const selectedSegmentIds = useMemo(
+    () => new Set(segmentSelection),
+    [segmentSelection],
   )
 
   const handleSelectCampaign = (campaign: Campaign) => {
@@ -323,6 +382,34 @@ const UpsellCampaigns = () => {
       }
       return [...prev, productId]
     })
+  }
+
+  const handleToggleSegmentSelection = (segmentId: number) => {
+    setSegmentSelection((prev) => {
+      if (prev.includes(segmentId)) {
+        return prev.filter((id) => id !== segmentId)
+      }
+      return [...prev, segmentId]
+    })
+  }
+
+  const handleSyncCampaignSegments = async () => {
+    if (!selectedCampaign) return
+    setUpdateSegmentsStatus('loading')
+    setUpdateSegmentsError(null)
+    try {
+      const response = await updateCampaignSegments(selectedCampaign.id, segmentSelection)
+      setCampaignSegments(response)
+      setSegmentSelection(response.map((s) => s.id))
+      setUpdateSegmentsStatus('success')
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Erro ao atualizar segmentos da campanha.'
+      setUpdateSegmentsError(message)
+      setUpdateSegmentsStatus('error')
+    }
   }
 
   const handleSyncCampaignProducts = async () => {
@@ -515,7 +602,7 @@ const UpsellCampaigns = () => {
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
-                <Zap className="h-4 w-4 text-indigo-500" />
+                <Zap className="h-4 w-4 text-blue-500" />
                 Lista de campanhas
               </div>
 
@@ -534,7 +621,7 @@ const UpsellCampaigns = () => {
                       onClick={() => handleSelectCampaign(campaign)}
                       className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                         isActive
-                          ? 'border-indigo-200 bg-indigo-50'
+                          ? 'border-blue-200 bg-blue-50'
                           : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
@@ -557,11 +644,22 @@ const UpsellCampaigns = () => {
                           {campaign.is_active ? 'Ativa' : 'Inativa'}
                         </span>
                       </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                        <span>
-                          {formatDateLabel(campaign.start_date)} –{' '}
-                          {formatDateLabel(campaign.end_date)}
-                        </span>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        {campaign.start_date || campaign.end_date ? (
+                          <span>
+                            {campaign.start_date ? formatDateLabel(campaign.start_date) : '—'} –{' '}
+                            {campaign.end_date ? formatDateLabel(campaign.end_date) : '—'}
+                          </span>
+                        ) : null}
+                        {campaign.display_locations.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {campaign.display_locations.map((loc) => (
+                              <span key={loc} className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
+                                {loc.replace('_', ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </button>
                   )
@@ -612,7 +710,7 @@ const UpsellCampaigns = () => {
                             onClick={() => handleGoToPage(item)}
                             className={`min-w-9 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                               item === pagination.current_page
-                                ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                ? 'border-blue-200 bg-blue-50 text-blue-700'
                                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                             }`}
                           >
@@ -668,11 +766,22 @@ const UpsellCampaigns = () => {
                         Prioridade {details.campaign.priority}
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5 text-indigo-500" />
-                          {formatDate(details.campaign.start_date)} —{' '}
-                          {formatDate(details.campaign.end_date)}
-                        </span>
+                        {(details.campaign.start_date || details.campaign.end_date) && (
+                          <span className="inline-flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5 text-blue-500" />
+                            {details.campaign.start_date ? formatDate(details.campaign.start_date) : '—'} —{' '}
+                            {details.campaign.end_date ? formatDate(details.campaign.end_date) : '—'}
+                          </span>
+                        )}
+                        {details.campaign.display_locations.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {details.campaign.display_locations.map((loc) => (
+                              <span key={loc} className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
+                                {loc.replace(/_/g, ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <span
@@ -728,7 +837,7 @@ const UpsellCampaigns = () => {
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <LineChart className="h-4 w-4 text-indigo-500" />
+                        <LineChart className="h-4 w-4 text-blue-500" />
                         Evolução diária
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -762,7 +871,7 @@ const UpsellCampaigns = () => {
                         >
                           <polyline
                             fill="none"
-                            stroke="#6366F1"
+                            stroke="#2563EB"
                             strokeWidth="2"
                             points={linePoints
                               .map((point) => `${point.x},${point.y}`)
@@ -774,7 +883,7 @@ const UpsellCampaigns = () => {
                               cx={point.x}
                               cy={point.y}
                               r="1.8"
-                              fill="#6366F1"
+                              fill="#2563EB"
                             />
                           ))}
                         </svg>
@@ -792,7 +901,7 @@ const UpsellCampaigns = () => {
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <PieChart className="h-4 w-4 text-indigo-500" />
+                        <PieChart className="h-4 w-4 text-blue-500" />
                         Distribuição por tipo
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -929,7 +1038,7 @@ const UpsellCampaigns = () => {
                         <button
                           type="button"
                           onClick={fetchProductList}
-                          className="text-xs font-semibold text-indigo-600"
+                          className="text-xs font-semibold text-blue-600"
                         >
                           Recarregar lista
                         </button>
@@ -963,7 +1072,7 @@ const UpsellCampaigns = () => {
                                   key={product.id}
                                   className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-xs transition ${
                                     isSelected
-                                      ? 'border-indigo-200 bg-white'
+                                      ? 'border-blue-200 bg-white'
                                       : 'border-slate-200 bg-white'
                                   }`}
                                 >
@@ -973,7 +1082,7 @@ const UpsellCampaigns = () => {
                                     onChange={() =>
                                       handleToggleProductSelection(product.id)
                                     }
-                                    className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                                    className="h-4 w-4 rounded border-slate-300 text-blue-600"
                                   />
                                   <div className="flex-1">
                                     <p className="font-semibold text-slate-700">
@@ -1005,7 +1114,7 @@ const UpsellCampaigns = () => {
                           type="button"
                           onClick={handleSyncCampaignProducts}
                           disabled={updateProductsStatus === 'loading'}
-                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           Salvar seleção
                         </button>
@@ -1018,6 +1127,120 @@ const UpsellCampaigns = () => {
                           <span className="text-xs font-semibold text-rose-600">
                             {updateProductsError}
                           </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">
+                        Segmentos da campanha
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {campaignSegments.length} segmento(s) vinculados
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsSegmentsOpen((prev) => !prev)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+                    >
+                      {isSegmentsOpen ? 'Fechar seleção' : 'Gerenciar segmentos'}
+                    </button>
+                  </div>
+
+                  {campaignSegmentsStatus === 'loading' ? (
+                    <p className="mt-4 text-xs text-slate-400">Carregando segmentos...</p>
+                  ) : null}
+
+                  {campaignSegmentsStatus === 'error' ? (
+                    <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                      {campaignSegmentsError}
+                    </div>
+                  ) : null}
+
+                  {campaignSegmentsStatus === 'idle' && campaignSegments.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {campaignSegments.map((seg) => (
+                        <span key={seg.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700">
+                          {seg.name}
+                          {seg.matched_customers_count != null && (
+                            <span className="ml-1.5 text-slate-400">({seg.matched_customers_count})</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {isSegmentsOpen ? (
+                    <div className="mt-6 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs font-semibold text-slate-600">Selecione os segmentos</p>
+                        <button
+                          type="button"
+                          onClick={fetchSegmentList}
+                          className="text-xs font-semibold text-blue-600"
+                        >
+                          Recarregar lista
+                        </button>
+                      </div>
+
+                      {segmentListStatus === 'loading' ? (
+                        <p className="text-xs text-slate-400">Carregando segmentos...</p>
+                      ) : null}
+
+                      {segmentListStatus === 'idle' ? (
+                        <div className="max-h-52 space-y-2 overflow-auto pr-1">
+                          {segmentList.length === 0 ? (
+                            <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-center text-xs text-slate-400">
+                              Nenhum segmento encontrado.
+                            </div>
+                          ) : (
+                            segmentList.map((seg) => {
+                              const isSelected = selectedSegmentIds.has(seg.id)
+                              return (
+                                <label
+                                  key={seg.id}
+                                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs transition"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => handleToggleSegmentSelection(seg.id)}
+                                    className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                                  />
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-slate-700">{seg.name}</p>
+                                    {seg.matched_customers_count != null && (
+                                      <p className="text-[11px] text-slate-400">
+                                        {seg.matched_customers_count} clientes correspondentes
+                                      </p>
+                                    )}
+                                  </div>
+                                </label>
+                              )
+                            })
+                          )}
+                        </div>
+                      ) : null}
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleSyncCampaignSegments}
+                          disabled={updateSegmentsStatus === 'loading'}
+                          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Salvar seleção
+                        </button>
+                        {updateSegmentsStatus === 'success' ? (
+                          <span className="text-xs font-semibold text-emerald-600">Segmentos atualizados!</span>
+                        ) : null}
+                        {updateSegmentsStatus === 'error' ? (
+                          <span className="text-xs font-semibold text-rose-600">{updateSegmentsError}</span>
                         ) : null}
                       </div>
                     </div>

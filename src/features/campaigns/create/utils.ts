@@ -10,6 +10,7 @@ export const buildCampaignPayload = (form: CampaignFormState): CreateCampaignPay
 
   if (form.display_locations.length > 0) payload.display_locations = form.display_locations
   if (form.segment_ids.length > 0) payload.segment_ids = form.segment_ids
+  if (form.domains.length > 0) payload.domains = form.domains
 
   if (form.headline) payload.headline = form.headline
   if (form.description) payload.description = form.description
@@ -28,15 +29,14 @@ export const buildCampaignPayload = (form: CampaignFormState): CreateCampaignPay
     payload.end_time = form.end_time || '23:59'
   }
 
-  if (form.active_days.length < 7) payload.active_days = form.active_days
-  if (form.active_hours.length < 24) payload.active_hours = form.active_hours
+  payload.active_days = form.active_days
+  payload.active_hours = form.active_hours
 
-  if (form.cooldown_minutes !== 5) payload.cooldown_minutes = form.cooldown_minutes
-  if (form.max_per_session !== 3) payload.max_per_session = form.max_per_session
-  if (form.max_per_day !== 10) payload.max_per_day = form.max_per_day
-  if (form.max_total !== 100) payload.max_total = form.max_total
-  if (form.block_after_conversion_days !== 30)
-    payload.block_after_conversion_days = form.block_after_conversion_days
+  payload.cooldown_minutes = form.cooldown_minutes
+  payload.max_per_session = form.max_per_session
+  payload.max_per_day = form.max_per_day
+  payload.max_total = form.max_total
+  payload.block_after_conversion_days = form.block_after_conversion_days
 
   if (form.widget_css) payload.widget_css = form.widget_css
   if (form.widget_html) payload.widget_html = form.widget_html

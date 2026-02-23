@@ -65,7 +65,7 @@ export const useCreateCampaignForm = () => {
     }))
   }, [])
 
-  const toggleDay = useCallback((day: string) => {
+  const toggleDay = useCallback((day: number) => {
     setForm((prev) => ({
       ...prev,
       active_days: prev.active_days.includes(day)
@@ -74,7 +74,7 @@ export const useCreateCampaignForm = () => {
     }))
   }, [])
 
-  const toggleHour = useCallback((hour: string) => {
+  const toggleHour = useCallback((hour: number) => {
     setForm((prev) => ({
       ...prev,
       active_hours: prev.active_hours.includes(hour)
@@ -86,7 +86,7 @@ export const useCreateCampaignForm = () => {
   const setAllHours = useCallback(() => {
     setForm((prev) => ({
       ...prev,
-      active_hours: Array.from({ length: 24 }, (_, i) => String(i)),
+      active_hours: Array.from({ length: 24 }, (_, i) => i),
     }))
   }, [])
 

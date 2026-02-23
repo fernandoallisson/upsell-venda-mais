@@ -5,8 +5,29 @@ export type Campaign = {
   name: string
   priority: number
   is_active: boolean
-  start_date: string
-  end_date: string
+  display_locations: string[]
+  headline: string | null
+  description: string | null
+  image_url: string | null
+  video_url: string | null
+  cta_text: string | null
+  cta_link: string | null
+  cta_new_tab: boolean
+  start_date: string | null
+  start_time: string | null
+  end_date: string | null
+  end_time: string | null
+  active_days: number[]
+  active_hours: number[]
+  cooldown_minutes: number
+  max_per_session: number
+  max_per_day: number
+  max_total: number
+  block_after_conversion_days: number
+  widget_css: string | null
+  widget_html: string | null
+  segment_ids: number[]
+  domains: string[]
   deleted_at: string | null
   created_at: string
   updated_at: string
@@ -52,8 +73,8 @@ export type CreateCampaignPayload = {
   start_time?: string
   end_date?: string
   end_time?: string
-  active_days?: string[]
-  active_hours?: string[]
+  active_days?: number[]
+  active_hours?: number[]
   cooldown_minutes?: number
   max_per_session?: number
   max_per_day?: number
@@ -62,6 +83,7 @@ export type CreateCampaignPayload = {
   widget_css?: string
   widget_html?: string
   segment_ids?: number[]
+  domains?: string[]
 }
 
 export type UpdateCampaignPayload = CreateCampaignPayload
@@ -125,14 +147,31 @@ export type CampaignDaily = {
 }
 
 export type CampaignDetails = {
-  campaign: Pick<
-    Campaign,
-    'id' | 'name' | 'priority' | 'is_active' | 'start_date' | 'end_date'
-  >
+  campaign: Campaign
   offers: CampaignOffer[]
   totals: CampaignTotals
   timeframe: CampaignTimeframe
   daily: CampaignDaily[]
+}
+
+export type CampaignSegment = {
+  id: number
+  name: string
+  matched_customers_count: number | null
+  created_at: string
+  updated_at: string
+}
+
+export type CampaignSegmentPivot = {
+  upsell_campaign_id: number
+  segment_id: number
+  tenant_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CampaignSegmentWithPivot = CampaignSegment & {
+  pivot: CampaignSegmentPivot
 }
 
 export type CampaignProductPivot = {

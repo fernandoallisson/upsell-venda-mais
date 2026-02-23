@@ -7,8 +7,9 @@ import type { Campaign } from '../../../../lib/services/campaigns/campaigns.type
 import { DEFAULT_FORM_STATE } from '../../create/constants'
 import type { CampaignFormColors, CampaignFormState } from '../../create/types'
 
-const toDateInputValue = (value: string) => {
+const toDateInputValue = (value: string | null) => {
   if (!value) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return ''
   return parsed.toISOString().slice(0, 10)
@@ -19,8 +20,29 @@ const campaignToFormState = (campaign: Campaign): CampaignFormState => ({
   name: campaign.name,
   is_active: campaign.is_active,
   priority: campaign.priority,
+  display_locations: campaign.display_locations ?? [],
+  segment_ids: campaign.segment_ids ?? [],
+  domains: campaign.domains ?? [],
+  headline: campaign.headline ?? '',
+  description: campaign.description ?? '',
+  image_url: campaign.image_url ?? '',
+  video_url: campaign.video_url ?? '',
+  cta_text: campaign.cta_text ?? '',
+  cta_link: campaign.cta_link ?? '',
+  cta_new_tab: campaign.cta_new_tab,
   start_date: toDateInputValue(campaign.start_date),
+  start_time: campaign.start_time ?? '00:00',
   end_date: toDateInputValue(campaign.end_date),
+  end_time: campaign.end_time ?? '23:59',
+  active_days: campaign.active_days && campaign.active_days.length > 0 ? campaign.active_days : DEFAULT_FORM_STATE.active_days,
+  active_hours: campaign.active_hours && campaign.active_hours.length > 0 ? campaign.active_hours : DEFAULT_FORM_STATE.active_hours,
+  cooldown_minutes: campaign.cooldown_minutes || DEFAULT_FORM_STATE.cooldown_minutes,
+  max_per_session: campaign.max_per_session || DEFAULT_FORM_STATE.max_per_session,
+  max_per_day: campaign.max_per_day || DEFAULT_FORM_STATE.max_per_day,
+  max_total: campaign.max_total || DEFAULT_FORM_STATE.max_total,
+  block_after_conversion_days: campaign.block_after_conversion_days || DEFAULT_FORM_STATE.block_after_conversion_days,
+  widget_css: campaign.widget_css ?? '',
+  widget_html: campaign.widget_html ?? '',
 })
 
 export const useEditCampaignForm = (campaign: Campaign | null) => {
@@ -92,7 +114,7 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
     }))
   }, [])
 
-  const toggleDay = useCallback((day: string) => {
+  const toggleDay = useCallback((day: number) => {
     setForm((prev) => ({
       ...prev,
       active_days: prev.active_days.includes(day)
@@ -101,7 +123,7 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
     }))
   }, [])
 
-  const toggleHour = useCallback((hour: string) => {
+  const toggleHour = useCallback((hour: number) => {
     setForm((prev) => ({
       ...prev,
       active_hours: prev.active_hours.includes(hour)
@@ -113,7 +135,7 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
   const setAllHours = useCallback(() => {
     setForm((prev) => ({
       ...prev,
-      active_hours: Array.from({ length: 24 }, (_, i) => String(i)),
+      active_hours: Array.from({ length: 24 }, (_, i) => i),
     }))
   }, [])
 

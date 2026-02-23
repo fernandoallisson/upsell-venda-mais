@@ -39,18 +39,18 @@ export const DISPLAY_LOCATIONS: DisplayLocationMeta[] = [
 ]
 
 export const DAYS_OF_WEEK = [
-  { value: '0', label: 'Dom' },
-  { value: '1', label: 'Seg' },
-  { value: '2', label: 'Ter' },
-  { value: '3', label: 'Qua' },
-  { value: '4', label: 'Qui' },
-  { value: '5', label: 'Sex' },
-  { value: '6', label: 'Sab' },
+  { value: 0, label: 'Dom' },
+  { value: 1, label: 'Seg' },
+  { value: 2, label: 'Ter' },
+  { value: 3, label: 'Qua' },
+  { value: 4, label: 'Qui' },
+  { value: 5, label: 'Sex' },
+  { value: 6, label: 'Sab' },
 ]
 
-export const HOURS_OF_DAY: { value: string; label: string }[] = Array.from(
+export const HOURS_OF_DAY: { value: number; label: string }[] = Array.from(
   { length: 24 },
-  (_, i) => ({ value: String(i), label: `${String(i).padStart(2, '0')}h` }),
+  (_, i) => ({ value: i, label: `${String(i).padStart(2, '0')}h` }),
 )
 
 export type ColorPresetKey =
@@ -93,8 +93,9 @@ export const DEFAULT_FORM_STATE: CampaignFormState = {
   start_time: '00:00',
   end_date: '',
   end_time: '23:59',
-  active_days: ['0', '1', '2', '3', '4', '5', '6'],
-  active_hours: Array.from({ length: 24 }, (_, i) => String(i)),
+  active_days: [0, 1, 2, 3, 4, 5, 6],
+  active_hours: Array.from({ length: 24 }, (_, i) => i),
+  domains: [],
 
   cooldown_minutes: 5,
   max_per_session: 3,

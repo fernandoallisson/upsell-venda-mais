@@ -49,18 +49,7 @@ const EditCampaign = () => {
       setLoadError(null)
       try {
         const details = await getCampaignById(campaignId)
-        const asCampaign: Campaign = {
-          id: details.campaign.id,
-          name: details.campaign.name,
-          priority: details.campaign.priority,
-          is_active: details.campaign.is_active,
-          start_date: details.campaign.start_date,
-          end_date: details.campaign.end_date,
-          deleted_at: null,
-          created_at: '',
-          updated_at: '',
-        }
-        setCampaign(asCampaign)
+        setCampaign(details.campaign)
         setLoadStatus('idle')
       } catch (err) {
         const message =

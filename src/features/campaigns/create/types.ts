@@ -24,8 +24,9 @@ export type CampaignFormState = {
   start_time: string
   end_date: string
   end_time: string
-  active_days: string[]
-  active_hours: string[]
+  active_days: number[]
+  active_hours: number[]
+  domains: string[]
 
   cooldown_minutes: number
   max_per_session: number
