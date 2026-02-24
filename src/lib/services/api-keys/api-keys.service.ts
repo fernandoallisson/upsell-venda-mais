@@ -15,11 +15,6 @@ const ENDPOINT = '/v1/api-keys'
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
 
-const asString = (v: unknown, field: string): string => {
-  if (typeof v === 'string') return v
-  if (typeof v === 'number') return String(v)
-  throw new ApiError(`Resposta inválida do servidor: ${field}`)
-}
 
 const asNullableString = (v: unknown): string | null => {
   if (v === null || v === undefined) return null
@@ -60,16 +55,40 @@ const asStringArray = (v: unknown): string[] => {
   return []
 }
 
+const API_TYPE_MAP: Record<string, ApiKeyType> = {
+  pre_checkout: 'pre_checkout',
+  'pre-checkout': 'pre_checkout',
+  post_purchase: 'post_purchase',
+  'post-purchase': 'post_purchase',
+  cart_drawer: 'cart_drawer',
+  'cart-drawer': 'cart_drawer',
+  widget: 'widget',
+  webhook: 'webhook',
+  integration: 'integration',
+}
+
+const SEND_TYPE_MAP: Record<ApiKeyType, string> = {
+  pre_checkout: 'pre-checkout',
+  post_purchase: 'post-purchase',
+  cart_drawer: 'cart-drawer',
+  widget: 'widget',
+  webhook: 'webhook',
+  integration: 'integration',
+}
+
 const parseApiKey = (data: unknown): ApiKey => {
   if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: api_key')
 
   const raw = isRecord(data.data) ? data.data : data
 
+  const rawType = typeof raw.type === 'string' ? raw.type : ''
+  const type: ApiKeyType = API_TYPE_MAP[rawType] ?? 'pre_checkout'
+
   return {
     id: asNumber(raw.id, 'api_key.id'),
-    name: asString(raw.name, 'api_key.name'),
+    name: typeof raw.name === 'string' ? raw.name : '',
     public_key: typeof raw.public_key === 'string' ? raw.public_key : '',
-    type: asString(raw.type, 'api_key.type') as ApiKeyType,
+    type,
     allowed_origins: asStringArray(raw.allowed_origins),
     rate_limit: asNullableNumber(raw.rate_limit),
     is_active: typeof raw.is_active === 'boolean'
@@ -143,7 +162,7 @@ export const createApiKey = async (
   const data = await apiFetch<JsonValue>(ENDPOINT, {
     method: 'POST',
     auth: true,
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, type: SEND_TYPE_MAP[payload.type] }),
     errorMessage: 'Erro ao criar chave de API',
     networkErrorMessage: 'Falha de rede ao criar chave de API',
   })
@@ -158,7 +177,7 @@ export const updateApiKey = async (
   const data = await apiFetch<JsonValue>(`${ENDPOINT}/${id}`, {
     method: 'PUT',
     auth: true,
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, type: SEND_TYPE_MAP[payload.type] }),
     errorMessage: 'Erro ao atualizar chave de API',
     networkErrorMessage: 'Falha de rede ao atualizar chave de API',
   })
