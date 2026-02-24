@@ -3,6 +3,7 @@ import {
   Boxes,
   ChevronLeft,
   ChevronRight,
+  KeyRound,
   LayoutDashboard,
   Package,
   ShoppingBag,
@@ -114,6 +115,10 @@ const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
           <NavLink to="/usuarios" className={linkStyles}>
             <UsersRound className="h-4 w-4" />
             <span className={labelClassName}>Usuários</span>
+          </NavLink>
+          <NavLink to="/tokens" className={linkStyles}>
+            <KeyRound className="h-4 w-4" />
+            <span className={labelClassName}>Chaves de API</span>
           </NavLink>
         </div>
       </nav>

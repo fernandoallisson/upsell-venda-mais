@@ -13,6 +13,10 @@ import EditCampaign from './pages/EditCampaign'
 import UpsellCampaigns from './pages/UpsellCampaigns'
 import UpsellOffers from './pages/UpsellOffers'
 import Users from './pages/Users'
+import ApiKeys from './pages/ApiKeys'
+import CreateApiKey from './pages/CreateApiKey'
+import ViewApiKey from './pages/ViewApiKey'
+import EditApiKey from './pages/EditApiKey'
 import ProtectedRoute from './routes/ProtectedRoute'
 
 function App() {
@@ -114,6 +118,38 @@ function App() {
         element={
           <ProtectedRoute>
             <Users />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tokens"
+        element={
+          <ProtectedRoute>
+            <ApiKeys />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tokens/nova"
+        element={
+          <ProtectedRoute>
+            <CreateApiKey />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tokens/:id"
+        element={
+          <ProtectedRoute>
+            <ViewApiKey />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tokens/:id/editar"
+        element={
+          <ProtectedRoute>
+            <EditApiKey />
           </ProtectedRoute>
         }
       />
