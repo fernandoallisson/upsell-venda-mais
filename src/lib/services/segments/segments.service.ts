@@ -423,24 +423,34 @@ export const getExportColumns = async (): Promise<ExportColumn[]> => {
     networkErrorMessage: 'Falha de rede ao carregar colunas',
   })
 
-  const mapColumn = (item: unknown): ExportColumn => {
-    const record = item as Record<string, unknown>
-    return {
-      key: String(record.key ?? record.column ?? ''),
-      label: String(record.label ?? record.name ?? record.key ?? ''),
+  const mapColumn = (item: unknown): ExportColumn | null => {
+    if (typeof item === 'string' && item.trim() !== '') {
+      return { key: item, label: item }
     }
+    if (!isRecord(item)) return null
+    const key = String(item.key ?? item.column ?? item.field ?? item.name ?? '')
+    if (!key) return null
+    const label = String(item.label ?? item.display_name ?? item.title ?? item.name ?? key)
+    return { key, label }
   }
 
+  const filterValid = (items: unknown[]): ExportColumn[] =>
+    items.map(mapColumn).filter((c): c is ExportColumn => c !== null && c.key !== '')
+
   if (Array.isArray(data)) {
-    return data.map(mapColumn)
+    return filterValid(data)
   }
 
   if (isRecord(data)) {
-    if (Array.isArray(data.available_columns)) {
-      return (data.available_columns as unknown[]).map(mapColumn)
+    for (const key of ['columns', 'available_columns', 'data', 'fields', 'items']) {
+      if (Array.isArray(data[key])) {
+        return filterValid(data[key] as unknown[])
+      }
     }
-    if (Array.isArray(data.data)) {
-      return (data.data as unknown[]).map(mapColumn)
+
+    const entries = Object.entries(data)
+    if (entries.length > 0 && entries.every(([, v]) => typeof v === 'string')) {
+      return entries.map(([k, v]) => ({ key: k, label: String(v) }))
     }
   }
 

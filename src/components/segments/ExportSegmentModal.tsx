@@ -74,6 +74,7 @@ const ExportSegmentModal = ({
     () => new Set(AVAILABLE_COLUMNS.map((c) => c.key)),
   )
   const [columnsLoading, setColumnsLoading] = useState(false)
+  const [columnsError, setColumnsError] = useState<string | null>(null)
 
   const [syncLoading, setSyncLoading] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
@@ -105,19 +106,32 @@ const ExportSegmentModal = ({
     }
   }, [open, stopPolling])
 
-  useEffect(() => {
-    if (!open) return
+  const fetchColumns = useCallback(() => {
     setColumnsLoading(true)
+    setColumnsError(null)
     getExportColumns()
       .then((fetched) => {
         if (fetched.length > 0) {
           setColumns(fetched)
           setSelectedColumns(new Set(fetched.map((c) => c.key)))
+        } else {
+          setColumnsError('Nenhuma coluna disponível retornada pela API.')
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : 'Erro ao carregar colunas de exportação.'
+        setColumnsError(message)
+      })
       .finally(() => setColumnsLoading(false))
-  }, [open])
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    fetchColumns()
+  }, [open, fetchColumns])
 
   useEffect(() => () => stopPolling(), [stopPolling])
 
@@ -411,6 +425,20 @@ const ExportSegmentModal = ({
               <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Carregando colunas...
+              </div>
+            ) : columnsError ? (
+              <div className="mt-2 space-y-2">
+                <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-rose-500" />
+                  <p className="text-xs text-rose-700">{columnsError}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchColumns}
+                  className="text-xs font-medium text-teal-600 transition hover:text-teal-700"
+                >
+                  Tentar novamente
+                </button>
               </div>
             ) : (
               <div className="mt-2 grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
