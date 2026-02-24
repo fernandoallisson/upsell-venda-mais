@@ -17,6 +17,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 
 const asString = (v: unknown, field: string): string => {
   if (typeof v === 'string') return v
+  if (typeof v === 'number') return String(v)
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
@@ -45,12 +46,6 @@ const asNullableNumber = (v: unknown): number | null => {
   return null
 }
 
-const asBoolean = (v: unknown, field: string): boolean => {
-  if (typeof v === 'boolean') return v
-  if (v === 1 || v === '1') return true
-  if (v === 0 || v === '0') return false
-  throw new ApiError(`Resposta inválida do servidor: ${field}`)
-}
 
 const asStringArray = (v: unknown): string[] => {
   if (Array.isArray(v)) return v.filter((x) => typeof x === 'string')
@@ -73,13 +68,15 @@ const parseApiKey = (data: unknown): ApiKey => {
   return {
     id: asNumber(raw.id, 'api_key.id'),
     name: asString(raw.name, 'api_key.name'),
-    public_key: asString(raw.public_key, 'api_key.public_key'),
+    public_key: typeof raw.public_key === 'string' ? raw.public_key : '',
     type: asString(raw.type, 'api_key.type') as ApiKeyType,
     allowed_origins: asStringArray(raw.allowed_origins),
     rate_limit: asNullableNumber(raw.rate_limit),
-    is_active: asBoolean(raw.is_active, 'api_key.is_active'),
+    is_active: typeof raw.is_active === 'boolean'
+      ? raw.is_active
+      : raw.is_active === 1 || raw.is_active === '1' || raw.is_active === 'true',
     last_used_at: asNullableString(raw.last_used_at),
-    created_at: asString(raw.created_at, 'api_key.created_at'),
+    created_at: asNullableString(raw.created_at) ?? '',
     updated_at: asNullableString(raw.updated_at),
   }
 }

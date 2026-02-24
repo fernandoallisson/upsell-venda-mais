@@ -195,10 +195,16 @@ const ApiKeys = () => {
 
   const handleToggle = async (id: number) => {
     setTogglingId(id)
+    setApiKeys((prev) =>
+      prev.map((k) => (k.id === id ? { ...k, is_active: !k.is_active } : k)),
+    )
     try {
       const updated = await toggleApiKeyActive(id)
       setApiKeys((prev) => prev.map((k) => (k.id === id ? updated : k)))
     } catch (err) {
+      setApiKeys((prev) =>
+        prev.map((k) => (k.id === id ? { ...k, is_active: !k.is_active } : k)),
+      )
       setError(err instanceof ApiError ? err.message : 'Erro ao alterar status')
     } finally {
       setTogglingId(null)
