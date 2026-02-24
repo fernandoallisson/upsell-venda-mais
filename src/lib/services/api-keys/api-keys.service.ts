@@ -43,8 +43,16 @@ const asBoolean = (v: unknown, field: string): boolean => {
 }
 
 const asStringArray = (v: unknown): string[] => {
-  if (!Array.isArray(v)) return []
-  return v.filter((x) => typeof x === 'string')
+  if (Array.isArray(v)) return v.filter((x) => typeof x === 'string')
+  if (typeof v === 'string') {
+    try {
+      const parsed = JSON.parse(v)
+      if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === 'string')
+    } catch {
+      // not valid JSON
+    }
+  }
+  return []
 }
 
 const parseApiKey = (data: unknown): ApiKey => {
@@ -62,7 +70,7 @@ const parseApiKey = (data: unknown): ApiKey => {
     is_active: asBoolean(raw.is_active, 'api_key.is_active'),
     last_used_at: asNullableString(raw.last_used_at),
     created_at: asString(raw.created_at, 'api_key.created_at'),
-    updated_at: asString(raw.updated_at, 'api_key.updated_at'),
+    updated_at: asNullableString(raw.updated_at),
   }
 }
 

@@ -25,12 +25,18 @@ const TYPE_LABELS: Record<string, string> = {
   pre_checkout: 'Pré-Checkout',
   post_purchase: 'Pós-Compra',
   cart_drawer: 'Cart Drawer',
+  widget: 'Widget',
+  webhook: 'Webhook',
+  integration: 'Integração',
 }
 
 const TYPE_COLORS: Record<string, string> = {
   pre_checkout: 'bg-blue-50 text-blue-700 border-blue-200',
   post_purchase: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   cart_drawer: 'bg-amber-50 text-amber-700 border-amber-200',
+  widget: 'bg-blue-50 text-blue-700 border-blue-200',
+  webhook: 'bg-slate-50 text-slate-700 border-slate-200',
+  integration: 'bg-teal-50 text-teal-700 border-teal-200',
 }
 
 const formatDate = (value: string | null) => {

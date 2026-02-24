@@ -1,4 +1,4 @@
-export type ApiKeyType = 'pre_checkout' | 'post_purchase' | 'cart_drawer'
+export type ApiKeyType = 'pre_checkout' | 'post_purchase' | 'cart_drawer' | 'widget' | 'webhook' | 'integration'
 
 export type ApiKey = {
   id: number
@@ -10,7 +10,7 @@ export type ApiKey = {
   is_active: boolean
   last_used_at: string | null
   created_at: string
-  updated_at: string
+  updated_at: string | null
 }
 
 export type ApiKeyWithSecret = ApiKey & {
