@@ -55,6 +55,8 @@ const asStringArray = (v: unknown): string[] => {
   return []
 }
 
+const API_BASE_URL = 'https://vitor-api.vendamais.top/api'
+
 const API_TYPE_MAP: Record<string, ApiKeyType> = {
   pre_checkout: 'pre_checkout',
   'pre-checkout': 'pre_checkout',
@@ -67,21 +69,16 @@ const API_TYPE_MAP: Record<string, ApiKeyType> = {
   integration: 'integration',
 }
 
-const SEND_TYPE_MAP: Record<ApiKeyType, string> = {
-  pre_checkout: 'pre-checkout',
-  post_purchase: 'post-purchase',
-  cart_drawer: 'cart-drawer',
-  widget: 'widget',
-  webhook: 'webhook',
-  integration: 'integration',
-}
-
 const parseApiKey = (data: unknown): ApiKey => {
   if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: api_key')
 
   const raw = isRecord(data.data) ? data.data : data
 
-  const rawType = typeof raw.type === 'string' ? raw.type : ''
+  const rawType = typeof raw.trigger_type === 'string'
+    ? raw.trigger_type
+    : typeof raw.type === 'string'
+      ? raw.type
+      : ''
   const type: ApiKeyType = API_TYPE_MAP[rawType] ?? 'pre_checkout'
 
   return {
@@ -159,10 +156,18 @@ export const getApiKeyById = async (id: number): Promise<ApiKey> => {
 export const createApiKey = async (
   payload: CreateApiKeyPayload,
 ): Promise<ApiKeyWithSecret> => {
+  const { type, generate_secret, debug, ...rest } = payload
+  const body = {
+    ...rest,
+    trigger_type: type,
+    api_base: API_BASE_URL,
+    generate_secret,
+    debug: debug ?? false,
+  }
   const data = await apiFetch<JsonValue>(ENDPOINT, {
     method: 'POST',
     auth: true,
-    body: JSON.stringify({ ...payload, type: SEND_TYPE_MAP[payload.type] }),
+    body: JSON.stringify(body),
     errorMessage: 'Erro ao criar chave de API',
     networkErrorMessage: 'Falha de rede ao criar chave de API',
   })
@@ -174,10 +179,17 @@ export const updateApiKey = async (
   id: number,
   payload: UpdateApiKeyPayload,
 ): Promise<ApiKey> => {
+  const { type, debug, ...rest } = payload
+  const body = {
+    ...rest,
+    trigger_type: type,
+    api_base: API_BASE_URL,
+    debug: debug ?? false,
+  }
   const data = await apiFetch<JsonValue>(`${ENDPOINT}/${id}`, {
     method: 'PUT',
     auth: true,
-    body: JSON.stringify({ ...payload, type: SEND_TYPE_MAP[payload.type] }),
+    body: JSON.stringify(body),
     errorMessage: 'Erro ao atualizar chave de API',
     networkErrorMessage: 'Falha de rede ao atualizar chave de API',
   })

@@ -23,6 +23,7 @@ export type CreateApiKeyPayload = {
   allowed_origins: string[]
   rate_limit: number
   generate_secret: boolean
+  debug?: boolean
 }
 
 export type UpdateApiKeyPayload = {
@@ -31,6 +32,7 @@ export type UpdateApiKeyPayload = {
   allowed_origins: string[]
   rate_limit: number
   is_active: boolean
+  debug?: boolean
 }
 
 export type ApiKeysResponse = {
