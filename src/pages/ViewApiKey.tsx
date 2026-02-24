@@ -340,7 +340,7 @@ const ViewApiKey = () => {
               </div>
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
                 <span className="text-slate-500">Rate Limit</span>
-                <span className="font-medium text-slate-900">{apiKey.rate_limit} req/hora</span>
+                <span className="font-medium text-slate-900">{apiKey.rate_limit != null ? `${apiKey.rate_limit} req/hora` : '—'}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-slate-100">
                 <span className="text-slate-500">Criada em</span>

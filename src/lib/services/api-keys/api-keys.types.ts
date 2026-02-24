@@ -6,7 +6,7 @@ export type ApiKey = {
   public_key: string
   type: ApiKeyType
   allowed_origins: string[]
-  rate_limit: number
+  rate_limit: number | null
   is_active: boolean
   last_used_at: string | null
   created_at: string

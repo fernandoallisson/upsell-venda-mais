@@ -129,7 +129,7 @@ const EditApiKey = () => {
         name: data.name,
         type: data.type,
         allowed_origins: data.allowed_origins,
-        rate_limit: data.rate_limit,
+        rate_limit: data.rate_limit ?? 1000,
         is_active: data.is_active,
         debug: false,
       })

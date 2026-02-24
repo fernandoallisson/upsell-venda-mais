@@ -35,6 +35,16 @@ const asNumber = (v: unknown, field: string): number => {
   throw new ApiError(`Resposta inválida do servidor: ${field}`)
 }
 
+const asNullableNumber = (v: unknown): number | null => {
+  if (v === null || v === undefined) return null
+  if (typeof v === 'number') return v
+  if (typeof v === 'string') {
+    const n = Number(v)
+    if (!Number.isNaN(n)) return n
+  }
+  return null
+}
+
 const asBoolean = (v: unknown, field: string): boolean => {
   if (typeof v === 'boolean') return v
   if (v === 1 || v === '1') return true
@@ -66,7 +76,7 @@ const parseApiKey = (data: unknown): ApiKey => {
     public_key: asString(raw.public_key, 'api_key.public_key'),
     type: asString(raw.type, 'api_key.type') as ApiKeyType,
     allowed_origins: asStringArray(raw.allowed_origins),
-    rate_limit: asNumber(raw.rate_limit, 'api_key.rate_limit'),
+    rate_limit: asNullableNumber(raw.rate_limit),
     is_active: asBoolean(raw.is_active, 'api_key.is_active'),
     last_used_at: asNullableString(raw.last_used_at),
     created_at: asString(raw.created_at, 'api_key.created_at'),
