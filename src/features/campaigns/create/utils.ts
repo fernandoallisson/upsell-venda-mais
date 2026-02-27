@@ -20,13 +20,21 @@ export const buildCampaignPayload = (form: CampaignFormState): CreateCampaignPay
   if (form.cta_link) payload.cta_link = form.cta_link
   payload.cta_new_tab = form.cta_new_tab
 
+  const toApiTime = (time: string, fallback: string) => {
+    const trimmed = time.trim()
+    if (!trimmed) return fallback
+    if (/^\d{2}:\d{2}:\d{2}$/.test(trimmed)) return trimmed
+    if (/^\d{2}:\d{2}$/.test(trimmed)) return `${trimmed}:00`
+    return fallback
+  }
+
   if (form.start_date) {
     payload.start_date = form.start_date
-    payload.start_time = form.start_time || '00:00'
+    payload.start_time = toApiTime(form.start_time, '00:00:00')
   }
   if (form.end_date) {
     payload.end_date = form.end_date
-    payload.end_time = form.end_time || '23:59'
+    payload.end_time = toApiTime(form.end_time, '23:59:59')
   }
 
   payload.active_days = form.active_days
