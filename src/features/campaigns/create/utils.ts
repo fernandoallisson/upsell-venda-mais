@@ -23,18 +23,21 @@ export const buildCampaignPayload = (form: CampaignFormState): CreateCampaignPay
   const toApiTime = (time: string, fallback: string) => {
     const trimmed = time.trim()
     if (!trimmed) return fallback
-    if (/^\d{2}:\d{2}:\d{2}$/.test(trimmed)) return trimmed
-    if (/^\d{2}:\d{2}$/.test(trimmed)) return `${trimmed}:00`
+    if (/^\d{2}:\d{2}$/.test(trimmed)) return trimmed
+
+    const withSeconds = trimmed.match(/^(\d{2}:\d{2}):\d{2}$/)
+    if (withSeconds) return withSeconds[1]
+
     return fallback
   }
 
   if (form.start_date) {
     payload.start_date = form.start_date
-    payload.start_time = toApiTime(form.start_time, '00:00:00')
+    payload.start_time = toApiTime(form.start_time, '00:00')
   }
   if (form.end_date) {
     payload.end_date = form.end_date
-    payload.end_time = toApiTime(form.end_time, '23:59:59')
+    payload.end_time = toApiTime(form.end_time, '23:59')
   }
 
   payload.active_days = form.active_days
