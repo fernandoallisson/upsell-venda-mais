@@ -548,16 +548,7 @@ const Products = () => {
         </div>
       ) : null}
 
-      {status === 'idle' && products.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
-          <p className="font-semibold">Nenhum produto encontrado.</p>
-          <p className="text-sm text-slate-500">
-            Assim que houver produtos, eles aparecerão aqui.
-          </p>
-        </div>
-      ) : null}
-
-      {status === 'idle' && products.length > 0 ? (
+      {status === 'idle' ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -971,7 +962,12 @@ const Products = () => {
                 })}
               </div>
 
-              {filteredProducts.length === 0 ? (
+              {products.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+                  Nenhum produto cadastrado ainda. Você já pode criar o primeiro
+                  produto acima.
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
                   Nenhum produto encontrado com os filtros aplicados.
                 </div>
