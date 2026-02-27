@@ -1,6 +1,6 @@
 import { getAuthToken } from './storage'
 
-const API_BASE_URL = 'https://vitor-api.top/api'
+const API_BASE_URL = 'https://vitor-api.vendamais.top/api'
 
 type JsonValue = Record<string, unknown> | null
 
