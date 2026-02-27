@@ -51,6 +51,9 @@ const asNullableNumber = (value: unknown, field: string): number | null => {
 const parseUser = (data: JsonValue): User => {
   if (!isRecord(data)) throw new ApiError('Resposta inválida do servidor: user')
 
+  const createdAt = asNullableString(data.created_at, 'user.created_at')
+  const updatedAt = asNullableString(data.updated_at, 'user.updated_at')
+
   return {
     id: asNumber(data.id, 'user.id'),
     name: asString(data.name, 'user.name'),
@@ -59,8 +62,8 @@ const parseUser = (data: JsonValue): User => {
       data.email_verified_at,
       'user.email_verified_at',
     ),
-    created_at: asString(data.created_at, 'user.created_at'),
-    updated_at: asString(data.updated_at, 'user.updated_at'),
+    created_at: createdAt ?? updatedAt ?? '',
+    updated_at: updatedAt ?? createdAt ?? '',
     // tenant_id no backend pode vir number/string (e às vezes null). Mantemos null se vier.
     tenant_id: asNullableStringLike(data.tenant_id, 'user.tenant_id'),
   }
