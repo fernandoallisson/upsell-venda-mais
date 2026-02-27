@@ -1,6 +1,7 @@
 import { ApiError, apiFetch } from '../../api'
 import type {
   Campaign,
+  CampaignApiKey,
   CampaignDetails,
   CampaignOffer,
   CampaignOfferProduct,
@@ -99,6 +100,22 @@ const asStringArray = (value: unknown): string[] => {
   return value.filter((item): item is string => typeof item === 'string')
 }
 
+
+const parseCampaignApiKey = (data: unknown): CampaignApiKey | null => {
+  if (data === null || data === undefined) return null
+  if (!isRecord(data)) {
+    throw new ApiError('Resposta inválida do servidor: campaign.api_key')
+  }
+
+  return {
+    id: asNumber(data.id, 'campaign.api_key.id'),
+    public_key: asString(data.public_key, 'campaign.api_key.public_key'),
+    type: asString(data.type, 'campaign.api_key.type') as CampaignApiKey['type'],
+    allowed_origins: asStringArray(data.allowed_origins),
+    is_active: asBoolean(data.is_active, 'campaign.api_key.is_active'),
+  }
+}
+
 const parseCampaign = (data: unknown): Campaign => {
   if (!isRecord(data)) {
     throw new ApiError('Resposta inválida do servidor: campaign')
@@ -135,6 +152,7 @@ const parseCampaign = (data: unknown): Campaign => {
     deleted_at: asNullableString(data.deleted_at, 'campaign.deleted_at'),
     created_at: typeof data.created_at === 'string' ? data.created_at : '',
     updated_at: typeof data.updated_at === 'string' ? data.updated_at : '',
+    api_key: parseCampaignApiKey(data.api_key),
   }
 }
 

@@ -1,4 +1,13 @@
 import type { Product, ProductCategory } from '../products/products.types'
+import type { ApiKeyType } from '../api-keys/api-keys.types'
+
+export type CampaignApiKey = {
+  id: number
+  public_key: string
+  type: ApiKeyType
+  allowed_origins: string[]
+  is_active: boolean
+}
 
 export type Campaign = {
   id: number
@@ -31,6 +40,7 @@ export type Campaign = {
   deleted_at: string | null
   created_at: string
   updated_at: string
+  api_key: CampaignApiKey | null
 }
 
 export type PaginationLink = {
