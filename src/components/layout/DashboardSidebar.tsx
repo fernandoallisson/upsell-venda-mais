@@ -10,6 +10,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Tag,
+  Webhook,
   Users,
   UsersRound,
 } from 'lucide-react'
@@ -115,6 +116,10 @@ const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
           <NavLink to="/usuarios" className={linkStyles}>
             <UsersRound className="h-4 w-4" />
             <span className={labelClassName}>Usuários</span>
+          </NavLink>
+          <NavLink to="/widget" className={linkStyles}>
+            <Webhook className="h-4 w-4" />
+            <span className={labelClassName}>Widget</span>
           </NavLink>
           <NavLink to="/tokens" className={linkStyles}>
             <KeyRound className="h-4 w-4" />

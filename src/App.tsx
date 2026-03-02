@@ -17,6 +17,7 @@ import ApiKeys from './pages/ApiKeys'
 import CreateApiKey from './pages/CreateApiKey'
 import ViewApiKey from './pages/ViewApiKey'
 import EditApiKey from './pages/EditApiKey'
+import Widget from './pages/Widget'
 import ProtectedRoute from './routes/ProtectedRoute'
 
 function App() {
@@ -150,6 +151,14 @@ function App() {
         element={
           <ProtectedRoute>
             <EditApiKey />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/widget"
+        element={
+          <ProtectedRoute>
+            <Widget />
           </ProtectedRoute>
         }
       />
