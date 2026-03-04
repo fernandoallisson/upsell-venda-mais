@@ -76,7 +76,6 @@ export type OrdersResponse = {
   current_page: number
   data: Order[]
 
-  // meta da paginação (Laravel)
   first_page_url: string
   from: number | null
   last_page: number

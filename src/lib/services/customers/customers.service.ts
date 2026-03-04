@@ -144,7 +144,6 @@ const unwrapCustomer = (data: JsonValue): unknown => {
   return data
 }
 
-// IMPORTANT: aqui NUNCA validamos last_purchase_at de forma estrita
 const parseCustomer = (raw: unknown): Customer => {
   if (!isRecord(raw)) throw new ApiError('Resposta inválida do servidor: customer')
 

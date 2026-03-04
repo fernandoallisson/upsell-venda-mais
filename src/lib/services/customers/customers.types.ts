@@ -68,5 +68,5 @@ export type CustomerPayload = {
   first_name: string
   last_name: string
   preferences: CustomerPreferences
-  segments: number[] // <- envia como número, que é o mais seguro pro backend
+  segments: number[]
 }

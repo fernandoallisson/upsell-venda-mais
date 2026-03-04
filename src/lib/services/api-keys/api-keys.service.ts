@@ -49,7 +49,7 @@ const asStringArray = (v: unknown): string[] => {
       const parsed = JSON.parse(v)
       if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === 'string')
     } catch {
-      // not valid JSON
+      return []
     }
   }
   return []

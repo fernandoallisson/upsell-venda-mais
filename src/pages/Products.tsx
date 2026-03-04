@@ -120,7 +120,6 @@ const Products = () => {
 
   const [isFiltersOpen, setIsFiltersOpen] = useState(true)
 
-  // ✅ mesmo mecanismo expandir/recolher: CRIAR
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const [createStatus, setCreateStatus] = useState<
@@ -139,7 +138,6 @@ const Products = () => {
     is_active: true,
   })
 
-  // ✅ mesmo mecanismo expandir/recolher: EDITAR
   const [isEditOpen, setIsEditOpen] = useState(false)
 
   const [updateStatus, setUpdateStatus] = useState<
@@ -270,18 +268,15 @@ const Products = () => {
       is_active: selectedProduct.is_active,
     })
 
-    // ✅ opcional (mesmo padrão que usamos em categorias): ao selecionar um produto, abre o painel de edição
     setIsEditOpen(false)
   }, [selectedProduct])
 
-  // ✅ ao recolher criar, limpa feedback
   useEffect(() => {
     if (isCreateOpen) return
     setCreateStatus('idle')
     setCreateError(null)
   }, [isCreateOpen])
 
-  // ✅ ao recolher editar, limpa feedback
   useEffect(() => {
     if (isEditOpen) return
     setUpdateStatus('idle')
@@ -341,7 +336,6 @@ const Products = () => {
         is_active: true,
       })
 
-      // ✅ fecha após sucesso
       setIsCreateOpen(false)
 
       fetchProducts(1)
@@ -715,7 +709,6 @@ const Products = () => {
               ) : null}
             </section>
 
-            {/* ✅ Criar com expandir/recolher */}
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <button
                 type="button"
@@ -911,7 +904,6 @@ const Products = () => {
               ) : null}
             </section>
 
-            {/* Lista */}
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
                 <Package className="h-4 w-4 text-indigo-500" />
@@ -1042,7 +1034,6 @@ const Products = () => {
             </section>
           </div>
 
-          {/* Detalhes */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -1146,7 +1137,6 @@ const Products = () => {
                   </div>
                 </div>
 
-                {/* ✅ Editar com expandir/recolher */}
                 <div className="rounded-xl border border-slate-200 p-4">
                   <button
                     type="button"
