@@ -18,7 +18,6 @@ type JsonArray = unknown[]
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-// Aceita string/number e converte para string. Opcional: pode retornar null.
 const asNullableStringLike = (value: unknown, field: string): string | null => {
   if (value === null || value === undefined) return null
   if (typeof value === 'string') return value
@@ -64,7 +63,6 @@ const parseUser = (data: JsonValue): User => {
     ),
     created_at: createdAt ?? updatedAt ?? '',
     updated_at: updatedAt ?? createdAt ?? '',
-    // tenant_id no backend pode vir number/string (e às vezes null). Mantemos null se vier.
     tenant_id: asNullableStringLike(data.tenant_id, 'user.tenant_id'),
   }
 }

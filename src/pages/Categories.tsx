@@ -109,7 +109,6 @@ const Categories = () => {
     number | null
   >(null)
 
-  // ✅ painel expandir/recolher (criar)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const [createStatus, setCreateStatus] = useState<
@@ -302,7 +301,6 @@ const Categories = () => {
       setCreateStatus('success')
       setCategoryForm({ name: '', external_id: '' })
 
-      // ✅ fecha após sucesso
       setIsCreateOpen(false)
 
       fetchCategories(1)
@@ -451,7 +449,6 @@ const Categories = () => {
       {status === 'idle' ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           <div className="space-y-6">
-            {/* Criar (expandir/recolher) */}
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <button
                 type="button"
@@ -528,7 +525,6 @@ const Categories = () => {
               ) : null}
             </section>
 
-            {/* Lista */}
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
                 <Layers className="h-4 w-4 text-indigo-500" />
@@ -649,7 +645,6 @@ const Categories = () => {
             </section>
           </div>
 
-          {/* Detalhes */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -723,7 +718,6 @@ const Categories = () => {
                   </div>
                 </div>
 
-                {/* ✅ Editar agora também é expansível */}
                 <div className="rounded-xl border border-slate-200 p-4">
                   <button
                     type="button"

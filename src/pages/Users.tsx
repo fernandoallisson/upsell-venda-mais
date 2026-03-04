@@ -138,7 +138,7 @@ const Users = () => {
       setPermCategories(res.categories)
       setPermissionsLoaded(true)
     } catch {
-      // silently fail
+      return
     }
   }, [permissionsLoaded])
 

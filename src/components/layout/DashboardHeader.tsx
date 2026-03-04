@@ -87,7 +87,6 @@ const DashboardHeader = ({
                 <button
                   type="button"
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
-                  // TODO: ajustar para rota de segurança quando existir no projeto
                 >
                   <Settings className="h-4 w-4" />
                   Segurança

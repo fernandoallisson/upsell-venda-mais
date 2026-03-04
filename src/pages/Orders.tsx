@@ -47,14 +47,12 @@ type PaginationMeta = Pick<
 >
 
 const buildPageItems = (current: number, last: number) => {
-  // exemplo: 1 ... 4 5 6 ... 11
   const delta = 2
   const pages: Array<number | '...'> = []
 
   const left = Math.max(1, current - delta)
   const right = Math.min(last, current + delta)
 
-  // sempre mostra primeira
   pages.push(1)
 
   if (left > 2) pages.push('...')
@@ -65,10 +63,8 @@ const buildPageItems = (current: number, last: number) => {
 
   if (right < last - 1) pages.push('...')
 
-  // sempre mostra última (se for diferente)
   if (last !== 1) pages.push(last)
 
-  // remove duplicadas (casos de last pequeno)
   const normalized: Array<number | '...'> = []
   for (const item of pages) {
     if (normalized.length === 0 || normalized[normalized.length - 1] !== item) {
@@ -298,7 +294,6 @@ const Orders = () => {
               })}
             </div>
 
-            {/* Paginação */}
             {pagination ? (
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-2">
                 <div className="text-xs text-slate-500">
@@ -355,7 +350,6 @@ const Orders = () => {
             ) : null}
           </section>
 
-          {/* DETALHES (mantive sua lógica, só colei aqui sem alterar) */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>

@@ -94,13 +94,10 @@ const parseRules = (data: unknown): SegmentRules => {
   if (Array.isArray(data)) {
     const objectRules = data.filter(isRecord)
 
-    // ✅ array de objetos (novo formato)
     if (objectRules.length > 0) {
       return objectRules.map((rule, idx) => {
-        // filter é obrigatório
         const filter = asString(rule.filter, `rules.${idx}.filter`)
 
-        // category é opcional (pode vir null/undefined)
         const category =
           asNullableStringLike(rule.category, `rules.${idx}.category`) ?? undefined
 
@@ -138,14 +135,12 @@ const parseRules = (data: unknown): SegmentRules => {
       })
     }
 
-    // ✅ legado: array de strings
     return data
       .filter((v) => typeof v === 'string')
       .map((v) => v.trim())
       .filter(Boolean)
   }
 
-  // ✅ formato antigo: objeto chaveado
   if (!isRecord(data)) return {}
 
   const parsed: Record<string, SegmentRule> = {}
@@ -157,11 +152,6 @@ const parseRules = (data: unknown): SegmentRules => {
 
 
 
-/**
- * Alguns endpoints retornam:
- * - Segment direto {id, name, ...}
- * - Ou embrulhado: { segment: { ... }, matched_customers_count: number }
- */
 const unwrapSegment = (data: unknown): unknown => {
   if (!isRecord(data)) return data
   if (isRecord(data.segment)) return data.segment
@@ -174,11 +164,9 @@ const unwrapSegment = (data: unknown): unknown => {
 }
 
 const parseTenantId = (data: Record<string, unknown>): string | null => {
-  // tenta tenant_id direto
   const tenantId = asNullableStringLike(data.tenant_id, 'segment.tenant_id')
   if (tenantId) return tenantId
 
-  // tenta tenant.id (vem no POST)
   const tenant = data.tenant
   if (isRecord(tenant)) {
     return asNullableStringLike(tenant.id, 'segment.tenant.id')
@@ -358,7 +346,6 @@ export const createSegment = async (payload: CreateSegmentPayload): Promise<Segm
     networkErrorMessage: 'Falha de rede ao criar segmento',
   })
 
-  // ✅ agora funciona tanto se vier {segment:{...}} quanto direto
   return parseSegment(data)
 }
 

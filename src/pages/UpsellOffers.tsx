@@ -323,6 +323,7 @@ const UpsellOffers = () => {
         setCampaigns(campaignsRes.data)
         setSegments(segmentsRes.data)
       } catch {
+        return
       }
     }
     loadMeta()
@@ -437,7 +438,6 @@ const UpsellOffers = () => {
     })
     setIsEditOpen(false)
     loadCampaignProducts(campaignId, setEditCampaignProducts, setEditCampaignProductsLoading)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOffer])
 
   useEffect(() => {
