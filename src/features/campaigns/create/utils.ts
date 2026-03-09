@@ -1,6 +1,33 @@
 import type { CreateCampaignPayload } from '../../../lib/services/campaigns/campaigns.types'
 import type { CampaignFormState } from './types'
 
+const toApiTime = (time: string, fallback: string) => {
+  const trimmed = time.trim()
+  if (!trimmed) return fallback
+  if (/^\d{2}:\d{2}$/.test(trimmed)) return trimmed
+
+  const withSeconds = trimmed.match(/^(\d{2}:\d{2}):\d{2}$/)
+  if (withSeconds) return withSeconds[1]
+
+  return fallback
+}
+
+export const validateCampaignForm = (form: CampaignFormState): string | null => {
+  if (form.display_locations.length > 0 && !form.widget_render_type) {
+    return 'Selecione o tipo de exibição da campanha.'
+  }
+
+  if (form.display_locations.length > 0 && !form.widget_html.trim()) {
+    return 'Informe o Widget HTML para os locais selecionados.'
+  }
+
+  if (form.display_locations.length > 0 && !form.widget_css.trim()) {
+    return 'Informe o Widget CSS para os locais selecionados.'
+  }
+
+  return null
+}
+
 export const buildCampaignPayload = (form: CampaignFormState): CreateCampaignPayload => {
   const payload: CreateCampaignPayload = {
     name: form.name,
@@ -20,17 +47,6 @@ export const buildCampaignPayload = (form: CampaignFormState): CreateCampaignPay
   if (form.cta_link) payload.cta_link = form.cta_link
   payload.cta_new_tab = form.cta_new_tab
 
-  const toApiTime = (time: string, fallback: string) => {
-    const trimmed = time.trim()
-    if (!trimmed) return fallback
-    if (/^\d{2}:\d{2}$/.test(trimmed)) return trimmed
-
-    const withSeconds = trimmed.match(/^(\d{2}:\d{2}):\d{2}$/)
-    if (withSeconds) return withSeconds[1]
-
-    return fallback
-  }
-
   if (form.start_date) {
     payload.start_date = form.start_date
     payload.start_time = toApiTime(form.start_time, '00:00')
@@ -49,8 +65,10 @@ export const buildCampaignPayload = (form: CampaignFormState): CreateCampaignPay
   payload.max_total = form.max_total
   payload.block_after_conversion_days = form.block_after_conversion_days
 
-  if (form.widget_css) payload.widget_css = form.widget_css
-  if (form.widget_html) payload.widget_html = form.widget_html
+  if (form.display_locations.length > 0) {
+    payload.widget_css = form.widget_css
+    payload.widget_html = form.widget_html
+  }
 
   return payload
 }

@@ -112,13 +112,6 @@ const InlineWrapper = ({ form }: { form: CampaignFormState }) => (
   </div>
 )
 
-const LOCATION_TYPES: Record<string, 'modal' | 'inline'> = {
-  product_page: 'modal',
-  side_cart: 'inline',
-  cart_page: 'modal',
-  pre_checkout: 'inline',
-  post_purchase: 'modal',
-}
 
 const FullscreenPreview = ({
   form,
@@ -129,7 +122,7 @@ const FullscreenPreview = ({
 }) => {
   const [activeIndex, setActiveIndex] = useState(0)
   const loc = locations[activeIndex]
-  const type = LOCATION_TYPES[loc.key] ?? 'modal'
+  const type = form.widget_render_type === 'div_inline' ? 'inline' : 'modal'
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">

@@ -12,8 +12,8 @@ import {
   Users,
 } from 'lucide-react'
 import type { Segment } from '../../../../lib/services/segments/segments.types'
-import { DISPLAY_LOCATIONS } from '../constants'
-import type { CampaignFormState } from '../types'
+import { DISPLAY_LOCATIONS, RENDER_TYPE_OPTIONS } from '../constants'
+import type { CampaignFormState, DisplayRenderType } from '../types'
 import CollapsibleSection from '../../../../components/layout/CollapsibleSection'
 
 const LOCATION_ICONS: Record<string, React.ReactNode> = {
@@ -29,6 +29,7 @@ type Props = {
   onSet: <K extends keyof CampaignFormState>(key: K, value: CampaignFormState[K]) => void
   onToggleLocation: (key: string) => void
   onToggleSegment: (id: number) => void
+  onSetWidgetRenderType: (renderType: DisplayRenderType) => void
 }
 
 const DomainInput = ({
@@ -103,6 +104,7 @@ const BasicInfoSection = ({
   onSet,
   onToggleLocation,
   onToggleSegment,
+  onSetWidgetRenderType,
 }: Props) => {
   const [segmentOpen, setSegmentOpen] = useState(false)
 
@@ -254,6 +256,34 @@ const BasicInfoSection = ({
           )}
         </div>
 
+        <div className="space-y-3">
+          <span className="text-xs font-semibold text-slate-600">
+            Tipo de Exibição da Campanha
+          </span>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {RENDER_TYPE_OPTIONS.map((option) => {
+              const selected = form.widget_render_type === option.value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onSetWidgetRenderType(option.value)}
+                  className={`rounded-xl border px-3 py-2 text-left text-sm font-medium transition ${
+                    selected
+                      ? 'border-blue-300 bg-blue-50 text-blue-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-xs text-slate-400">
+            Uma campanha usa apenas um tipo de widget. Todos os locais selecionados seguem este mesmo tipo.
+          </p>
+        </div>
+
         <div className="space-y-1.5">
           <span className="text-xs font-semibold text-slate-600">
             Local de Exibição
@@ -289,13 +319,6 @@ const BasicInfoSection = ({
                       }`}
                     >
                       {loc.label}
-                    </p>
-                    <p
-                      className={`mt-0.5 text-xs ${
-                        isSelected ? 'text-emerald-600' : 'text-slate-400'
-                      }`}
-                    >
-                      {loc.widgetType}
                     </p>
                   </div>
                 </button>

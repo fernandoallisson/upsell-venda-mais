@@ -5,7 +5,7 @@ import type { Segment } from '../../../../lib/services/segments/segments.types'
 import type { DisplayLocationsResponse } from '../../../../lib/services/campaigns/campaigns.types'
 import type { Campaign } from '../../../../lib/services/campaigns/campaigns.types'
 import { DEFAULT_FORM_STATE } from '../../create/constants'
-import type { CampaignFormColors, CampaignFormState } from '../../create/types'
+import type { CampaignFormColors, CampaignFormState, DisplayRenderType } from '../../create/types'
 
 const toDateInputValue = (value: string | null) => {
   if (!value) return ''
@@ -15,12 +15,18 @@ const toDateInputValue = (value: string | null) => {
   return parsed.toISOString().slice(0, 10)
 }
 
+const buildLocationRules = (locations: string[], renderType: DisplayRenderType | null) => {
+  if (!renderType) return []
+  return locations.map((location) => ({ location, render_type: renderType }))
+}
+
 const campaignToFormState = (campaign: Campaign): CampaignFormState => ({
   ...DEFAULT_FORM_STATE,
   name: campaign.name,
   is_active: campaign.is_active,
   priority: campaign.priority,
   display_locations: campaign.display_locations ?? [],
+  widget_render_type: (campaign.display_locations?.length ?? 0) > 0 ? 'widget_modal' : null,
   segment_ids: campaign.segment_ids ?? [],
   domains: campaign.domains ?? [],
   headline: campaign.headline ?? '',
@@ -43,6 +49,10 @@ const campaignToFormState = (campaign: Campaign): CampaignFormState => ({
   block_after_conversion_days: campaign.block_after_conversion_days || DEFAULT_FORM_STATE.block_after_conversion_days,
   widget_css: campaign.widget_css ?? '',
   widget_html: campaign.widget_html ?? '',
+  display_location_rules: buildLocationRules(
+    campaign.display_locations ?? [],
+    (campaign.display_locations?.length ?? 0) > 0 ? 'widget_modal' : null,
+  ),
 })
 
 export const useEditCampaignForm = (campaign: Campaign | null) => {
@@ -97,11 +107,24 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
   }, [])
 
   const toggleDisplayLocation = useCallback((key: string) => {
+    setForm((prev) => {
+      const display_locations = prev.display_locations.includes(key)
+        ? prev.display_locations.filter((k) => k !== key)
+        : [...prev.display_locations, key]
+
+      return {
+        ...prev,
+        display_locations,
+        display_location_rules: buildLocationRules(display_locations, prev.widget_render_type),
+      }
+    })
+  }, [])
+
+  const setWidgetRenderType = useCallback((renderType: DisplayRenderType) => {
     setForm((prev) => ({
       ...prev,
-      display_locations: prev.display_locations.includes(key)
-        ? prev.display_locations.filter((k) => k !== key)
-        : [...prev.display_locations, key],
+      widget_render_type: renderType,
+      display_location_rules: buildLocationRules(prev.display_locations, renderType),
     }))
   }, [])
 
@@ -165,5 +188,6 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
     clearHours,
     setColors,
     setColor,
+    setWidgetRenderType,
   }
 }

@@ -11,7 +11,7 @@ import {
 import { ApiError } from '../lib/api'
 import { createCampaign } from '../lib/services/campaigns/campaigns.service'
 import { useCreateCampaignForm } from '../features/campaigns/create/hooks/useCreateCampaignForm'
-import { buildCampaignPayload } from '../features/campaigns/create/utils'
+import { buildCampaignPayload, validateCampaignForm } from '../features/campaigns/create/utils'
 import BasicInfoSection from '../features/campaigns/create/sections/BasicInfoSection'
 import ContentSection from '../features/campaigns/create/sections/ContentSection'
 import ScheduleSection from '../features/campaigns/create/sections/ScheduleSection'
@@ -35,6 +35,7 @@ const CreateCampaign = () => {
     clearHours,
     setColors,
     setColor,
+    setWidgetRenderType,
   } = useCreateCampaignForm()
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -50,12 +51,21 @@ const CreateCampaign = () => {
 
   const handleSave = async () => {
     if (!isValid) return
+    const formValidationError = validateCampaignForm(form)
+    if (formValidationError) {
+      setSaveError(formValidationError)
+      setSaveStatus('error')
+      return
+    }
     setSaveStatus('loading')
     setSaveError(null)
 
     try {
       const payload = buildCampaignPayload(form)
-      await createCampaign(payload)
+      console.debug('[campaign:create] form state', form)
+      console.debug('[campaign:create] payload', payload)
+      const response = await createCampaign(payload)
+      console.debug('[campaign:create] response', response)
       setSaveStatus('idle')
       navigate('/upsell/campanhas')
     } catch (err) {
@@ -120,6 +130,7 @@ const CreateCampaign = () => {
                 onSet={set}
                 onToggleLocation={toggleDisplayLocation}
                 onToggleSegment={toggleSegment}
+                onSetWidgetRenderType={setWidgetRenderType}
               />
             </div>
             <div id="tour-conteudo">

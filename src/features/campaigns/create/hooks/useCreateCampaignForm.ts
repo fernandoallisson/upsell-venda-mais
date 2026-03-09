@@ -4,7 +4,14 @@ import { getSegments } from '../../../../lib/services/segments/segments.service'
 import type { Segment } from '../../../../lib/services/segments/segments.types'
 import type { DisplayLocationsResponse } from '../../../../lib/services/campaigns/campaigns.types'
 import { DEFAULT_FORM_STATE } from '../constants'
-import type { CampaignFormColors, CampaignFormState } from '../types'
+import type { CampaignFormColors, CampaignFormState, DisplayRenderType } from '../types'
+
+
+
+const buildLocationRules = (locations: string[], renderType: DisplayRenderType | null) => {
+  if (!renderType) return []
+  return locations.map((location) => ({ location, render_type: renderType }))
+}
 
 export const useCreateCampaignForm = () => {
   const [form, setForm] = useState<CampaignFormState>(DEFAULT_FORM_STATE)
@@ -48,11 +55,24 @@ export const useCreateCampaignForm = () => {
   }, [])
 
   const toggleDisplayLocation = useCallback((key: string) => {
+    setForm((prev) => {
+      const display_locations = prev.display_locations.includes(key)
+        ? prev.display_locations.filter((k) => k !== key)
+        : [...prev.display_locations, key]
+
+      return {
+        ...prev,
+        display_locations,
+        display_location_rules: buildLocationRules(display_locations, prev.widget_render_type),
+      }
+    })
+  }, [])
+
+  const setWidgetRenderType = useCallback((renderType: DisplayRenderType) => {
     setForm((prev) => ({
       ...prev,
-      display_locations: prev.display_locations.includes(key)
-        ? prev.display_locations.filter((k) => k !== key)
-        : [...prev.display_locations, key],
+      widget_render_type: renderType,
+      display_location_rules: buildLocationRules(prev.display_locations, renderType),
     }))
   }, [])
 
@@ -116,5 +136,6 @@ export const useCreateCampaignForm = () => {
     clearHours,
     setColors,
     setColor,
+    setWidgetRenderType,
   }
 }

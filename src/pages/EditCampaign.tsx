@@ -15,7 +15,7 @@ import {
 } from '../lib/services/campaigns/campaigns.service'
 import type { Campaign } from '../lib/services/campaigns/campaigns.types'
 import { useEditCampaignForm } from '../features/campaigns/edit/hooks/useEditCampaignForm'
-import { buildCampaignPayload } from '../features/campaigns/create/utils'
+import { buildCampaignPayload, validateCampaignForm } from '../features/campaigns/create/utils'
 import BasicInfoSection from '../features/campaigns/create/sections/BasicInfoSection'
 import ContentSection from '../features/campaigns/create/sections/ContentSection'
 import ScheduleSection from '../features/campaigns/create/sections/ScheduleSection'
@@ -75,6 +75,7 @@ const EditCampaign = () => {
     clearHours,
     setColors,
     setColor,
+    setWidgetRenderType,
   } = useEditCampaignForm(campaign)
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -90,12 +91,21 @@ const EditCampaign = () => {
 
   const handleSave = async () => {
     if (!isValid || !campaign) return
+    const formValidationError = validateCampaignForm(form)
+    if (formValidationError) {
+      setSaveError(formValidationError)
+      setSaveStatus('error')
+      return
+    }
     setSaveStatus('loading')
     setSaveError(null)
 
     try {
       const payload = buildCampaignPayload(form)
-      await updateCampaign(campaign.id, payload)
+      console.debug('[campaign:update] form state', form)
+      console.debug('[campaign:update] payload', payload)
+      const response = await updateCampaign(campaign.id, payload)
+      console.debug('[campaign:update] response', response)
       setSaveStatus('idle')
       navigate('/upsell/campanhas')
     } catch (err) {
@@ -191,6 +201,7 @@ const EditCampaign = () => {
                 onSet={set}
                 onToggleLocation={toggleDisplayLocation}
                 onToggleSegment={toggleSegment}
+                onSetWidgetRenderType={setWidgetRenderType}
               />
             </div>
             <div id="tour-conteudo">
