@@ -14,6 +14,7 @@ import {
   Users,
   UsersRound,
 } from 'lucide-react'
+import { usePermissions } from '../../contexts/PermissionsContext'
 
 type DashboardSidebarProps = {
   collapsed: boolean
@@ -39,6 +40,25 @@ const childLinkStyles = ({ isActive }: { isActive: boolean }) =>
 
 const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
   const labelClassName = collapsed ? 'sr-only' : 'whitespace-nowrap'
+  const { hasModuleAccess, isLoading } = usePermissions()
+
+  if (isLoading) {
+    return (
+      <aside
+        className={`sticky top-0 flex h-screen flex-col border-r border-slate-200 bg-white px-3 py-6 transition-all duration-200 ${
+          collapsed ? 'w-20' : 'w-64'
+        }`}
+      >
+        <div className="h-8 w-full animate-pulse rounded bg-slate-100" />
+      </aside>
+    )
+  }
+
+  const canAccessCatalog =
+    hasModuleAccess('categories') || hasModuleAccess('products')
+  const canAccessUpsell = hasModuleAccess('upsell') || hasModuleAccess('offers')
+  const canAccessSettings =
+    hasModuleAccess('users') || hasModuleAccess('settings')
 
   return (
     <aside
@@ -62,70 +82,98 @@ const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
       </div>
 
       <nav className="mt-6 flex flex-1 flex-col gap-4">
-        <NavLink to="/dashboard" className={linkStyles}>
-          <LayoutDashboard className="h-4 w-4" />
-          <span className={labelClassName}>Dashboard</span>
-        </NavLink>
+        {hasModuleAccess('analytics') ? (
+          <NavLink to="/dashboard" className={linkStyles}>
+            <LayoutDashboard className="h-4 w-4" />
+            <span className={labelClassName}>Dashboard</span>
+          </NavLink>
+        ) : null}
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 px-3 text-xs font-semibold uppercase text-slate-400">
-            <Boxes className="h-4 w-4" />
-            <span className={labelClassName}>Catálogo</span>
+        {canAccessCatalog ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 px-3 text-xs font-semibold uppercase text-slate-400">
+              <Boxes className="h-4 w-4" />
+              <span className={labelClassName}>Catálogo</span>
+            </div>
+            {hasModuleAccess('categories') ? (
+              <NavLink to="/catalogo/categorias" className={childLinkStyles}>
+                <Tag className="h-4 w-4" />
+                <span className={labelClassName}>Categorias</span>
+              </NavLink>
+            ) : null}
+            {hasModuleAccess('products') ? (
+              <NavLink to="/catalogo/produtos" className={childLinkStyles}>
+                <Package className="h-4 w-4" />
+                <span className={labelClassName}>Produtos</span>
+              </NavLink>
+            ) : null}
           </div>
-          <NavLink to="/catalogo/categorias" className={childLinkStyles}>
-            <Tag className="h-4 w-4" />
-            <span className={labelClassName}>Categorias</span>
-          </NavLink>
-          <NavLink to="/catalogo/produtos" className={childLinkStyles}>
-            <Package className="h-4 w-4" />
-            <span className={labelClassName}>Produtos</span>
-          </NavLink>
-        </div>
+        ) : null}
 
         <div className="flex flex-col gap-2">
-          <NavLink to="/clientes" className={linkStyles}>
-            <Users className="h-4 w-4" />
-            <span className={labelClassName}>Clientes</span>
-          </NavLink>
-          <NavLink to="/pedidos" className={linkStyles}>
-            <ShoppingBag className="h-4 w-4" />
-            <span className={labelClassName}>Pedidos</span>
-          </NavLink>
-          <NavLink to="/segmentacao" className={linkStyles}>
-            <SlidersHorizontal className="h-4 w-4" />
-            <span className={labelClassName}>Segmentação</span>
-          </NavLink>
+          {hasModuleAccess('customers') ? (
+            <NavLink to="/clientes" className={linkStyles}>
+              <Users className="h-4 w-4" />
+              <span className={labelClassName}>Clientes</span>
+            </NavLink>
+          ) : null}
+          {hasModuleAccess('orders') ? (
+            <NavLink to="/pedidos" className={linkStyles}>
+              <ShoppingBag className="h-4 w-4" />
+              <span className={labelClassName}>Pedidos</span>
+            </NavLink>
+          ) : null}
+          {hasModuleAccess('segments') ? (
+            <NavLink to="/segmentacao" className={linkStyles}>
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className={labelClassName}>Segmentação</span>
+            </NavLink>
+          ) : null}
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 px-3 text-xs font-semibold uppercase text-slate-400">
-            <Sparkles className="h-4 w-4" />
-            <span className={labelClassName}>Upsell</span>
+        {canAccessUpsell ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 px-3 text-xs font-semibold uppercase text-slate-400">
+              <Sparkles className="h-4 w-4" />
+              <span className={labelClassName}>Upsell</span>
+            </div>
+            {hasModuleAccess('upsell') ? (
+              <NavLink to="/upsell/campanhas" className={childLinkStyles}>
+                <Sparkles className="h-4 w-4" />
+                <span className={labelClassName}>Campanhas</span>
+              </NavLink>
+            ) : null}
+            {hasModuleAccess('offers') ? (
+              <NavLink to="/upsell/ofertas" className={childLinkStyles}>
+                <Tag className="h-4 w-4" />
+                <span className={labelClassName}>Ofertas</span>
+              </NavLink>
+            ) : null}
           </div>
-          <NavLink to="/upsell/campanhas" className={childLinkStyles}>
-            <Sparkles className="h-4 w-4" />
-            <span className={labelClassName}>Campanhas</span>
-          </NavLink>
-          <NavLink to="/upsell/ofertas" className={childLinkStyles}>
-            <Tag className="h-4 w-4" />
-            <span className={labelClassName}>Ofertas</span>
-          </NavLink>
-        </div>
+        ) : null}
 
-        <div className="flex flex-col gap-2">
-          <NavLink to="/usuarios" className={linkStyles}>
-            <UsersRound className="h-4 w-4" />
-            <span className={labelClassName}>Usuários</span>
-          </NavLink>
-          <NavLink to="/widget" className={linkStyles}>
-            <Webhook className="h-4 w-4" />
-            <span className={labelClassName}>Widget</span>
-          </NavLink>
-          <NavLink to="/tokens" className={linkStyles}>
-            <KeyRound className="h-4 w-4" />
-            <span className={labelClassName}>Chaves de API</span>
-          </NavLink>
-        </div>
+        {canAccessSettings ? (
+          <div className="flex flex-col gap-2">
+            {hasModuleAccess('users') ? (
+              <NavLink to="/usuarios" className={linkStyles}>
+                <UsersRound className="h-4 w-4" />
+                <span className={labelClassName}>Usuários</span>
+              </NavLink>
+            ) : null}
+            {hasModuleAccess('settings') ? (
+              <>
+                <NavLink to="/widget" className={linkStyles}>
+                  <Webhook className="h-4 w-4" />
+                  <span className={labelClassName}>Widget</span>
+                </NavLink>
+                <NavLink to="/tokens" className={linkStyles}>
+                  <KeyRound className="h-4 w-4" />
+                  <span className={labelClassName}>Chaves de API</span>
+                </NavLink>
+              </>
+            ) : null}
+          </div>
+        ) : null}
       </nav>
     </aside>
   )

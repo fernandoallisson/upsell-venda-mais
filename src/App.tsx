@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
+import { usePermissions } from './contexts/PermissionsContext'
 import Categories from './pages/Categories'
 import Clients from './pages/Clients'
 import Dashboard from './pages/Dashboard'
@@ -18,10 +19,29 @@ import CreateApiKey from './pages/CreateApiKey'
 import ViewApiKey from './pages/ViewApiKey'
 import EditApiKey from './pages/EditApiKey'
 import Widget from './pages/Widget'
+import NoAccess from './pages/NoAccess'
 import ProtectedRoute from './routes/ProtectedRoute'
+
+const MODULE_DEFAULT_ROUTES: Array<{ category: string; path: string }> = [
+  { category: 'analytics', path: '/dashboard' },
+  { category: 'categories', path: '/catalogo/categorias' },
+  { category: 'products', path: '/catalogo/produtos' },
+  { category: 'customers', path: '/clientes' },
+  { category: 'orders', path: '/pedidos' },
+  { category: 'segments', path: '/segmentacao' },
+  { category: 'upsell', path: '/upsell/campanhas' },
+  { category: 'offers', path: '/upsell/ofertas' },
+  { category: 'users', path: '/usuarios' },
+  { category: 'settings', path: '/widget' },
+]
 
 function App() {
   const { isAuthenticated } = useAuth()
+  const { hasModuleAccess } = usePermissions()
+
+  const defaultAuthenticatedPath =
+    MODULE_DEFAULT_ROUTES.find((module) => hasModuleAccess(module.category))
+      ?.path ?? '/sem-acesso'
 
   return (
     <Routes>
@@ -29,7 +49,7 @@ function App() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="analytics">
             <Dashboard />
           </ProtectedRoute>
         }
@@ -43,9 +63,17 @@ function App() {
         }
       />
       <Route
-        path="/catalogo/categorias"
+        path="/sem-acesso"
         element={
           <ProtectedRoute>
+            <NoAccess />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/catalogo/categorias"
+        element={
+          <ProtectedRoute requiredModule="categories">
             <Categories />
           </ProtectedRoute>
         }
@@ -53,7 +81,7 @@ function App() {
       <Route
         path="/catalogo/produtos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="products">
             <Products />
           </ProtectedRoute>
         }
@@ -61,7 +89,7 @@ function App() {
       <Route
         path="/clientes"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="customers">
             <Clients />
           </ProtectedRoute>
         }
@@ -69,7 +97,7 @@ function App() {
       <Route
         path="/pedidos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="orders">
             <Orders />
           </ProtectedRoute>
         }
@@ -77,7 +105,7 @@ function App() {
       <Route
         path="/segmentacao"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="segments">
             <Segmentation />
           </ProtectedRoute>
         }
@@ -85,7 +113,7 @@ function App() {
       <Route
         path="/upsell/campanhas"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="upsell">
             <UpsellCampaigns />
           </ProtectedRoute>
         }
@@ -93,7 +121,7 @@ function App() {
       <Route
         path="/upsell/campanhas/nova"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="upsell">
             <CreateCampaign />
           </ProtectedRoute>
         }
@@ -101,7 +129,7 @@ function App() {
       <Route
         path="/upsell/campanhas/:id/editar"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="upsell">
             <EditCampaign />
           </ProtectedRoute>
         }
@@ -109,7 +137,7 @@ function App() {
       <Route
         path="/upsell/ofertas"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="offers">
             <UpsellOffers />
           </ProtectedRoute>
         }
@@ -117,7 +145,7 @@ function App() {
       <Route
         path="/usuarios"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="users">
             <Users />
           </ProtectedRoute>
         }
@@ -125,7 +153,7 @@ function App() {
       <Route
         path="/tokens"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="settings">
             <ApiKeys />
           </ProtectedRoute>
         }
@@ -133,7 +161,7 @@ function App() {
       <Route
         path="/tokens/nova"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="settings">
             <CreateApiKey />
           </ProtectedRoute>
         }
@@ -141,7 +169,7 @@ function App() {
       <Route
         path="/tokens/:id"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="settings">
             <ViewApiKey />
           </ProtectedRoute>
         }
@@ -149,7 +177,7 @@ function App() {
       <Route
         path="/tokens/:id/editar"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="settings">
             <EditApiKey />
           </ProtectedRoute>
         }
@@ -157,7 +185,7 @@ function App() {
       <Route
         path="/widget"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredModule="settings">
             <Widget />
           </ProtectedRoute>
         }
@@ -166,7 +194,7 @@ function App() {
         path="*"
         element={
           <Navigate
-            to={isAuthenticated ? '/dashboard' : '/login'}
+            to={isAuthenticated ? defaultAuthenticatedPath : '/login'}
             replace
           />
         }
