@@ -60,33 +60,11 @@ const ContentSection = ({ form, onSet }: Props) => (
         </div>
       </label>
 
-
-
       <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-        <p className="mb-3 text-xs font-semibold text-slate-600">Template do Widget</p>
-        <div className="space-y-3">
-          <label className="block space-y-1.5">
-            <span className="text-xs text-slate-500">Widget HTML</span>
-            <textarea
-              value={form.widget_html}
-              onChange={(e) => onSet('widget_html', e.target.value)}
-              placeholder="<div>Seu template do widget...</div>"
-              rows={4}
-              className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono text-slate-800 outline-none transition focus:border-blue-300"
-            />
-          </label>
-
-          <label className="block space-y-1.5">
-            <span className="text-xs text-slate-500">Widget CSS</span>
-            <textarea
-              value={form.widget_css}
-              onChange={(e) => onSet('widget_css', e.target.value)}
-              placeholder=".upsell-widget { ... }"
-              rows={4}
-              className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono text-slate-800 outline-none transition focus:border-blue-300"
-            />
-          </label>
-        </div>
+        <p className="text-xs font-semibold text-slate-600">Template do Widget</p>
+        <p className="mt-2 text-xs text-slate-500">
+          O HTML e CSS do widget são gerados automaticamente em background com base no preview desta campanha.
+        </p>
       </div>
 
       <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
