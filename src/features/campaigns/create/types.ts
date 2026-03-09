@@ -10,6 +10,8 @@ export type CampaignFormState = {
   is_active: boolean
   segment_ids: number[]
   display_locations: string[]
+  display_location_rules: CampaignDisplayLocation[]
+  widget_render_type: DisplayRenderType | null
   priority: number
 
   headline: string
@@ -39,10 +41,16 @@ export type CampaignFormState = {
   colors: CampaignFormColors
 }
 
+export type DisplayRenderType = 'widget_modal' | 'div_inline'
+
+export type CampaignDisplayLocation = {
+  location: string
+  render_type: DisplayRenderType
+}
+
 export type DisplayLocationMeta = {
   key: string
   label: string
-  widgetType: 'Widget Modal' | 'Div Inline'
   description: string
   icon: string
 }

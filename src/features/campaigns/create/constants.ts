@@ -1,41 +1,51 @@
-import type { CampaignFormColors, CampaignFormState, DisplayLocationMeta } from './types'
+import type {
+  CampaignFormColors,
+  CampaignFormState,
+  DisplayLocationMeta,
+  DisplayRenderType,
+} from './types'
 
 export const DISPLAY_LOCATIONS: DisplayLocationMeta[] = [
   {
     key: 'product_page',
     label: 'Pagina do Produto',
-    widgetType: 'Widget Modal',
-    description: 'Widget modal exibido na pagina do produto. Ideal para cross-sell e produtos relacionados.',
+    description:
+      'Widget exibido na pagina do produto. Ideal para cross-sell e produtos relacionados.',
     icon: 'ShoppingBag',
   },
   {
     key: 'side_cart',
     label: 'Carrinho Lateral',
-    widgetType: 'Div Inline',
-    description: 'Bloco inline exibido no carrinho lateral. Excelente para ofertas de ultimo momento.',
+    description:
+      'Widget exibido no carrinho lateral. Excelente para ofertas de ultimo momento.',
     icon: 'ShoppingCart',
   },
   {
     key: 'cart_page',
     label: 'Pagina de Carrinho',
-    widgetType: 'Widget Modal',
-    description: 'Widget modal exibido na pagina do carrinho. Alta intenção de compra.',
+    description:
+      'Widget exibido na pagina do carrinho. Alta intenção de compra.',
     icon: 'ShoppingCart',
   },
   {
     key: 'pre_checkout',
     label: 'Pre-Checkout',
-    widgetType: 'Div Inline',
-    description: 'Bloco inline exibido antes do checkout. Momento critico de decisão.',
+    description:
+      'Widget exibido antes do checkout. Momento critico de decisão.',
     icon: 'CreditCard',
   },
   {
     key: 'post_purchase',
     label: 'Pos-Compra',
-    widgetType: 'Widget Modal',
-    description: 'Widget modal exibido apos a compra. Perfeito para order bumps e produtos complementares.',
+    description:
+      'Widget exibido apos a compra. Perfeito para order bumps e produtos complementares.',
     icon: 'PackageCheck',
   },
+]
+
+export const RENDER_TYPE_OPTIONS: Array<{ value: DisplayRenderType; label: string }> = [
+  { value: 'widget_modal', label: 'Widget Modal' },
+  { value: 'div_inline', label: 'Div Inline' },
 ]
 
 export const DAYS_OF_WEEK = [
@@ -79,6 +89,8 @@ export const DEFAULT_FORM_STATE: CampaignFormState = {
   is_active: true,
   segment_ids: [],
   display_locations: [],
+  display_location_rules: [],
+  widget_render_type: null,
   priority: 10,
 
   headline: '',

@@ -37,9 +37,11 @@ const VisualSection = ({ form, onSetColors, onSetColor }: Props) => {
     form.display_locations.includes(loc.key),
   )
 
-  const badge = firstLocation ? (
+  const badgeLabel = form.widget_render_type === 'div_inline' ? 'Div Inline' : form.widget_render_type === 'widget_modal' ? 'Widget Modal' : null
+
+  const badge = badgeLabel ? (
     <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-      {firstLocation.widgetType}
+      {badgeLabel}
     </span>
   ) : undefined
 
