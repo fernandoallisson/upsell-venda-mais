@@ -59,14 +59,6 @@ const ContentSection = ({ form, onSet }: Props) => (
           />
         </div>
       </label>
-
-      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-        <p className="text-xs font-semibold text-slate-600">Template do Widget</p>
-        <p className="mt-2 text-xs text-slate-500">
-          O HTML e CSS do widget são gerados automaticamente em background com base no preview desta campanha.
-        </p>
-      </div>
-
       <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
         <p className="mb-3 text-xs font-semibold text-slate-600">Botao CTA</p>
         <div className="space-y-3">
