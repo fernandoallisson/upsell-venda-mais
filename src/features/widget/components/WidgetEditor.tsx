@@ -5,6 +5,7 @@ import { updateCampaign } from '../../../lib/services/campaigns/campaigns.servic
 import { ApiError } from '../../../lib/api'
 import { useWidgetEditor } from '../hooks/useWidgetEditor'
 import { generateWidgetCss, generateWidgetHtml } from '../utils/generateWidgetCode'
+import { encodeSettingsIntoCss } from '../utils/widgetSettingsCodec'
 import WidgetEditorTemplates from './WidgetEditorTemplates'
 import WidgetEditorColors from './WidgetEditorColors'
 import WidgetEditorSpacing from './WidgetEditorSpacing'
@@ -70,7 +71,7 @@ const WidgetEditor = ({ campaign, onSaved, onBack }: Props) => {
         description: editor.form.description || undefined,
         image_url: editor.form.image_url || undefined,
         cta_text: editor.form.cta_text || undefined,
-        widget_css: generatedCss,
+        widget_css: encodeSettingsIntoCss(editor.form, generatedCss),
         widget_html: generatedHtml,
       })
       editor.markClean()

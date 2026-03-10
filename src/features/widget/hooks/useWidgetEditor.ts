@@ -9,17 +9,29 @@ import type {
   WidgetSpacing,
   WidgetTypography,
 } from '../types'
+import { decodeSettingsFromCss } from '../utils/widgetSettingsCodec'
 
-const campaignToWidgetState = (campaign: Campaign): WidgetFormState => ({
-  ...DEFAULT_WIDGET_STATE,
-  name: campaign.name ?? '',
-  headline: campaign.headline ?? '',
-  description: campaign.description ?? '',
-  image_url: campaign.image_url ?? '',
-  cta_text: campaign.cta_text ?? '',
-  widget_css: campaign.widget_css ?? '',
-  widget_html: campaign.widget_html ?? '',
-})
+const campaignToWidgetState = (campaign: Campaign): WidgetFormState => {
+  const saved = decodeSettingsFromCss(campaign.widget_css)
+
+  return {
+    ...DEFAULT_WIDGET_STATE,
+    name: campaign.name ?? '',
+    headline: campaign.headline ?? '',
+    description: campaign.description ?? '',
+    image_url: campaign.image_url ?? '',
+    cta_text: campaign.cta_text ?? '',
+    widget_css: campaign.widget_css ?? '',
+    widget_html: campaign.widget_html ?? '',
+    ...(saved && {
+      colors: saved.colors,
+      spacing: saved.spacing,
+      typography: saved.typography,
+      layout: saved.layout,
+      template: saved.template,
+    }),
+  }
+}
 
 export const useWidgetEditor = (campaign: Campaign | null) => {
   const [form, setForm] = useState<WidgetFormState>(
