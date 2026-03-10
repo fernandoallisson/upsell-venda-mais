@@ -3,6 +3,19 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
 
+const MODULE_DEFAULT_ROUTES: Array<{ category: string; path: string }> = [
+  { category: 'analytics', path: '/dashboard' },
+  { category: 'categories', path: '/catalogo/categorias' },
+  { category: 'products', path: '/catalogo/produtos' },
+  { category: 'customers', path: '/clientes' },
+  { category: 'orders', path: '/pedidos' },
+  { category: 'segments', path: '/segmentacao' },
+  { category: 'upsell', path: '/upsell/campanhas' },
+  { category: 'offers', path: '/upsell/ofertas' },
+  { category: 'users', path: '/usuarios' },
+  { category: 'settings', path: '/widget' },
+]
+
 type ProtectedRouteProps = {
   children: ReactNode
   requiredModule?: string
@@ -27,7 +40,8 @@ const ProtectedRoute = ({ children, requiredModule }: ProtectedRouteProps) => {
   }
 
   if (requiredModule && !hasModuleAccess(requiredModule)) {
-    return <Navigate to="/sem-acesso" replace />
+    const firstAvailable = MODULE_DEFAULT_ROUTES.find((m) => hasModuleAccess(m.category))
+    return <Navigate to={firstAvailable?.path ?? '/sem-acesso'} replace />
   }
 
   return <>{children}</>
