@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Check, Code, Copy, Loader2, Save } from 'lucide-react'
 import type { Campaign } from '../../../lib/services/campaigns/campaigns.types'
 import { updateCampaign } from '../../../lib/services/campaigns/campaigns.service'
@@ -55,8 +55,8 @@ const WidgetEditor = ({ campaign, onSaved, onBack }: Props) => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  const generatedCss = useMemo(() => generateWidgetCss(editor.form), [editor.form])
-  const generatedHtml = useMemo(() => generateWidgetHtml(editor.form), [editor.form])
+  const generatedCss = generateWidgetCss(editor.form)
+  const generatedHtml = generateWidgetHtml(editor.form)
 
   const handleSave = async () => {
     setSaving(true)
