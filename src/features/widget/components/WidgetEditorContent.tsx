@@ -63,3 +63,5 @@ const WidgetEditorContent = ({ form, onUpdate }: Props) => (
 )
 
 export default WidgetEditorContent
+
+}
