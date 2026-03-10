@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Code, Loader2, Save } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Check, Code, Copy, Loader2, Save } from 'lucide-react'
 import type { Campaign } from '../../../lib/services/campaigns/campaigns.types'
 import { updateCampaign } from '../../../lib/services/campaigns/campaigns.service'
 import { ApiError } from '../../../lib/api'
 import { useWidgetEditor } from '../hooks/useWidgetEditor'
+import { generateWidgetCss, generateWidgetHtml } from '../utils/generateWidgetCode'
 import WidgetEditorTemplates from './WidgetEditorTemplates'
 import WidgetEditorColors from './WidgetEditorColors'
 import WidgetEditorSpacing from './WidgetEditorSpacing'
@@ -26,12 +27,36 @@ type Props = {
   onBack: () => void
 }
 
+const CopyButton = ({ text }: { text: string }) => {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="flex items-center gap-1.5 rounded-lg border border-slate-600 px-2.5 py-1 text-xs font-medium text-slate-300 transition hover:border-slate-400 hover:text-white"
+    >
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      {copied ? 'Copiado' : 'Copiar'}
+    </button>
+  )
+}
+
 const WidgetEditor = ({ campaign, onSaved, onBack }: Props) => {
   const editor = useWidgetEditor(campaign)
   const [activeTab, setActiveTab] = useState<Tab>('template')
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  const generatedCss = useMemo(() => generateWidgetCss(editor.form), [editor.form])
+  const generatedHtml = useMemo(() => generateWidgetHtml(editor.form), [editor.form])
 
   const handleSave = async () => {
     setSaving(true)
@@ -45,8 +70,8 @@ const WidgetEditor = ({ campaign, onSaved, onBack }: Props) => {
         description: editor.form.description || undefined,
         image_url: editor.form.image_url || undefined,
         cta_text: editor.form.cta_text || undefined,
-        widget_css: editor.form.widget_css || undefined,
-        widget_html: editor.form.widget_html || undefined,
+        widget_css: generatedCss,
+        widget_html: generatedHtml,
       })
       editor.markClean()
       setSaveStatus('success')
@@ -163,30 +188,33 @@ const WidgetEditor = ({ campaign, onSaved, onBack }: Props) => {
             <div className="space-y-5">
               <div className="flex items-center gap-2">
                 <Code className="h-4 w-4 text-slate-400" />
-                <p className="text-sm font-semibold text-slate-700">CSS e HTML Customizado</p>
+                <p className="text-sm font-semibold text-slate-700">Codigo Gerado</p>
               </div>
 
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold text-slate-500">CSS Customizado</span>
-                <textarea
-                  value={editor.form.widget_css}
-                  onChange={(e) => editor.update('widget_css', e.target.value)}
-                  placeholder=".widget-container { ... }"
-                  rows={8}
-                  className="w-full resize-y rounded-xl border border-slate-200 bg-slate-900 px-4 py-3 font-mono text-xs text-emerald-400 outline-none transition placeholder:text-slate-600 focus:border-blue-300"
-                />
-              </label>
+              <p className="text-xs text-slate-500">
+                O CSS e HTML abaixo sao gerados automaticamente a partir das configuracoes visuais.
+                Ao salvar, este codigo sera enviado para a campanha.
+              </p>
 
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold text-slate-500">HTML Customizado</span>
-                <textarea
-                  value={editor.form.widget_html}
-                  onChange={(e) => editor.update('widget_html', e.target.value)}
-                  placeholder="<div class='widget-container'>...</div>"
-                  rows={8}
-                  className="w-full resize-y rounded-xl border border-slate-200 bg-slate-900 px-4 py-3 font-mono text-xs text-emerald-400 outline-none transition placeholder:text-slate-600 focus:border-blue-300"
-                />
-              </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500">CSS</span>
+                  <CopyButton text={generatedCss} />
+                </div>
+                <pre className="max-h-72 overflow-auto rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 font-mono text-xs leading-relaxed text-emerald-400">
+                  {generatedCss}
+                </pre>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500">HTML</span>
+                  <CopyButton text={generatedHtml} />
+                </div>
+                <pre className="max-h-72 overflow-auto rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 font-mono text-xs leading-relaxed text-sky-400">
+                  {generatedHtml}
+                </pre>
+              </div>
             </div>
           )}
         </div>
