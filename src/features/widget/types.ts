@@ -34,6 +34,7 @@ export type WidgetLayout = {
 export type CardTemplate = 'classic' | 'minimal' | 'bold' | 'compact' | 'banner' | 'floating'
 
 export type WidgetFormState = {
+  name: string
   headline: string
   description: string
   image_url: string

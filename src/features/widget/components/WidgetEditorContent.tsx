@@ -14,6 +14,17 @@ const WidgetEditorContent = ({ form, onUpdate }: Props) => (
     </div>
 
     <label className="block space-y-1.5">
+      <span className="text-xs font-semibold text-slate-500">Nome da Campanha</span>
+      <input
+        type="text"
+        value={form.name}
+        onChange={(e) => onUpdate('name', e.target.value)}
+        placeholder="Nome da campanha"
+        className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-50"
+      />
+    </label>
+
+    <label className="block space-y-1.5">
       <span className="text-xs font-semibold text-slate-500">Titulo</span>
       <input
         type="text"

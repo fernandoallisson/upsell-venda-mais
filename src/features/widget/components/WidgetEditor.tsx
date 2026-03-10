@@ -65,7 +65,7 @@ const WidgetEditor = ({ campaign, onSaved, onBack }: Props) => {
 
     try {
       await updateCampaign(campaign.id, {
-        name: campaign.name,
+        name: editor.form.name || campaign.name,
         headline: editor.form.headline || undefined,
         description: editor.form.description || undefined,
         image_url: editor.form.image_url || undefined,

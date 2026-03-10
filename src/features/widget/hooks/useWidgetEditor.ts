@@ -12,6 +12,7 @@ import type {
 
 const campaignToWidgetState = (campaign: Campaign): WidgetFormState => ({
   ...DEFAULT_WIDGET_STATE,
+  name: campaign.name ?? '',
   headline: campaign.headline ?? '',
   description: campaign.description ?? '',
   image_url: campaign.image_url ?? '',
