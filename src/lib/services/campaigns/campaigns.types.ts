@@ -96,7 +96,7 @@ export type CreateCampaignPayload = {
   domains?: string[]
 }
 
-export type UpdateCampaignPayload = CreateCampaignPayload
+export type UpdateCampaignPayload = Partial<CreateCampaignPayload>
 
 export type DisplayLocationsResponse = Record<string, string>
 

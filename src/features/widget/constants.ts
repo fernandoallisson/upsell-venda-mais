@@ -11,6 +11,7 @@ export const DEFAULT_WIDGET_COLORS: WidgetColors = {
 }
 
 export const DEFAULT_WIDGET_STATE: WidgetFormState = {
+  name: '',
   headline: '',
   description: '',
   image_url: '',
