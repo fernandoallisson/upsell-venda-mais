@@ -11,6 +11,7 @@ type Props = {
 }
 
 const ContentSection = ({ form, onSet }: Props) => {
+  }
   const handleUploadImage = useCallback(async (file: File) => {
     const result = await uploadImage(file)
     return { url: result.url }
