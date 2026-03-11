@@ -81,3 +81,48 @@ export const apiFetch = async <T>(
 
   return data as T
 }
+
+export const apiUpload = async <T>(
+  endpoint: string,
+  formData: FormData,
+): Promise<T> => {
+  const token = getAuthToken()
+  if (!token) {
+    throw new ApiError('Não autenticado', 401)
+  }
+
+  let response: Response
+  try {
+    response = await fetch(buildUrl(endpoint), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+      body: formData,
+    })
+  } catch {
+    throw new ApiError('Falha de rede ao enviar arquivo')
+  }
+
+  const data = await parseJson(response)
+
+  if (!response.ok) {
+    if (response.status === 422 && isRecord(data) && isRecord(data.errors)) {
+      const errors = data.errors as Record<string, string[]>
+      const firstKey = Object.keys(errors)[0]
+      const firstMsg = firstKey ? errors[firstKey]?.[0] : undefined
+      throw new ApiError(
+        firstMsg ?? (typeof data.message === 'string' ? data.message : 'Erro de validação'),
+        422,
+      )
+    }
+    const message =
+      isRecord(data) && typeof data.message === 'string'
+        ? data.message
+        : 'Erro ao enviar arquivo'
+    throw new ApiError(message, response.status)
+  }
+
+  return data as T
+}
