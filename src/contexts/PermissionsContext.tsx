@@ -17,6 +17,7 @@ type PermissionsContextValue = {
   categories: string[]
   slugs: string[]
   isLoading: boolean
+  hasLoaded: boolean
   error: string | null
   hasPermission: (slug: string) => boolean
   hasModuleAccess: (category: string) => boolean
@@ -32,7 +33,8 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
   const { isAuthenticated } = useAuth()
 
   const [permissions, setPermissions] = useState<Permission[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const loadPermissions = useCallback(async () => {
@@ -40,6 +42,7 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       setPermissions([])
       setError(null)
       setIsLoading(false)
+      setHasLoaded(true)
       return
     }
 
@@ -48,8 +51,6 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
 
     try {
       const user = await getUser()
-      console.log('[PermissionsContext] USER ID', user?.id)
-      console.log('[PermissionsContext] USER', user)
 
       if (!user?.id) {
         throw new Error('Usuário autenticado sem ID válido.')
@@ -61,24 +62,8 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
         ? response.permissions
         : []
 
-      console.log('[PermissionsContext] PERMISSIONS RESPONSE', response)
-      console.log(
-        '[PermissionsContext] PERMISSIONS JSON',
-        JSON.stringify(normalizedPermissions, null, 2),
-      )
-      console.table(
-        normalizedPermissions.map((permission: any) => ({
-          id: permission?.id,
-          category: permission?.category,
-          slug: permission?.slug,
-          name: permission?.name,
-        })),
-      )
-
       setPermissions(normalizedPermissions)
     } catch (err) {
-      console.error('[PermissionsContext] LOAD PERMISSIONS ERROR', err)
-
       const message =
         err instanceof Error
           ? err.message
@@ -88,6 +73,7 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       setError(message)
     } finally {
       setIsLoading(false)
+      setHasLoaded(true)
     }
   }, [isAuthenticated])
 
@@ -114,11 +100,6 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
   const categories = useMemo(() => Array.from(categoriesSet), [categoriesSet])
   const slugs = useMemo(() => Array.from(slugsSet), [slugsSet])
 
-  useEffect(() => {
-    console.log('[PermissionsContext] categories', categories)
-    console.log('[PermissionsContext] slugs', slugs)
-  }, [categories, slugs])
-
   const hasPermission = useCallback(
     (slug: string) => slugsSet.has(slug),
     [slugsSet],
@@ -128,33 +109,12 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
     (category: string) => {
       if (!category) return false
 
-      const normalizedCategory = category.trim().toLowerCase()
-
-      const categoriesArray = Array.from(categoriesSet).map((item) =>
-        String(item).trim().toLowerCase(),
-      )
-
-      const slugsArray = Array.from(slugsSet).map((item) =>
-        String(item).trim().toLowerCase(),
-      )
-
-      if (categoriesArray.includes(normalizedCategory)) {
+      if (categoriesSet.has(category)) {
         return true
       }
 
-      for (const slug of slugsArray) {
-        if (
-          slug === normalizedCategory ||
-          slug.startsWith(`${normalizedCategory}.`) ||
-          slug.startsWith(`${normalizedCategory}:`) ||
-          slug.startsWith(`${normalizedCategory}_`) ||
-          slug.includes(`.${normalizedCategory}.`) ||
-          slug.includes(`:${normalizedCategory}:`) ||
-          slug.includes(`_${normalizedCategory}_`) ||
-          slug.endsWith(`.${normalizedCategory}`) ||
-          slug.endsWith(`:${normalizedCategory}`) ||
-          slug.endsWith(`_${normalizedCategory}`)
-        ) {
+      for (const slug of slugsSet) {
+        if (slug.startsWith(`${category}.`)) {
           return true
         }
       }
@@ -170,6 +130,7 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       categories,
       slugs,
       isLoading,
+      hasLoaded,
       error,
       hasPermission,
       hasModuleAccess,
@@ -181,6 +142,7 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       categories,
       slugs,
       isLoading,
+      hasLoaded,
       error,
       hasPermission,
       hasModuleAccess,
