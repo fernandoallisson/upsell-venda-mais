@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardPage from '../../components/layout/DashboardPage'
-import WidgetForm from '../../features/widgets/components/WidgetForm'
+import WidgetBuilderForm from '../../features/widgets/components/WidgetBuilderForm'
 import { ApiError } from '../../lib/api'
 import { createWidget, WidgetValidationError } from '../../lib/services/widgets/widgets.service'
 import type { CreateWidgetPayload, WidgetApiValidationErrors } from '../../types/widget'
@@ -33,10 +33,10 @@ const WidgetCreatePage = () => {
   }
 
   return (
-    <DashboardPage title="Novo Widget" subtitle="Crie um widget com HTML, CSS e config JSON">
+    <DashboardPage title="Novo Widget" subtitle="Crie templates visuais reutilizáveis para campanhas">
       <div className="space-y-4">
         {error ? <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-        <WidgetForm
+        <WidgetBuilderForm
           submitting={submitting}
           submitLabel="Criar widget"
           apiErrors={validationErrors}

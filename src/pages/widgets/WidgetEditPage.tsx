@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import DashboardPage from '../../components/layout/DashboardPage'
-import WidgetForm from '../../features/widgets/components/WidgetForm'
+import WidgetBuilderForm from '../../features/widgets/components/WidgetBuilderForm'
 import { ApiError } from '../../lib/api'
 import { getWidgetById, updateWidget, WidgetValidationError } from '../../lib/services/widgets/widgets.service'
 import type { CreateWidgetPayload, Widget, WidgetApiValidationErrors } from '../../types/widget'
@@ -67,13 +67,13 @@ const WidgetEditPage = () => {
   }
 
   return (
-    <DashboardPage title="Editar Widget" subtitle="Atualize os dados do widget">
+    <DashboardPage title="Editar Widget" subtitle="Edite o template visual do widget">
       {loading ? (
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">Carregando widget...</div>
       ) : widget ? (
         <div className="space-y-4">
           {error ? <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-          <WidgetForm
+          <WidgetBuilderForm
             initialValue={widget}
             submitting={submitting}
             submitLabel="Salvar alterações"
