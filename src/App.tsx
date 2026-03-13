@@ -37,17 +37,36 @@ const MODULE_DEFAULT_ROUTES: Array<{ category: string; path: string }> = [
 
 function App() {
   const { isAuthenticated } = useAuth()
-  const { hasModuleAccess, isLoading } = usePermissions()
+  const { hasModuleAccess, isLoading, error } = usePermissions()
 
   const defaultAuthenticatedPath =
-    isLoading
-      ? '/dashboard'
-      : MODULE_DEFAULT_ROUTES.find((module) => hasModuleAccess(module.category))
-          ?.path ?? '/sem-acesso'
+    MODULE_DEFAULT_ROUTES.find((module) => hasModuleAccess(module.category))
+      ?.path ?? '/sem-acesso'
+
+  if (isAuthenticated && isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+          Carregando aplicação...
+        </div>
+      </div>
+    )
+  }
+
+  if (isAuthenticated && error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="max-w-md rounded-xl border border-red-200 bg-white px-6 py-4 text-sm text-red-600 shadow-sm">
+          Erro ao carregar permissões: {error}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+
       <Route
         path="/dashboard"
         element={
@@ -56,6 +75,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/perfil"
         element={
@@ -64,6 +84,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/sem-acesso"
         element={
@@ -72,6 +93,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/catalogo/categorias"
         element={
@@ -80,6 +102,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/catalogo/produtos"
         element={
@@ -88,6 +111,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/clientes"
         element={
@@ -96,6 +120,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/pedidos"
         element={
@@ -104,6 +129,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/segmentacao"
         element={
@@ -112,6 +138,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/upsell/campanhas"
         element={
@@ -120,6 +147,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/upsell/campanhas/nova"
         element={
@@ -128,6 +156,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/upsell/campanhas/:id/editar"
         element={
@@ -136,6 +165,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/upsell/ofertas"
         element={
@@ -144,6 +174,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/usuarios"
         element={
@@ -152,6 +183,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/tokens"
         element={
@@ -160,6 +192,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/tokens/nova"
         element={
@@ -168,6 +201,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/tokens/:id"
         element={
@@ -176,6 +210,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/tokens/:id/editar"
         element={
@@ -184,6 +219,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/widget"
         element={
@@ -192,6 +228,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="*"
         element={
