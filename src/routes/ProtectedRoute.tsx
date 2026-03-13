@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
 
@@ -22,29 +22,14 @@ type ProtectedRouteProps = {
 }
 
 const ProtectedRoute = ({ children, requiredModule }: ProtectedRouteProps) => {
-  const location = useLocation()
   const { isAuthenticated } = useAuth()
-  const { isLoading, error, hasModuleAccess, categories, slugs } =
-    usePermissions()
-
-  const hasAccess = requiredModule ? hasModuleAccess(requiredModule) : true
-
-  console.log('[ProtectedRoute]', {
-    pathname: location.pathname,
-    isAuthenticated,
-    isLoading,
-    error,
-    requiredModule,
-    hasAccess,
-    categories,
-    slugs,
-  })
+  const { isLoading, hasLoaded, error, hasModuleAccess } = usePermissions()
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
 
-  if (isLoading) {
+  if (!hasLoaded || isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-600">
@@ -64,18 +49,10 @@ const ProtectedRoute = ({ children, requiredModule }: ProtectedRouteProps) => {
     )
   }
 
-  if (requiredModule && !hasAccess) {
+  if (requiredModule && !hasModuleAccess(requiredModule)) {
     const firstAvailable = MODULE_DEFAULT_ROUTES.find((m) =>
       hasModuleAccess(m.category),
     )
-
-    console.warn('[ProtectedRoute] redirecionando por falta de acesso', {
-      pathname: location.pathname,
-      requiredModule,
-      firstAvailable,
-      categories,
-      slugs,
-    })
 
     return <Navigate to={firstAvailable?.path ?? '/sem-acesso'} replace />
   }
