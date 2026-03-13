@@ -48,7 +48,7 @@ const RangeField = ({
 const shadowOptions: Array<{ value: string; label: string }> = [
   { value: 'none', label: 'Nenhuma' },
   { value: 'sm', label: 'Suave' },
-  { value: 'md', label: 'Media' },
+  { value: 'md', label: 'Média' },
   { value: 'lg', label: 'Grande' },
   { value: 'xl', label: 'Extra' },
 ]
@@ -71,12 +71,12 @@ const WidgetEditorSpacing = ({
   <div className="space-y-5">
     <div className="flex items-center gap-2">
       <Ruler className="h-4 w-4 text-slate-400" />
-      <p className="text-sm font-semibold text-slate-700">Layout e Espacamento</p>
+      <p className="text-sm font-semibold text-slate-700">Layout e Espaçamento</p>
     </div>
 
     <div className="space-y-4">
       <RangeField label="Padding" value={spacing.padding} min={8} max={48} onChange={(v) => onSetSpacing('padding', v)} />
-      <RangeField label="Espaco entre elementos" value={spacing.gap} min={4} max={32} onChange={(v) => onSetSpacing('gap', v)} />
+      <RangeField label="Espaço entre elementos" value={spacing.gap} min={4} max={32} onChange={(v) => onSetSpacing('gap', v)} />
       <RangeField label="Borda arredondada" value={spacing.borderRadius} min={0} max={32} onChange={(v) => onSetSpacing('borderRadius', v)} />
       <RangeField label="Espessura da borda" value={layout.borderWidth} min={0} max={4} onChange={(v) => onSetLayout('borderWidth', v)} />
     </div>
@@ -102,7 +102,7 @@ const WidgetEditorSpacing = ({
     </div>
 
     <div className="space-y-3">
-      <p className="text-xs font-semibold text-slate-500">Posicao da Imagem</p>
+      <p className="text-xs font-semibold text-slate-500">Posição da Imagem</p>
       <div className="flex flex-wrap gap-2">
         {imagePositionOptions.map((opt) => (
           <button
@@ -132,9 +132,9 @@ const WidgetEditorSpacing = ({
 
     <div className="space-y-4">
       <p className="text-xs font-semibold text-slate-500">Tipografia</p>
-      <RangeField label="Tamanho do titulo" value={typography.headlineSize} min={12} max={32} onChange={(v) => onSetTypography('headlineSize', v)} />
+      <RangeField label="Tamanho do título" value={typography.headlineSize} min={12} max={32} onChange={(v) => onSetTypography('headlineSize', v)} />
       <div className="space-y-1.5">
-        <span className="text-xs text-slate-500">Peso do titulo</span>
+        <span className="text-xs text-slate-500">Peso do título</span>
         <select
           value={typography.headlineWeight}
           onChange={(e) => onSetTypography('headlineWeight', e.target.value)}
@@ -145,13 +145,13 @@ const WidgetEditorSpacing = ({
           ))}
         </select>
       </div>
-      <RangeField label="Tamanho da descricao" value={typography.descriptionSize} min={10} max={20} onChange={(v) => onSetTypography('descriptionSize', v)} />
-      <RangeField label="Tamanho do botao" value={typography.ctaSize} min={10} max={20} onChange={(v) => onSetTypography('ctaSize', v)} />
+      <RangeField label="Tamanho da descrição" value={typography.descriptionSize} min={10} max={20} onChange={(v) => onSetTypography('descriptionSize', v)} />
+      <RangeField label="Tamanho do botão" value={typography.ctaSize} min={10} max={20} onChange={(v) => onSetTypography('ctaSize', v)} />
     </div>
 
     <div className="space-y-3">
       <label className="flex cursor-pointer items-center justify-between">
-        <span className="text-xs text-slate-500">Mostrar botao de recusar</span>
+        <span className="text-xs text-slate-500">Mostrar botão de recusar</span>
         <div
           className={`relative h-5 w-9 rounded-full transition ${layout.showDismiss ? 'bg-blue-500' : 'bg-slate-200'}`}
           onClick={() => onSetLayout('showDismiss', !layout.showDismiss)}
@@ -165,7 +165,7 @@ const WidgetEditorSpacing = ({
       </label>
       {layout.showDismiss && (
         <label className="block space-y-1.5">
-          <span className="text-xs text-slate-500">Texto do botao recusar</span>
+          <span className="text-xs text-slate-500">Texto do botão recusar</span>
           <input
             type="text"
             value={layout.dismissText}

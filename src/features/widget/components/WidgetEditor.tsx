@@ -16,10 +16,10 @@ type Tab = 'template' | 'content' | 'colors' | 'layout' | 'code'
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: 'template', label: 'Modelo' },
-  { key: 'content', label: 'Conteudo' },
+  { key: 'content', label: 'Conteúdo' },
   { key: 'colors', label: 'Cores' },
   { key: 'layout', label: 'Layout' },
-  { key: 'code', label: 'Codigo' },
+  { key: 'code', label: 'Código' },
 ]
 
 type Props = {
@@ -189,12 +189,12 @@ const WidgetEditor = ({ campaign, onSaved, onBack }: Props) => {
             <div className="space-y-5">
               <div className="flex items-center gap-2">
                 <Code className="h-4 w-4 text-slate-400" />
-                <p className="text-sm font-semibold text-slate-700">Codigo Gerado</p>
+                <p className="text-sm font-semibold text-slate-700">Código Gerado</p>
               </div>
 
               <p className="text-xs text-slate-500">
-                O CSS e HTML abaixo sao gerados automaticamente a partir das configuracoes visuais.
-                Ao salvar, este codigo sera enviado para a campanha.
+                O CSS e HTML abaixo são gerados automaticamente a partir das configurações visuais.
+                Ao salvar, este código será enviado para a campanha.
               </p>
 
               <div className="space-y-1.5">

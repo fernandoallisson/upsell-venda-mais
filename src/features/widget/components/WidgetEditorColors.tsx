@@ -10,8 +10,8 @@ type ColorFieldConfig = {
 const COLOR_FIELDS: ColorFieldConfig[] = [
   { key: 'bg', label: 'Fundo' },
   { key: 'text', label: 'Texto' },
-  { key: 'button', label: 'Botao' },
-  { key: 'buttonText', label: 'Texto do Botao' },
+  { key: 'button', label: 'Botão' },
+  { key: 'buttonText', label: 'Texto do Botão' },
   { key: 'border', label: 'Borda' },
   { key: 'accent', label: 'Destaque' },
 ]
