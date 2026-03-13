@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { usePermissions } from '../contexts/PermissionsContext'
 
@@ -22,19 +22,22 @@ type ProtectedRouteProps = {
 }
 
 const ProtectedRoute = ({ children, requiredModule }: ProtectedRouteProps) => {
+  const location = useLocation()
   const { isAuthenticated } = useAuth()
-  const { isLoading, error, hasModuleAccess, permissions, categories, slugs } =
+  const { isLoading, error, hasModuleAccess, categories, slugs } =
     usePermissions()
 
+  const hasAccess = requiredModule ? hasModuleAccess(requiredModule) : true
+
   console.log('[ProtectedRoute]', {
+    pathname: location.pathname,
     isAuthenticated,
     isLoading,
     error,
     requiredModule,
-    permissions,
+    hasAccess,
     categories,
     slugs,
-    hasAccess: requiredModule ? hasModuleAccess(requiredModule) : true,
   })
 
   if (!isAuthenticated) {
@@ -44,7 +47,7 @@ const ProtectedRoute = ({ children, requiredModule }: ProtectedRouteProps) => {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-600">
           Carregando permissões...
         </div>
       </div>
@@ -54,24 +57,24 @@ const ProtectedRoute = ({ children, requiredModule }: ProtectedRouteProps) => {
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="max-w-md rounded-xl border border-red-200 bg-white px-6 py-4 text-sm text-red-600 shadow-sm">
+        <div className="max-w-md rounded-xl border border-red-200 bg-white px-6 py-4 text-sm text-red-600">
           Erro ao carregar permissões: {error}
         </div>
       </div>
     )
   }
 
-  if (requiredModule && !hasModuleAccess(requiredModule)) {
-    const firstAvailable = MODULE_DEFAULT_ROUTES.find((module) =>
-      hasModuleAccess(module.category),
+  if (requiredModule && !hasAccess) {
+    const firstAvailable = MODULE_DEFAULT_ROUTES.find((m) =>
+      hasModuleAccess(m.category),
     )
 
-    console.warn('[ProtectedRoute] sem acesso ao módulo', {
+    console.warn('[ProtectedRoute] redirecionando por falta de acesso', {
+      pathname: location.pathname,
       requiredModule,
       firstAvailable,
       categories,
       slugs,
-      permissions,
     })
 
     return <Navigate to={firstAvailable?.path ?? '/sem-acesso'} replace />
