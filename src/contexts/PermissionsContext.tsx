@@ -37,7 +37,6 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
 
   const loadPermissions = useCallback(async () => {
     if (!isAuthenticated) {
-      console.log('[PermissionsContext] usuário não autenticado')
       setPermissions([])
       setError(null)
       setIsLoading(false)
@@ -49,7 +48,7 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
 
     try {
       const user = await getUser()
-
+      console.log('[PermissionsContext] USER ID', user?.id)
       console.log('[PermissionsContext] USER', user)
 
       if (!user?.id) {
@@ -58,15 +57,23 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
 
       const response = await getUserPermissions(user.id)
 
-      console.log('[PermissionsContext] PERMISSIONS RESPONSE', response)
-      console.log(
-        '[PermissionsContext] PERMISSIONS ARRAY',
-        response?.permissions,
-      )
-
       const normalizedPermissions = Array.isArray(response?.permissions)
         ? response.permissions
         : []
+
+      console.log('[PermissionsContext] PERMISSIONS RESPONSE', response)
+      console.log(
+        '[PermissionsContext] PERMISSIONS JSON',
+        JSON.stringify(normalizedPermissions, null, 2),
+      )
+      console.table(
+        normalizedPermissions.map((permission: any) => ({
+          id: permission?.id,
+          category: permission?.category,
+          slug: permission?.slug,
+          name: permission?.name,
+        })),
+      )
 
       setPermissions(normalizedPermissions)
     } catch (err) {
@@ -88,10 +95,6 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
     void loadPermissions()
   }, [loadPermissions])
 
-  useEffect(() => {
-    console.log('[PermissionsContext] permissions state', permissions)
-  }, [permissions])
-
   const categoriesSet = useMemo(() => {
     return new Set(
       permissions
@@ -108,10 +111,16 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
     )
   }, [permissions])
 
+  const categories = useMemo(() => Array.from(categoriesSet), [categoriesSet])
+  const slugs = useMemo(() => Array.from(slugsSet), [slugsSet])
+
+  useEffect(() => {
+    console.log('[PermissionsContext] categories', categories)
+    console.log('[PermissionsContext] slugs', slugs)
+  }, [categories, slugs])
+
   const hasPermission = useCallback(
-    (slug: string) => {
-      return slugsSet.has(slug)
-    },
+    (slug: string) => slugsSet.has(slug),
     [slugsSet],
   )
 
@@ -119,17 +128,32 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
     (category: string) => {
       if (!category) return false
 
-      if (categoriesSet.has(category)) {
+      const normalizedCategory = category.trim().toLowerCase()
+
+      const categoriesArray = Array.from(categoriesSet).map((item) =>
+        String(item).trim().toLowerCase(),
+      )
+
+      const slugsArray = Array.from(slugsSet).map((item) =>
+        String(item).trim().toLowerCase(),
+      )
+
+      if (categoriesArray.includes(normalizedCategory)) {
         return true
       }
 
-      for (const slug of slugsSet) {
+      for (const slug of slugsArray) {
         if (
-          slug === category ||
-          slug.startsWith(`${category}.`) ||
-          slug.startsWith(`${category}:`) ||
-          slug.includes(`${category}.`) ||
-          slug.includes(`${category}:`)
+          slug === normalizedCategory ||
+          slug.startsWith(`${normalizedCategory}.`) ||
+          slug.startsWith(`${normalizedCategory}:`) ||
+          slug.startsWith(`${normalizedCategory}_`) ||
+          slug.includes(`.${normalizedCategory}.`) ||
+          slug.includes(`:${normalizedCategory}:`) ||
+          slug.includes(`_${normalizedCategory}_`) ||
+          slug.endsWith(`.${normalizedCategory}`) ||
+          slug.endsWith(`:${normalizedCategory}`) ||
+          slug.endsWith(`_${normalizedCategory}`)
         ) {
           return true
         }
@@ -139,9 +163,6 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
     },
     [categoriesSet, slugsSet],
   )
-
-  const categories = useMemo(() => Array.from(categoriesSet), [categoriesSet])
-  const slugs = useMemo(() => Array.from(slugsSet), [slugsSet])
 
   const value = useMemo(
     () => ({
