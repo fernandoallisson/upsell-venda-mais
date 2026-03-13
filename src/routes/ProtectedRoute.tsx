@@ -23,7 +23,19 @@ type ProtectedRouteProps = {
 
 const ProtectedRoute = ({ children, requiredModule }: ProtectedRouteProps) => {
   const { isAuthenticated } = useAuth()
-  const { isLoading, hasModuleAccess } = usePermissions()
+  const { isLoading, error, hasModuleAccess, permissions, categories, slugs } =
+    usePermissions()
+
+  console.log('[ProtectedRoute]', {
+    isAuthenticated,
+    isLoading,
+    error,
+    requiredModule,
+    permissions,
+    categories,
+    slugs,
+    hasAccess: requiredModule ? hasModuleAccess(requiredModule) : true,
+  })
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
@@ -32,15 +44,36 @@ const ProtectedRoute = ({ children, requiredModule }: ProtectedRouteProps) => {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-600">
+        <div className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
           Carregando permissões...
         </div>
       </div>
     )
   }
 
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="max-w-md rounded-xl border border-red-200 bg-white px-6 py-4 text-sm text-red-600 shadow-sm">
+          Erro ao carregar permissões: {error}
+        </div>
+      </div>
+    )
+  }
+
   if (requiredModule && !hasModuleAccess(requiredModule)) {
-    const firstAvailable = MODULE_DEFAULT_ROUTES.find((m) => hasModuleAccess(m.category))
+    const firstAvailable = MODULE_DEFAULT_ROUTES.find((module) =>
+      hasModuleAccess(module.category),
+    )
+
+    console.warn('[ProtectedRoute] sem acesso ao módulo', {
+      requiredModule,
+      firstAvailable,
+      categories,
+      slugs,
+      permissions,
+    })
+
     return <Navigate to={firstAvailable?.path ?? '/sem-acesso'} replace />
   }
 
