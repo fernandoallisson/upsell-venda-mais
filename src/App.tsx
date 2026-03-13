@@ -19,6 +19,9 @@ import CreateApiKey from './pages/CreateApiKey'
 import ViewApiKey from './pages/ViewApiKey'
 import EditApiKey from './pages/EditApiKey'
 import Widget from './pages/Widget'
+import WidgetCreatePage from './pages/widgets/WidgetCreatePage'
+import WidgetDetailsPage from './pages/widgets/WidgetDetailsPage'
+import WidgetEditPage from './pages/widgets/WidgetEditPage'
 import NoAccess from './pages/NoAccess'
 import ProtectedRoute from './routes/ProtectedRoute'
 
@@ -237,6 +240,42 @@ function App() {
         element={
           <ProtectedRoute requiredModule="settings">
             <Widget />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/widget/novo"
+        element={
+          <ProtectedRoute requiredModule="settings">
+            <WidgetCreatePage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/widget/:id"
+        element={
+          <ProtectedRoute requiredModule="settings">
+            <WidgetDetailsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/widget/:id/editar"
+        element={
+          <ProtectedRoute requiredModule="settings">
+            <WidgetEditPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/widget/slug/:slug"
+        element={
+          <ProtectedRoute requiredModule="settings">
+            <WidgetDetailsPage />
           </ProtectedRoute>
         }
       />
