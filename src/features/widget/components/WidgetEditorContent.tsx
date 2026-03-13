@@ -10,7 +10,7 @@ const WidgetEditorContent = ({ form, onUpdate }: Props) => (
   <div className="space-y-5">
     <div className="flex items-center gap-2">
       <Type className="h-4 w-4 text-slate-400" />
-      <p className="text-sm font-semibold text-slate-700">Conteudo</p>
+      <p className="text-sm font-semibold text-slate-700">Conteúdo</p>
     </div>
 
     <label className="block space-y-1.5">
@@ -25,7 +25,7 @@ const WidgetEditorContent = ({ form, onUpdate }: Props) => (
     </label>
 
     <label className="block space-y-1.5">
-      <span className="text-xs font-semibold text-slate-500">Titulo</span>
+      <span className="text-xs font-semibold text-slate-500">Título</span>
       <input
         type="text"
         value={form.headline}
@@ -36,7 +36,7 @@ const WidgetEditorContent = ({ form, onUpdate }: Props) => (
     </label>
 
     <label className="block space-y-1.5">
-      <span className="text-xs font-semibold text-slate-500">Descricao</span>
+      <span className="text-xs font-semibold text-slate-500">Descrição</span>
       <textarea
         value={form.description}
         onChange={(e) => onUpdate('description', e.target.value)}
@@ -47,7 +47,7 @@ const WidgetEditorContent = ({ form, onUpdate }: Props) => (
     </label>
 
     <label className="block space-y-1.5">
-      <span className="text-xs font-semibold text-slate-500">URL da Imagem</span>
+      <span className="text-xs font-semibold text-slate-500">URL da imagem</span>
       <div className="relative">
         <Image className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
@@ -61,7 +61,7 @@ const WidgetEditorContent = ({ form, onUpdate }: Props) => (
     </label>
 
     <label className="block space-y-1.5">
-      <span className="text-xs font-semibold text-slate-500">Texto do Botao CTA</span>
+      <span className="text-xs font-semibold text-slate-500">Texto do Botão CTA</span>
       <input
         type="text"
         value={form.cta_text}

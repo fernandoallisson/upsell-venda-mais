@@ -10,7 +10,10 @@ const getCookie = (name: string) => {
   const match = document.cookie
     .split('; ')
     .find((row) => row.startsWith(`${name}=`))
-  return match ? decodeURIComponent(match.split('=')[1] ?? '') : null
+  if (!match) return null
+
+  const value = match.slice(name.length + 1)
+  return decodeURIComponent(value)
 }
 
 const deleteCookie = (name: string) => {
