@@ -37,11 +37,13 @@ const MODULE_DEFAULT_ROUTES: Array<{ category: string; path: string }> = [
 
 function App() {
   const { isAuthenticated } = useAuth()
-  const { hasModuleAccess } = usePermissions()
+  const { hasModuleAccess, isLoading } = usePermissions()
 
   const defaultAuthenticatedPath =
-    MODULE_DEFAULT_ROUTES.find((module) => hasModuleAccess(module.category))
-      ?.path ?? '/sem-acesso'
+    isLoading
+      ? '/dashboard'
+      : MODULE_DEFAULT_ROUTES.find((module) => hasModuleAccess(module.category))
+          ?.path ?? '/sem-acesso'
 
   return (
     <Routes>
