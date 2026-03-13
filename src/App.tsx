@@ -37,16 +37,18 @@ const MODULE_DEFAULT_ROUTES: Array<{ category: string; path: string }> = [
 
 function App() {
   const { isAuthenticated } = useAuth()
-  const { hasModuleAccess, isLoading, error } = usePermissions()
+  const { hasModuleAccess, isLoading, hasLoaded, error } = usePermissions()
 
   const defaultAuthenticatedPath =
     MODULE_DEFAULT_ROUTES.find((module) => hasModuleAccess(module.category))
       ?.path ?? '/sem-acesso'
 
-  if (isAuthenticated && isLoading) {
+  const shouldHoldRedirect = isAuthenticated && (!hasLoaded || isLoading)
+
+  if (shouldHoldRedirect) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-600 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white px-6 py-4 text-sm text-slate-600">
           Carregando aplicação...
         </div>
       </div>
@@ -56,7 +58,7 @@ function App() {
   if (isAuthenticated && error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="max-w-md rounded-xl border border-red-200 bg-white px-6 py-4 text-sm text-red-600 shadow-sm">
+        <div className="max-w-md rounded-xl border border-red-200 bg-white px-6 py-4 text-sm text-red-600">
           Erro ao carregar permissões: {error}
         </div>
       </div>
@@ -66,6 +68,16 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+
+      <Route
+        path="/"
+        element={
+          <Navigate
+            to={isAuthenticated ? defaultAuthenticatedPath : '/login'}
+            replace
+          />
+        }
+      />
 
       <Route
         path="/dashboard"
