@@ -1,7 +1,7 @@
 import { ApiError, apiFetch } from '../../api'
 import type {
-  CreateWidgetPayload,
-  UpdateWidgetPayload,
+  UpdateWidgetFormPayload,
+  WidgetFormPayload,
   Widget,
   WidgetApiValidationErrors,
   WidgetListParams,
@@ -12,6 +12,7 @@ import type {
   WidgetVisitorParams,
   WidgetVisitorSyncPayload,
 } from './widgets.types'
+import { parseWidgetConfig, toCreateWidgetPayload, toUpdateWidgetPayload } from './widgetConfigCodec'
 
 const WIDGETS_BASE_ENDPOINT = '/v1/widgets-base'
 
@@ -59,7 +60,7 @@ const parseWidget = (value: unknown): Widget => {
     id: asNumber(value.id),
     title: asString(value.title),
     slug: asString(value.slug),
-    config: isRecord(value.config) ? value.config : {},
+    config: parseWidgetConfig(value.config),
     css: asString(value.css),
     html: asString(value.html),
     is_active: asBoolean(value.is_active),
@@ -178,12 +179,12 @@ export const getWidgetBySlug = async (slug: string): Promise<Widget> => {
   return parseWidget(raw)
 }
 
-export const createWidget = async (payload: CreateWidgetPayload): Promise<Widget> => {
+export const createWidget = async (payload: WidgetFormPayload): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     WIDGETS_BASE_ENDPOINT,
     {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(toCreateWidgetPayload(payload)),
     },
     'Erro ao criar widget',
   )
@@ -192,12 +193,12 @@ export const createWidget = async (payload: CreateWidgetPayload): Promise<Widget
   return parseWidget(raw)
 }
 
-export const updateWidget = async (id: number, payload: UpdateWidgetPayload): Promise<Widget> => {
+export const updateWidget = async (id: number, payload: UpdateWidgetFormPayload): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     `${WIDGETS_BASE_ENDPOINT}/${id}`,
     {
       method: 'PUT',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(toUpdateWidgetPayload(payload)),
     },
     'Erro ao atualizar widget',
   )

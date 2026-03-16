@@ -4,7 +4,7 @@ import DashboardPage from '../../components/layout/DashboardPage'
 import WidgetBuilderForm from '../../features/widgets/components/WidgetBuilderForm'
 import { ApiError } from '../../lib/api'
 import { getWidgetById, updateWidget, WidgetValidationError } from '../../lib/services/widgets/widgets.service'
-import type { CreateWidgetPayload, Widget, WidgetApiValidationErrors } from '../../types/widget'
+import type { WidgetFormPayload, Widget, WidgetApiValidationErrors } from '../../types/widget'
 
 const WidgetEditPage = () => {
   const { id } = useParams<{ id: string }>()
@@ -39,7 +39,7 @@ const WidgetEditPage = () => {
     fetchWidget()
   }, [fetchWidget])
 
-  const handleSubmit = async (payload: CreateWidgetPayload) => {
+  const handleSubmit = async (payload: WidgetFormPayload) => {
     if (!id) return
     setSubmitting(true)
     setError(null)

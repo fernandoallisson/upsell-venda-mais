@@ -29,13 +29,19 @@ export type WidgetDetailsResponse = {
   data: Widget
 }
 
-export type CreateWidgetPayload = {
+export type WidgetFormPayload = {
   title: string
   config: WidgetConfig
   css: string
   html: string
   is_active?: boolean
 }
+
+export type CreateWidgetPayload = Omit<WidgetFormPayload, 'config'> & {
+  config: string
+}
+
+export type UpdateWidgetFormPayload = Partial<WidgetFormPayload>
 
 export type UpdateWidgetPayload = Partial<CreateWidgetPayload>
 
