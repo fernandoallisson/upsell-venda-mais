@@ -41,7 +41,6 @@ const WidgetsListPage = () => {
         sort,
         order,
         is_active: status === 'all' ? undefined : status === 'active',
-        with_trashed: true,
       })
       setResponse(res)
     } catch (err) {
