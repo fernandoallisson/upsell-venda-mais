@@ -7,7 +7,7 @@ import {
   syncWidgetVisitor,
   trackWidgetBatch,
   trackWidgetEvent,
-} from '../../../lib/services/widget/widget.service'
+} from '../../../lib/services/widgets/widgets.service'
 
 const ValueView = ({ value }: { value: unknown }) => {
   if (value === null || value === undefined) return <span className="text-slate-400">—</span>
@@ -78,7 +78,6 @@ const Input = ({ label, value, onChange, type = 'text' }: { label: string; value
 )
 
 const WidgetModuleDocs = () => {
-  const [baseUrl, setBaseUrl] = useState('https://central.vendamais.top')
   const [tenantApiKey, setTenantApiKey] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -128,7 +127,7 @@ const WidgetModuleDocs = () => {
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
 
-  const hasConfig = useMemo(() => Boolean(baseUrl.trim() && tenantApiKey.trim()), [baseUrl, tenantApiKey])
+  const hasConfig = useMemo(() => Boolean(tenantApiKey.trim()), [tenantApiKey])
 
   const runAction = async (id: string, action: () => Promise<Record<string, unknown>>, onSuccess: (data: Record<string, unknown>) => void) => {
     setError(null)
@@ -149,7 +148,6 @@ const WidgetModuleDocs = () => {
         <h2 className="text-sm font-semibold text-slate-900">Widget</h2>
         <p className="text-xs text-slate-500">Teste e valide os endpoints do Widget diretamente pelo painel.</p>
         <div className="grid gap-3 md:grid-cols-2">
-          <Input label="Base URL" value={baseUrl} onChange={setBaseUrl} />
           <Input label="TENANT_API_KEY" value={tenantApiKey} onChange={setTenantApiKey} />
         </div>
         {error && <div className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>}
@@ -165,7 +163,7 @@ const WidgetModuleDocs = () => {
         <button
           type="button"
           disabled={!hasConfig || loadingAction === 'offer'}
-          onClick={() => runAction('offer', () => getWidgetOffer(baseUrl, tenantApiKey, offerForm), setOfferResult)}
+          onClick={() => runAction('offer', () => getWidgetOffer(tenantApiKey, offerForm), setOfferResult)}
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
           {loadingAction === 'offer' && <Loader2 className="h-4 w-4 animate-spin" />} Executar
@@ -186,7 +184,7 @@ const WidgetModuleDocs = () => {
         <button
           type="button"
           disabled={!hasConfig || loadingAction === 'track'}
-          onClick={() => runAction('track', () => trackWidgetEvent(baseUrl, tenantApiKey, {
+          onClick={() => runAction('track', () => trackWidgetEvent(tenantApiKey, {
             offer_id: Number(trackForm.offer_id),
             customer_id: Number(trackForm.customer_id),
             visitor_id: trackForm.visitor_id,
@@ -207,7 +205,7 @@ const WidgetModuleDocs = () => {
         <button
           type="button"
           disabled={!hasConfig || loadingAction === 'batch'}
-          onClick={() => runAction('batch', () => trackWidgetBatch(baseUrl, tenantApiKey, {
+          onClick={() => runAction('batch', () => trackWidgetBatch(tenantApiKey, {
             events: batchEvents.split(',').map((item) => item.trim()).filter(Boolean),
           }), setBatchResult)}
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
@@ -227,7 +225,7 @@ const WidgetModuleDocs = () => {
         <button
           type="button"
           disabled={!hasConfig || loadingAction === 'sync'}
-          onClick={() => runAction('sync', () => syncWidgetVisitor(baseUrl, tenantApiKey, {
+          onClick={() => runAction('sync', () => syncWidgetVisitor(tenantApiKey, {
             fingerprint: syncForm.fingerprint,
             session_id: syncForm.session_id,
             cart_value: Number(syncForm.cart_value),
@@ -255,7 +253,7 @@ const WidgetModuleDocs = () => {
         <button
           type="button"
           disabled={!hasConfig || loadingAction === 'visitor'}
-          onClick={() => runAction('visitor', () => getWidgetVisitor(baseUrl, tenantApiKey, { fingerprint: visitorFingerprint }), setVisitorResult)}
+          onClick={() => runAction('visitor', () => getWidgetVisitor(tenantApiKey, { fingerprint: visitorFingerprint }), setVisitorResult)}
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
           {loadingAction === 'visitor' && <Loader2 className="h-4 w-4 animate-spin" />} Executar

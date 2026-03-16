@@ -1,5 +1,4 @@
-import { ApiError } from '../../api'
-import { getAuthToken } from '../../storage'
+import { ApiError, apiFetch } from '../../api'
 import type {
   CreateWidgetPayload,
   UpdateWidgetPayload,
@@ -7,9 +6,13 @@ import type {
   WidgetApiValidationErrors,
   WidgetListParams,
   WidgetListResponse,
+  WidgetOfferParams,
+  WidgetTrackBatchPayload,
+  WidgetTrackPayload,
+  WidgetVisitorParams,
+  WidgetVisitorSyncPayload,
 } from './widgets.types'
 
-const API_BASE_URL = 'https://vitor-api.vendamais.top/api'
 const WIDGETS_BASE_ENDPOINT = '/v1/widgets-base'
 
 type JsonValue = Record<string, unknown> | null
@@ -27,13 +30,6 @@ export class WidgetValidationError extends ApiError {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const parseJson = async (response: Response): Promise<JsonValue> => {
-  try {
-    return (await response.json()) as JsonValue
-  } catch {
-    return null
-  }
-}
 
 const asString = (value: unknown): string =>
   typeof value === 'string' ? value : ''
@@ -53,16 +49,6 @@ const asBoolean = (value: unknown): boolean =>
 const asNullableString = (value: unknown): string | null =>
   typeof value === 'string' ? value : null
 
-const asValidationErrors = (value: unknown): WidgetApiValidationErrors => {
-  if (!isRecord(value)) return {}
-
-  return Object.entries(value).reduce<WidgetApiValidationErrors>((acc, [key, fieldValue]) => {
-    if (Array.isArray(fieldValue)) {
-      acc[key] = fieldValue.filter((item): item is string => typeof item === 'string')
-    }
-    return acc
-  }, {})
-}
 
 const parseWidget = (value: unknown): Widget => {
   if (!isRecord(value)) {
@@ -102,50 +88,52 @@ const parseListResponse = (value: JsonValue): WidgetListResponse => {
   }
 }
 
-const buildUrl = (endpoint: string) => `${API_BASE_URL}${endpoint}`
-
 const widgetRequest = async <T>(
   endpoint: string,
   options: RequestInit,
   fallbackErrorMessage: string,
 ): Promise<T> => {
-  const token = getAuthToken()
-  if (!token) {
-    throw new ApiError('Não autenticado', 401)
+  const data = await apiFetch<JsonValue>(endpoint, {
+    ...options,
+    auth: true,
+    errorMessage: fallbackErrorMessage,
+    networkErrorMessage: 'Falha de rede ao comunicar com servidor de widgets',
+  })
+
+  return data as T
+}
+
+const widgetPublicRequest = async <T>(
+  endpoint: string,
+  apiKey: string,
+  options: RequestInit,
+  fallbackErrorMessage: string,
+): Promise<T> => {
+  if (!apiKey.trim()) {
+    throw new ApiError('Informe a TENANT_API_KEY para autenticar as chamadas.')
   }
 
   const headers = new Headers(options.headers)
-  headers.set('Accept', 'application/json')
-  headers.set('Authorization', `Bearer ${token}`)
-  if (options.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
-  }
+  headers.set('Authorization', `Bearer ${apiKey.trim()}`)
 
-  let response: Response
-  try {
-    response = await fetch(buildUrl(endpoint), {
-      ...options,
-      headers,
-    })
-  } catch {
-    throw new ApiError('Falha de rede ao comunicar com servidor de widgets')
-  }
-
-  const data = await parseJson(response)
-
-  if (!response.ok) {
-    const message = isRecord(data) && typeof data.message === 'string'
-      ? data.message
-      : fallbackErrorMessage
-
-    if (response.status === 422) {
-      throw new WidgetValidationError(message, asValidationErrors(isRecord(data) ? data.errors : null))
-    }
-
-    throw new ApiError(message, response.status)
-  }
+  const data = await apiFetch<JsonValue>(endpoint, {
+    ...options,
+    headers,
+    errorMessage: fallbackErrorMessage,
+    networkErrorMessage: 'Falha de rede ao comunicar com a API do Widget.',
+  })
 
   return data as T
+}
+
+const toQueryString = (params: Record<string, string>) => {
+  const query = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value.trim()) query.set(key, value)
+  })
+
+  return query.toString()
 }
 
 export const getWidgets = async (params: WidgetListParams): Promise<WidgetListResponse> => {
@@ -235,4 +223,76 @@ export const restoreWidget = async (id: number): Promise<Widget> => {
 
   const raw = isRecord(response) && isRecord(response.data) ? response.data : response
   return parseWidget(raw)
+}
+
+
+export const getWidgetOffer = async (
+  apiKey: string,
+  params: WidgetOfferParams,
+) => {
+  const query = toQueryString(params)
+  return widgetPublicRequest<Record<string, unknown>>(
+    `/v1/widget/offer?${query}`,
+    apiKey,
+    { method: 'GET' },
+    'Erro ao consumir endpoint do Widget.',
+  )
+}
+
+export const trackWidgetEvent = async (
+  apiKey: string,
+  payload: WidgetTrackPayload,
+) => {
+  return widgetPublicRequest<Record<string, unknown>>(
+    '/v1/widget/track',
+    apiKey,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    'Erro ao consumir endpoint do Widget.',
+  )
+}
+
+export const trackWidgetBatch = async (
+  apiKey: string,
+  payload: WidgetTrackBatchPayload,
+) => {
+  return widgetPublicRequest<Record<string, unknown>>(
+    '/v1/widget/track/batch',
+    apiKey,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    'Erro ao consumir endpoint do Widget.',
+  )
+}
+
+export const syncWidgetVisitor = async (
+  apiKey: string,
+  payload: WidgetVisitorSyncPayload,
+) => {
+  return widgetPublicRequest<Record<string, unknown>>(
+    '/v1/widget/visitor/sync',
+    apiKey,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+    'Erro ao consumir endpoint do Widget.',
+  )
+}
+
+export const getWidgetVisitor = async (
+  apiKey: string,
+  params: WidgetVisitorParams,
+) => {
+  const query = toQueryString(params)
+  return widgetPublicRequest<Record<string, unknown>>(
+    `/v1/widget/visitor?${query}`,
+    apiKey,
+    { method: 'GET' },
+    'Erro ao consumir endpoint do Widget.',
+  )
 }
