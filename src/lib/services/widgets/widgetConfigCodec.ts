@@ -9,7 +9,7 @@ import type {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-export const serializeWidgetConfig = (config: WidgetConfig): string => JSON.stringify(config ?? {})
+export const serializeWidgetConfig = (config: WidgetConfig): WidgetConfig => (config && typeof config === 'object' ? config : {})
 
 export const parseWidgetConfig = (config: unknown, fallback: WidgetConfig = {}): WidgetConfig => {
   if (typeof config === 'string') {

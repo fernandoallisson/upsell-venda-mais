@@ -38,7 +38,7 @@ export type WidgetFormPayload = {
 }
 
 export type CreateWidgetPayload = Omit<WidgetFormPayload, 'config'> & {
-  config: string
+  config: WidgetConfig
 }
 
 export type UpdateWidgetFormPayload = Partial<WidgetFormPayload>
@@ -52,7 +52,6 @@ export type WidgetListParams = {
   is_active?: boolean
   sort?: 'created_at' | 'title' | 'slug'
   order?: 'asc' | 'desc'
-  with_trashed?: boolean
 }
 
 export type WidgetApiValidationErrors = Record<string, string[]>

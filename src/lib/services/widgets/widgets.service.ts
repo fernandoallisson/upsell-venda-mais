@@ -89,19 +89,38 @@ const parseListResponse = (value: JsonValue): WidgetListResponse => {
   }
 }
 
+const buildValidationError = (data: unknown, fallbackErrorMessage: string): WidgetValidationError | null => {
+  if (!isRecord(data) || !isRecord(data.errors)) return null
+
+  const message = typeof data.message === 'string' ? data.message : fallbackErrorMessage
+  const errors = data.errors as WidgetApiValidationErrors
+
+  return new WidgetValidationError(message, errors)
+}
+
 const widgetRequest = async <T>(
   endpoint: string,
   options: RequestInit,
   fallbackErrorMessage: string,
 ): Promise<T> => {
-  const data = await apiFetch<JsonValue>(endpoint, {
-    ...options,
-    auth: true,
-    errorMessage: fallbackErrorMessage,
-    networkErrorMessage: 'Falha de rede ao comunicar com servidor de widgets',
-  })
+  try {
+    const data = await apiFetch<JsonValue>(endpoint, {
+      ...options,
+      auth: true,
+      errorMessage: fallbackErrorMessage,
+      networkErrorMessage: 'Falha de rede ao comunicar com servidor de widgets',
+    })
 
-  return data as T
+    return data as T
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 422) {
+      const rawBody = (error as ApiError & { body?: unknown }).body
+      const validationError = buildValidationError(rawBody, fallbackErrorMessage)
+      if (validationError) throw validationError
+    }
+
+    throw error
+  }
 }
 
 const widgetPublicRequest = async <T>(
@@ -146,7 +165,6 @@ export const getWidgets = async (params: WidgetListParams): Promise<WidgetListRe
   if (typeof params.is_active === 'boolean') query.set('is_active', params.is_active ? '1' : '0')
   if (params.sort) query.set('sort', params.sort)
   if (params.order) query.set('order', params.order)
-  if (params.with_trashed) query.set('with_trashed', '1')
 
   const response = await widgetRequest<JsonValue>(
     `${WIDGETS_BASE_ENDPOINT}?${query.toString()}`,

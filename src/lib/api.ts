@@ -6,11 +6,13 @@ type JsonValue = Record<string, unknown> | null
 
 export class ApiError extends Error {
   status?: number
+  body?: unknown
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, body?: unknown) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.body = body
   }
 }
 
@@ -76,7 +78,7 @@ export const apiFetch = async <T>(
       isRecord(data) && typeof data.message === 'string'
         ? data.message
         : errorMessage ?? 'Erro ao processar solicitação'
-    throw new ApiError(message, response.status)
+    throw new ApiError(message, response.status, data)
   }
 
   return data as T
@@ -115,13 +117,14 @@ export const apiUpload = async <T>(
       throw new ApiError(
         firstMsg ?? (typeof data.message === 'string' ? data.message : 'Erro de validação'),
         422,
+        data,
       )
     }
     const message =
       isRecord(data) && typeof data.message === 'string'
         ? data.message
         : 'Erro ao enviar arquivo'
-    throw new ApiError(message, response.status)
+    throw new ApiError(message, response.status, data)
   }
 
   return data as T
