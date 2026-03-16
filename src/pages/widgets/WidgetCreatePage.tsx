@@ -4,7 +4,7 @@ import DashboardPage from '../../components/layout/DashboardPage'
 import WidgetBuilderForm from '../../features/widgets/components/WidgetBuilderForm'
 import { ApiError } from '../../lib/api'
 import { createWidget, WidgetValidationError } from '../../lib/services/widgets/widgets.service'
-import type { CreateWidgetPayload, WidgetApiValidationErrors } from '../../types/widget'
+import type { WidgetFormPayload, WidgetApiValidationErrors } from '../../types/widget'
 
 const WidgetCreatePage = () => {
   const navigate = useNavigate()
@@ -12,7 +12,7 @@ const WidgetCreatePage = () => {
   const [error, setError] = useState<string | null>(null)
   const [validationErrors, setValidationErrors] = useState<WidgetApiValidationErrors>({})
 
-  const handleSubmit = async (payload: CreateWidgetPayload) => {
+  const handleSubmit = async (payload: WidgetFormPayload) => {
     setSubmitting(true)
     setError(null)
     setValidationErrors({})

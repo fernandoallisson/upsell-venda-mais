@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import type { CreateWidgetPayload, Widget, WidgetApiValidationErrors } from '../../../types/widget'
+import type { WidgetFormPayload, Widget, WidgetApiValidationErrors } from '../../../types/widget'
 import {
   alignmentOptions,
   layoutOptions,
@@ -18,7 +18,7 @@ type Props = {
   submitting: boolean
   submitLabel: string
   apiErrors?: WidgetApiValidationErrors
-  onSubmit: (payload: CreateWidgetPayload) => Promise<void>
+  onSubmit: (payload: WidgetFormPayload) => Promise<void>
 }
 
 type EditorTab = 'content' | 'layout' | 'style' | 'media' | 'advanced' | 'preview'

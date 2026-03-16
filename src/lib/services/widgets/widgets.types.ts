@@ -1,6 +1,8 @@
 export type {
   CreateWidgetPayload,
+  WidgetFormPayload,
   UpdateWidgetPayload,
+  UpdateWidgetFormPayload,
   Widget,
   WidgetApiValidationErrors,
   WidgetConfig,
