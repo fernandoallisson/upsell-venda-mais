@@ -129,7 +129,7 @@ const widgetRequest = async <T>(
       networkErrorMessage: 'Falha de rede ao comunicar com servidor de widgets',
     })
   } catch (error) {
-    handleValidationError(error, fallbackErrorMessage)
+    return handleValidationError(error, fallbackErrorMessage)
   }
 }
 
