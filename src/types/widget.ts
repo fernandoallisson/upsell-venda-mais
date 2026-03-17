@@ -38,7 +38,7 @@ export type WidgetFormPayload = {
 }
 
 export type CreateWidgetPayload = Omit<WidgetFormPayload, 'config'> & {
-  config: string
+  config: WidgetConfig
 }
 
 export type UpdateWidgetFormPayload = Partial<WidgetFormPayload>
