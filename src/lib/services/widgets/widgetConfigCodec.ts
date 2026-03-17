@@ -10,6 +10,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 export const serializeWidgetConfig = (config: WidgetConfig): WidgetConfig => (config && typeof config === 'object' ? config : {})
+export const stringifyWidgetConfig = (config: WidgetConfig): string => JSON.stringify(serializeWidgetConfig(config))
 
 export const parseWidgetConfig = (config: unknown, fallback: WidgetConfig = {}): WidgetConfig => {
   if (typeof config === 'string') {
@@ -30,7 +31,7 @@ export const parseWidgetConfig = (config: unknown, fallback: WidgetConfig = {}):
 
 export const toCreateWidgetPayload = (payload: WidgetFormPayload): CreateWidgetPayload => ({
   ...payload,
-  config: serializeWidgetConfig(payload.config),
+  config: stringifyWidgetConfig(payload.config),
 })
 
 export const toUpdateWidgetPayload = (payload: UpdateWidgetFormPayload): UpdateWidgetPayload => {
@@ -38,6 +39,6 @@ export const toUpdateWidgetPayload = (payload: UpdateWidgetFormPayload): UpdateW
 
   return {
     ...rest,
-    ...(config !== undefined ? { config: serializeWidgetConfig(config) } : {}),
+    ...(config !== undefined ? { config: stringifyWidgetConfig(config) } : {}),
   }
 }
