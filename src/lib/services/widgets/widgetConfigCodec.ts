@@ -31,7 +31,7 @@ export const parseWidgetConfig = (config: unknown, fallback: WidgetConfig = {}):
 
 export const toCreateWidgetPayload = (payload: WidgetFormPayload): CreateWidgetPayload => ({
   ...payload,
-  config: stringifyWidgetConfig(payload.config),
+  config: serializeWidgetConfig(payload.config),
 })
 
 export const toUpdateWidgetPayload = (payload: UpdateWidgetFormPayload): UpdateWidgetPayload => {
@@ -39,6 +39,6 @@ export const toUpdateWidgetPayload = (payload: UpdateWidgetFormPayload): UpdateW
 
   return {
     ...rest,
-    ...(config !== undefined ? { config: stringifyWidgetConfig(config) } : {}),
+    ...(config !== undefined ? { config: serializeWidgetConfig(config) } : {}),
   }
 }
