@@ -36,6 +36,8 @@ export type WidgetVisualConfig = {
   showComplementaryText: boolean
   showBadge: boolean
   showMedia: boolean
+  buttonFullWidth: boolean
+  mediaClickableCta: boolean
   width: number
   minHeight: number
   mediaSize: number
@@ -68,6 +70,8 @@ export const defaultWidgetVisualConfig: WidgetVisualConfig = {
   showComplementaryText: true,
   showBadge: true,
   showMedia: true,
+  buttonFullWidth: false,
+  mediaClickableCta: false,
   width: 620,
   minHeight: 250,
   mediaSize: 42,

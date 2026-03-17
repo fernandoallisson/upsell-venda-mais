@@ -13,6 +13,7 @@ import {
 import { isMediaApplicable, layoutPresetDefinitions } from '../utils/layoutPresetDefinitions'
 import { generateWidgetCss, generateWidgetHtml, normalizeWidgetConfig } from '../utils/widgetTemplateGenerator'
 import WidgetLivePreview from './WidgetLivePreview'
+import WidgetPreviewFrame from './WidgetPreviewFrame'
 
 type Props = {
   initialValue?: Widget
@@ -112,6 +113,10 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
                     <label key={key} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><input type="checkbox" checked={Boolean(config[key])} onChange={(e) => update(key, e.target.checked as never)} /> {label}</label>
                   ))}
                 </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><input type="checkbox" checked={config.buttonFullWidth} onChange={(e) => update('buttonFullWidth', e.target.checked)} /> Botão com largura total</label>
+                  <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><input type="checkbox" checked={config.mediaClickableCta} disabled={!config.showMedia || config.mediaType === 'none'} onChange={(e) => update('mediaClickableCta', e.target.checked)} /> Mídia clicável como CTA</label>
+                </div>
                 <label className="block text-sm">Tipo de mídia
                   <select value={config.mediaType} disabled={!config.showMedia} onChange={(e) => update('mediaType', e.target.value as WidgetVisualConfig['mediaType'])} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 disabled:bg-slate-100">
                     {mediaTypeOptions.map((option) => <option key={option}>{option}</option>)}
@@ -159,7 +164,9 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
                   ))}
                 </div>
                 <div className="rounded-xl bg-slate-100 p-4">
-                  <WidgetLivePreview config={config} viewport={previewViewport} />
+                  <WidgetPreviewFrame viewport={previewViewport}>
+                    <WidgetLivePreview config={config} />
+                  </WidgetPreviewFrame>
                 </div>
               </div>
             ) : null}
@@ -190,13 +197,9 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
               </div>
             </div>
             <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-100 to-slate-200 p-8">
-              <div className="mx-auto w-full max-w-6xl space-y-6">
-                <div className="rounded-xl border border-slate-300 bg-white/80 p-6">
-                  <div className="mb-3 h-2 w-24 rounded bg-slate-200" />
-                  <div className="mb-6 h-2 w-64 rounded bg-slate-200" />
-                  <WidgetLivePreview config={config} viewport={previewViewport} />
-                </div>
-              </div>
+              <WidgetPreviewFrame viewport={previewViewport} fullscreen>
+                <WidgetLivePreview config={config} />
+              </WidgetPreviewFrame>
             </div>
           </div>
         </div>

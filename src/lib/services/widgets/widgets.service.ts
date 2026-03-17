@@ -70,6 +70,29 @@ const parseWidget = (value: unknown): Widget => {
   }
 }
 
+
+const extractWidgetPayload = (value: JsonValue): unknown => {
+  if (!isRecord(value)) return value
+  if (isRecord(value.data)) return value.data
+  if (isRecord(value.widget)) return value.widget
+  return value
+}
+
+const extractWidgetId = (value: JsonValue): number => {
+  const source = extractWidgetPayload(value)
+  if (isRecord(source) && 'id' in source) {
+    const id = asNumber(source.id)
+    if (id > 0) return id
+  }
+
+  if (isRecord(value) && isRecord(value.data) && isRecord(value.data.widget) && 'id' in value.data.widget) {
+    const id = asNumber(value.data.widget.id)
+    if (id > 0) return id
+  }
+
+  return 0
+}
+
 const parseListResponse = (value: JsonValue): WidgetListResponse => {
   if (!isRecord(value)) {
     throw new ApiError('Resposta inválida ao listar widgets')
@@ -182,7 +205,7 @@ export const getWidgetById = async (id: number): Promise<Widget> => {
     'Erro ao carregar widget',
   )
 
-  const raw = isRecord(response) && isRecord(response.data) ? response.data : response
+  const raw = extractWidgetPayload(response)
   return parseWidget(raw)
 }
 
@@ -193,7 +216,7 @@ export const getWidgetBySlug = async (slug: string): Promise<Widget> => {
     'Erro ao buscar widget por slug',
   )
 
-  const raw = isRecord(response) && isRecord(response.data) ? response.data : response
+  const raw = extractWidgetPayload(response)
   return parseWidget(raw)
 }
 
@@ -207,8 +230,19 @@ export const createWidget = async (payload: WidgetFormPayload): Promise<Widget> 
     'Erro ao criar widget',
   )
 
-  const raw = isRecord(response) && isRecord(response.data) ? response.data : response
-  return parseWidget(raw)
+  const raw = extractWidgetPayload(response)
+  const widget = parseWidget(raw)
+
+  if (widget.id <= 0) {
+    const extractedId = extractWidgetId(response)
+    if (extractedId <= 0) {
+      throw new ApiError('Widget criado, mas a API não retornou um ID válido.', 500)
+    }
+
+    return { ...widget, id: extractedId }
+  }
+
+  return widget
 }
 
 export const updateWidget = async (id: number, payload: UpdateWidgetFormPayload): Promise<Widget> => {
@@ -221,7 +255,7 @@ export const updateWidget = async (id: number, payload: UpdateWidgetFormPayload)
     'Erro ao atualizar widget',
   )
 
-  const raw = isRecord(response) && isRecord(response.data) ? response.data : response
+  const raw = extractWidgetPayload(response)
   return parseWidget(raw)
 }
 
@@ -240,7 +274,7 @@ export const restoreWidget = async (id: number): Promise<Widget> => {
     'Erro ao restaurar widget',
   )
 
-  const raw = isRecord(response) && isRecord(response.data) ? response.data : response
+  const raw = extractWidgetPayload(response)
   return parseWidget(raw)
 }
 
