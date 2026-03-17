@@ -16,31 +16,29 @@ export const layoutOptions = [
   'promo-block',
 ] as const
 
-export const variantOptions = ['modern', 'minimal', 'premium', 'promotional'] as const
+export const variantOptions = ['modern', 'minimal', 'premium', 'promotional', 'glass', 'bold'] as const
 export const mediaTypeOptions = ['image', 'video', 'none'] as const
-export const mediaPositionOptions = ['left', 'right', 'top', 'bottom'] as const
-export const alignmentOptions = ['left', 'center', 'right'] as const
 export const shadowOptions = ['none', 'sm', 'md', 'lg'] as const
 
 export type WidgetLayout = (typeof layoutOptions)[number]
 export type WidgetVariant = (typeof variantOptions)[number]
 export type MediaType = (typeof mediaTypeOptions)[number]
-export type MediaPosition = (typeof mediaPositionOptions)[number]
-export type WidgetAlignment = (typeof alignmentOptions)[number]
 export type ShadowSize = (typeof shadowOptions)[number]
 
 export type WidgetVisualConfig = {
   layout: WidgetLayout
   variant: WidgetVariant
   mediaType: MediaType
-  mediaPosition: MediaPosition
-  title: string
-  description: string
-  buttonText: string
-  buttonLink: string
+  showTitle: boolean
+  showSubtitle: boolean
+  showDescription: boolean
   showButton: boolean
+  showComplementaryText: boolean
   showBadge: boolean
-  badgeText: string
+  showMedia: boolean
+  width: number
+  minHeight: number
+  mediaSize: number
   backgroundColor: string
   textColor: string
   buttonColor: string
@@ -48,57 +46,54 @@ export type WidgetVisualConfig = {
   borderRadius: number
   shadow: ShadowSize
   padding: number
-  opacity: number
-  glass: boolean
-  alignment: WidgetAlignment
-  mediaWidth: number
-  contentWidth: number
-  width: number
-  minHeight: number
-  subtitle: string
-  highlightTitle: boolean
-  ctaPosition: 'left' | 'center' | 'right'
-  showDescription: boolean
-  margin: number
-  mediaUrl: string
-  extraText: string
-  showComplementaryText: boolean
-  isActive: boolean
+}
+
+export const MOCK_WIDGET_CONTENT = {
+  title: 'Oferta especial',
+  subtitle: 'Oferta por tempo limitado',
+  description: 'Aproveite essa condição exclusiva para turbinar seu ticket médio.',
+  buttonText: 'Comprar agora',
+  badgeText: '20% OFF',
+  extraText: 'Frete grátis para todo Brasil',
 }
 
 export const defaultWidgetVisualConfig: WidgetVisualConfig = {
   layout: 'media-left',
   variant: 'modern',
   mediaType: 'image',
-  mediaPosition: 'left',
-  title: 'Oferta especial',
-  description: 'Aproveite essa condição exclusiva para turbinar seu ticket médio.',
-  buttonText: 'Comprar agora',
-  buttonLink: 'https://',
+  showTitle: true,
+  showSubtitle: true,
+  showDescription: true,
   showButton: true,
+  showComplementaryText: true,
   showBadge: true,
-  badgeText: '20% OFF',
-  backgroundColor: '#111827',
-  textColor: '#ffffff',
+  showMedia: true,
+  width: 620,
+  minHeight: 250,
+  mediaSize: 42,
+  backgroundColor: '#ffffff',
+  textColor: '#0f172a',
   buttonColor: '#2563eb',
-  borderColor: '#334155',
-  borderRadius: 16,
+  borderColor: '#cbd5e1',
+  borderRadius: 18,
   shadow: 'md',
   padding: 24,
-  opacity: 100,
-  glass: false,
-  alignment: 'left',
-  mediaWidth: 40,
-  contentWidth: 60,
-  width: 520,
-  minHeight: 220,
-  subtitle: 'Oferta por tempo limitado',
-  highlightTitle: true,
-  ctaPosition: 'left',
-  showDescription: true,
-  margin: 0,
-  mediaUrl: 'https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&w=800&q=80',
-  extraText: 'Frete grátis para todo Brasil',
-  showComplementaryText: true,
-  isActive: true,
+}
+
+export const layoutLabels: Record<WidgetLayout, string> = {
+  'media-left': 'Mídia à esquerda',
+  'media-right': 'Mídia à direita',
+  'media-top': 'Mídia acima do conteúdo',
+  'media-bottom': 'Mídia abaixo do conteúdo',
+  'text-only': 'Somente texto',
+  'image-only': 'Somente imagem',
+  'image-button': 'Imagem + CTA destacado',
+  'video-text': 'Vídeo + texto',
+  'video-button': 'Vídeo + CTA forte',
+  'card-horizontal': 'Card horizontal',
+  'card-vertical': 'Card vertical',
+  banner: 'Banner promocional',
+  modal: 'Modal centralizado',
+  toast: 'Toast compacto',
+  'promo-block': 'Bloco promocional',
 }

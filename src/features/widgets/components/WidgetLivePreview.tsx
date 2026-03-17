@@ -1,85 +1,75 @@
 import type { CSSProperties } from 'react'
-import type { WidgetVisualConfig } from '../types/widgetTemplate'
+import { MOCK_WIDGET_CONTENT, type WidgetVisualConfig } from '../types/widgetTemplate'
+import { layoutPresetDefinitions } from '../utils/layoutPresetDefinitions'
+import { styleVariantDefinitions } from '../utils/styleVariantDefinitions'
 
 type Props = {
   config: WidgetVisualConfig
   compact?: boolean
+  viewport?: 'desktop' | 'mobile'
 }
 
 const shadowMap: Record<WidgetVisualConfig['shadow'], string> = {
   none: 'none',
-  sm: '0 1px 4px rgba(15,23,42,0.16)',
-  md: '0 8px 24px rgba(15,23,42,0.2)',
-  lg: '0 12px 32px rgba(15,23,42,0.26)',
+  sm: '0 2px 10px rgba(15,23,42,.12)',
+  md: '0 10px 28px rgba(15,23,42,.18)',
+  lg: '0 18px 44px rgba(15,23,42,.28)',
 }
 
-const WidgetLivePreview = ({ config, compact = false }: Props) => {
-  const isVertical = config.mediaPosition === 'top' || config.mediaPosition === 'bottom'
-  const reverse = config.mediaPosition === 'right' || config.mediaPosition === 'bottom'
+const WidgetLivePreview = ({ config, compact = false, viewport = 'desktop' }: Props) => {
+  const layout = layoutPresetDefinitions[config.layout]
+  const variant = styleVariantDefinitions[config.variant]
+  const showMedia = config.showMedia && config.mediaType !== 'none'
 
-  const wrapperStyle: CSSProperties = {
+  const surfaceStyle: CSSProperties = {
     width: '100%',
-    maxWidth: compact ? 360 : config.width,
-    minHeight: compact ? 180 : config.minHeight,
+    maxWidth: compact ? 360 : viewport === 'mobile' ? 360 : config.width,
+    minHeight: compact ? 160 : config.layout === 'toast' ? 110 : config.minHeight,
     margin: '0 auto',
-    backgroundColor: config.backgroundColor,
-    color: config.textColor,
+    borderRadius: config.layout === 'banner' ? 999 : config.borderRadius,
     border: `1px solid ${config.borderColor}`,
-    borderRadius: config.borderRadius,
-    padding: compact ? Math.min(config.padding, 14) : config.padding,
-    opacity: config.opacity / 100,
     boxShadow: shadowMap[config.shadow],
-    backdropFilter: config.glass ? 'blur(10px)' : 'none',
-    display: 'flex',
-    flexDirection: `${isVertical ? 'column' : 'row'}${reverse ? '-reverse' : ''}` as CSSProperties['flexDirection'],
-    gap: compact ? 10 : 16,
-    alignItems: 'center',
-    textAlign: config.alignment,
+    padding: config.layout === 'toast' ? Math.max(14, Math.round(config.padding * 0.65)) : compact ? Math.min(config.padding, 16) : config.padding,
+    background: config.variant === 'glass' ? 'linear-gradient(135deg, rgba(56,189,248,.25), rgba(99,102,241,.25))' : config.backgroundColor,
+    color: config.textColor,
   }
 
   const mediaStyle: CSSProperties = {
-    width: `${compact ? Math.min(config.mediaWidth, 45) : config.mediaWidth}%`,
-    borderRadius: Math.max(config.borderRadius - 4, 8),
-    overflow: 'hidden',
+    width: layout.supportsMediaSize ? `${Math.min(70, Math.max(20, config.mediaSize))}%` : '100%',
+    minHeight: config.layout === 'toast' ? 72 : 140,
+    borderRadius: Math.max(config.borderRadius - 4, 10),
   }
 
-  const contentStyle: CSSProperties = {
-    width: `${compact ? 100 - Math.min(config.mediaWidth, 45) : config.contentWidth}%`,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: compact ? 6 : 10,
-  }
+  const Media = showMedia ? (
+    <div style={mediaStyle} className="overflow-hidden bg-slate-200">
+      <div className={`flex h-full min-h-[120px] items-center justify-center font-semibold ${config.mediaType === 'video' ? 'bg-slate-900 text-white' : 'bg-slate-300 text-slate-700'}`}>
+        {config.mediaType === 'video' ? '▶ Vídeo mockado' : 'Imagem mockada'}
+      </div>
+    </div>
+  ) : null
+
+  const mediaBefore = ['media-left', 'media-top', 'card-horizontal', 'card-vertical', 'banner', 'modal', 'toast', 'promo-block', 'video-text', 'image-only', 'image-button', 'video-button'].includes(config.layout)
 
   return (
-    <div style={wrapperStyle}>
-      {config.mediaType !== 'none' && config.layout !== 'text-only' ? (
-        <div style={mediaStyle}>
-          {config.mediaType === 'video' ? (
-            <video src={config.mediaUrl} controls muted className="h-full min-h-[120px] w-full object-cover" />
-          ) : (
-            <img src={config.mediaUrl} alt={config.title} className="h-full min-h-[120px] w-full object-cover" />
-          )}
+    <div style={surfaceStyle} className={`${variant.cardClass} ${layout.containerClass} flex gap-4 ${config.layout === 'modal' ? 'mx-auto max-w-2xl' : ''}`}>
+      {mediaBefore ? Media : null}
+
+      {config.layout !== 'image-only' ? (
+        <div className={`flex flex-1 flex-col gap-2 ${variant.bodyClass}`}>
+          {config.showBadge ? <span className={`w-fit bg-black/80 px-3 py-1 text-[11px] text-white ${variant.badgeClass}`}>{MOCK_WIDGET_CONTENT.badgeText}</span> : null}
+          {config.showTitle ? <h3 className={`m-0 text-xl ${variant.titleClass}`}>{MOCK_WIDGET_CONTENT.title}</h3> : null}
+          {config.showSubtitle ? <p className="m-0 text-xs opacity-80">{MOCK_WIDGET_CONTENT.subtitle}</p> : null}
+          {config.showDescription ? <p className="m-0 text-sm">{MOCK_WIDGET_CONTENT.description}</p> : null}
+          {config.showComplementaryText ? <p className="m-0 text-xs opacity-75">{MOCK_WIDGET_CONTENT.extraText}</p> : null}
+          {config.showButton ? (
+            <button type="button" className={`mt-2 w-fit px-4 py-2 text-xs text-white ${variant.buttonClass}`} style={{ backgroundColor: config.buttonColor }}>
+              {MOCK_WIDGET_CONTENT.buttonText}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
-      <div style={contentStyle}>
-        {config.showBadge ? (
-          <span className="inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold text-white" style={{ background: config.buttonColor }}>
-            {config.badgeText}
-          </span>
-        ) : null}
-        <h3 className={`m-0 ${compact ? 'text-base' : 'text-2xl'} ${config.highlightTitle ? 'font-extrabold' : 'font-bold'}`}>{config.title}</h3>
-        <p className="m-0 text-xs opacity-80">{config.subtitle}</p>
-        {config.showDescription ? <p className={`m-0 ${compact ? 'text-xs' : 'text-sm'} opacity-95`}>{config.description}</p> : null}
-        {config.showComplementaryText ? <p className="m-0 text-xs opacity-80">{config.extraText}</p> : null}
-        {config.showButton ? (
-          <div className={`flex ${config.ctaPosition === 'left' ? 'justify-start' : config.ctaPosition === 'center' ? 'justify-center' : 'justify-end'}`}>
-            <button type="button" className="rounded-lg px-4 py-2 text-xs font-bold text-white" style={{ backgroundColor: config.buttonColor }}>
-              {config.buttonText}
-            </button>
-          </div>
-        ) : null}
-      </div>
+      {!mediaBefore ? Media : null}
     </div>
   )
 }
