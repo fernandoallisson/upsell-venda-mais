@@ -5,7 +5,6 @@ import DashboardPage from '../../components/layout/DashboardPage'
 import WidgetFilters from '../../features/widgets/components/WidgetFilters'
 import WidgetCardPreview from '../../features/widgets/components/WidgetCardPreview'
 import WidgetStatusBadge from '../../features/widgets/components/WidgetStatusBadge'
-import { normalizeWidgetConfig } from '../../features/widgets/utils/widgetTemplateGenerator'
 import { ApiError } from '../../lib/api'
 import { deleteWidget, getWidgets, restoreWidget } from '../../lib/services/widgets/widgets.service'
 import type { Widget, WidgetListParams, WidgetListResponse } from '../../types/widget'
@@ -124,7 +123,6 @@ const WidgetsListPage = () => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {items.map((widget) => {
-              const config = normalizeWidgetConfig(widget.config)
               return (
                 <div key={widget.id} className={`rounded-2xl border bg-white p-4 ${widget.deleted_at ? 'border-rose-200' : 'border-slate-200'}`}>
                   <WidgetCardPreview widget={widget} />
@@ -132,7 +130,6 @@ const WidgetsListPage = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="text-sm font-semibold text-slate-900">{widget.title}</h3>
-                        <p className="text-xs text-slate-500">{config.layout} • {config.variant}</p>
                       </div>
                       <WidgetStatusBadge active={widget.is_active} />
                     </div>

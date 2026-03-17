@@ -28,14 +28,18 @@ export const normalizeWidgetConfig = (config: WidgetConfig | null | undefined): 
   }
 
   if (!normalized.showMedia) normalized.mediaType = 'none'
+  if (normalized.mediaType === 'none') normalized.mediaClickableCta = false
 
   return normalized
 }
 
 const renderMediaHtml = (config: WidgetVisualConfig) => {
   if (!config.showMedia || config.mediaType === 'none') return ''
-  if (config.mediaType === 'video') return '<div class="widget-template__media"><div class="widget-template__video">▶ Vídeo demonstrativo</div></div>'
-  return '<div class="widget-template__media"><div class="widget-template__image">Imagem do template</div></div>'
+  const inner = config.mediaType === 'video'
+    ? '<div class="widget-template__media"><div class="widget-template__video">▶ Vídeo demonstrativo</div></div>'
+    : '<div class="widget-template__media"><div class="widget-template__image">Imagem do template</div></div>'
+
+  return config.mediaClickableCta ? `<a class="widget-template__media-link" href="#">${inner}</a>` : inner
 }
 
 const renderContentHtml = (config: WidgetVisualConfig) => {
@@ -46,14 +50,14 @@ const renderContentHtml = (config: WidgetVisualConfig) => {
     ${config.showSubtitle ? `<p class="widget-template__subtitle">${esc(c.subtitle)}</p>` : ''}
     ${config.showDescription ? `<p class="widget-template__description">${esc(c.description)}</p>` : ''}
     ${config.showComplementaryText ? `<p class="widget-template__extra">${esc(c.extraText)}</p>` : ''}
-    ${config.showButton ? `<button class="widget-template__button">${esc(c.buttonText)}</button>` : ''}
+    ${config.showButton ? `<button class="widget-template__button ${config.buttonFullWidth ? 'widget-template__button--full' : ''}">${esc(c.buttonText)}</button>` : ''}
   </div>`
 }
 
 export const generateWidgetHtml = (config: WidgetVisualConfig) => {
   const media = renderMediaHtml(config)
   const content = renderContentHtml(config)
-  if (config.layout === 'image-button' || config.layout === 'video-button') return `<div class="widget-template widget-template--hero">${media}${config.showButton ? `<button class="widget-template__button widget-template__button--overlay">${MOCK_WIDGET_CONTENT.buttonText}</button>` : ''}${content}</div>`
+  if (config.layout === 'image-button' || config.layout === 'video-button') return `<div class="widget-template widget-template--hero">${media}${config.showButton ? `<button class="widget-template__button widget-template__button--overlay ${config.buttonFullWidth ? 'widget-template__button--full' : ''}">${MOCK_WIDGET_CONTENT.buttonText}</button>` : ''}${content}</div>`
   if (config.layout === 'image-only') return `<div class="widget-template widget-template--image-only">${media}${config.showButton ? `<button class="widget-template__button">${MOCK_WIDGET_CONTENT.buttonText}</button>` : ''}</div>`
   return `<div class="widget-template widget-template--${config.layout}">${media}${content}</div>`
 }
@@ -70,6 +74,8 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
 .widget-template__title{margin:0;font-size:24px;}
 .widget-template__subtitle,.widget-template__description,.widget-template__extra{margin:0;}
 .widget-template__button{width:max-content;padding:10px 16px;border-radius:10px;border:none;background:${config.buttonColor};color:#fff;font-weight:700;}
+.widget-template__button--full{width:100%;}
+.widget-template__media-link{display:block;text-decoration:none;color:inherit;}
 .widget-template--toast{max-width:360px;min-height:110px;padding:${Math.max(14, Math.round(config.padding * 0.65))}px;}
 .widget-template--banner{border-radius:999px;}
 .widget-template--modal{max-width:min(${config.width}px,88vw);}`

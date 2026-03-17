@@ -1,5 +1,4 @@
 import WidgetLivePreview from './WidgetLivePreview'
-import WidgetStatusBadge from './WidgetStatusBadge'
 import { normalizeWidgetConfig } from '../utils/widgetTemplateGenerator'
 import type { Widget } from '../../../types/widget'
 
@@ -11,12 +10,9 @@ const WidgetCardPreview = ({ widget }: Props) => {
   const config = normalizeWidgetConfig(widget.config)
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 rounded-xl bg-slate-100 p-3">
       <WidgetLivePreview config={config} compact />
-      <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-xs text-slate-500">{config.layout} • {config.variant}</p>
-        <WidgetStatusBadge active={widget.is_active} />
-      </div>
+      <p className="truncate text-xs text-slate-500">{config.layout} • {config.variant}</p>
     </div>
   )
 }
