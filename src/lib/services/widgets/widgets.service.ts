@@ -31,7 +31,6 @@ export class WidgetValidationError extends ApiError {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-
 const asString = (value: unknown): string =>
   typeof value === 'string' ? value : ''
 
@@ -50,113 +49,93 @@ const asBoolean = (value: unknown): boolean =>
 const asNullableString = (value: unknown): string | null =>
   typeof value === 'string' ? value : null
 
+/**
+ * Extrai o objeto widget do envelope `{ data: { ... } }` da API.
+ * Caso a resposta já seja o objeto direto, retorna como está.
+ */
+const unwrapWidgetData = (response: JsonValue): unknown => {
+  if (!isRecord(response)) return response
+  if (isRecord(response.data)) return response.data
+  return response
+}
 
-const parseWidget = (value: unknown): Widget => {
-  if (!isRecord(value)) {
+const parseWidget = (raw: unknown): Widget => {
+  if (!isRecord(raw)) {
     throw new ApiError('Resposta inválida ao carregar widget')
   }
 
   return {
-    id: asNumber(value.id),
-    title: asString(value.title),
-    slug: asString(value.slug),
-    config: parseWidgetConfig(value.config),
-    css: asString(value.css),
-    html: asString(value.html),
-    is_active: asBoolean(value.is_active),
-    created_at: asString(value.created_at),
-    updated_at: asString(value.updated_at),
-    deleted_at: asNullableString(value.deleted_at),
+    id: asNumber(raw.id),
+    title: asString(raw.title),
+    slug: asString(raw.slug),
+    config: parseWidgetConfig(raw.config),
+    css: asString(raw.css),
+    html: asString(raw.html),
+    is_active: asBoolean(raw.is_active),
+    created_at: asString(raw.created_at),
+    updated_at: asString(raw.updated_at),
+    deleted_at: asNullableString(raw.deleted_at),
   }
 }
 
-
-const extractWidgetPayload = (value: JsonValue): unknown => {
-  if (!isRecord(value)) return value
-  if (isRecord(value.data)) return value.data
-  if (isRecord(value.widget)) return value.widget
-  return value
-}
-
-const extractWidgetId = (value: JsonValue): number => {
-  const source = extractWidgetPayload(value)
-  if (isRecord(source) && 'id' in source) {
-    const id = asNumber(source.id)
-    if (id > 0) return id
-  }
-
-  if (isRecord(value) && isRecord(value.data) && isRecord(value.data.widget) && 'id' in value.data.widget) {
-    const id = asNumber(value.data.widget.id)
-    if (id > 0) return id
-  }
-
-  return Number.NaN
-}
-
-const resolveWidgetId = (widget: Widget, response: JsonValue, fallbackId?: number): number => {
-  if (widget.id > 0) return widget.id
-
-  const extractedId = extractWidgetId(response)
-  if (Number.isFinite(extractedId) && extractedId > 0) return extractedId
-
-  if (typeof fallbackId === 'number' && fallbackId > 0) return fallbackId
-
-  throw new ApiError('A API de widget não retornou um ID válido.', 500)
-}
-
-const parseListResponse = (value: JsonValue): WidgetListResponse => {
-  if (!isRecord(value)) {
+/**
+ * Parseia a resposta paginada da listagem de widgets.
+ * Formato esperado: `{ data: Widget[], meta: { current_page, per_page, total, last_page, from, to } }`
+ */
+const parseListResponse = (response: JsonValue): WidgetListResponse => {
+  if (!isRecord(response)) {
     throw new ApiError('Resposta inválida ao listar widgets')
   }
 
-  const items = Array.isArray(value.data) ? value.data.map(parseWidget) : []
-  const meta = isRecord(value.meta) ? value.meta : {}
+  const items = Array.isArray(response.data) ? response.data.map(parseWidget) : []
+  const meta = isRecord(response.meta) ? response.meta : {}
 
   return {
     data: items,
     meta: {
       current_page: asNumber(meta.current_page) || 1,
-      per_page: asNumber(meta.per_page) || items.length || 10,
+      per_page: asNumber(meta.per_page) || 15,
       total: asNumber(meta.total) || items.length,
       last_page: asNumber(meta.last_page) || 1,
     },
   }
 }
 
-const buildValidationError = (data: unknown, fallbackErrorMessage: string): WidgetValidationError | null => {
-  if (!isRecord(data) || !isRecord(data.errors)) return null
-
-  const message = typeof data.message === 'string' ? data.message : fallbackErrorMessage
-  const errors = data.errors as WidgetApiValidationErrors
-
-  return new WidgetValidationError(message, errors)
+/**
+ * Trata erros 422 da API transformando em `WidgetValidationError`
+ * com os erros de campo específicos (ex: `{ title: ["O campo title é obrigatório."] }`).
+ */
+const handleValidationError = (error: unknown, fallbackMessage: string): never => {
+  if (error instanceof ApiError && error.status === 422 && isRecord(error.body) && isRecord(error.body.errors)) {
+    const message = typeof error.body.message === 'string' ? error.body.message : fallbackMessage
+    throw new WidgetValidationError(message, error.body.errors as WidgetApiValidationErrors)
+  }
+  throw error
 }
 
+/**
+ * Requisição autenticada para endpoints de widget (CRUD do tenant).
+ */
 const widgetRequest = async <T>(
   endpoint: string,
   options: RequestInit,
   fallbackErrorMessage: string,
 ): Promise<T> => {
   try {
-    const data = await apiFetch<JsonValue>(endpoint, {
+    return await apiFetch<T>(endpoint, {
       ...options,
       auth: true,
       errorMessage: fallbackErrorMessage,
       networkErrorMessage: 'Falha de rede ao comunicar com servidor de widgets',
     })
-
-    return data as T
   } catch (error) {
-    if (error instanceof ApiError && error.status === 422) {
-      const rawBody = (error as ApiError & { body?: unknown }).body
-      const validationError = buildValidationError(rawBody, fallbackErrorMessage)
-      if (validationError) throw validationError
-    }
-
-    throw error
+    handleValidationError(error, fallbackErrorMessage)
   }
 }
 
+/**
+ * Requisição pública para endpoints de widget (offer, track, visitor).
+ */
 const widgetPublicRequest = async <T>(
   endpoint: string,
   apiKey: string,
@@ -170,25 +149,25 @@ const widgetPublicRequest = async <T>(
   const headers = new Headers(options.headers)
   headers.set('Authorization', `Bearer ${apiKey.trim()}`)
 
-  const data = await apiFetch<JsonValue>(endpoint, {
+  return apiFetch<T>(endpoint, {
     ...options,
     headers,
     errorMessage: fallbackErrorMessage,
     networkErrorMessage: 'Falha de rede ao comunicar com a API do Widget.',
   })
-
-  return data as T
 }
 
-const toQueryString = (params: Record<string, string>) => {
+const buildQueryString = (params: Record<string, string>): string => {
   const query = new URLSearchParams()
-
-  Object.entries(params).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(params)) {
     if (value.trim()) query.set(key, value)
-  })
-
+  }
   return query.toString()
 }
+
+// ---------------------------------------------------------------------------
+// CRUD – Widgets Base
+// ---------------------------------------------------------------------------
 
 export const getWidgets = async (params: WidgetListParams): Promise<WidgetListResponse> => {
   const query = new URLSearchParams()
@@ -216,8 +195,7 @@ export const getWidgetById = async (id: number): Promise<Widget> => {
     'Erro ao carregar widget',
   )
 
-  const raw = extractWidgetPayload(response)
-  return parseWidget(raw)
+  return parseWidget(unwrapWidgetData(response))
 }
 
 export const getWidgetBySlug = async (slug: string): Promise<Widget> => {
@@ -227,10 +205,15 @@ export const getWidgetBySlug = async (slug: string): Promise<Widget> => {
     'Erro ao buscar widget por slug',
   )
 
-  const raw = extractWidgetPayload(response)
-  return parseWidget(raw)
+  return parseWidget(unwrapWidgetData(response))
 }
 
+/**
+ * Cria um novo widget.
+ * POST /v1/widgets-base
+ * Body: { title, config, css, html, is_active? }
+ * Response: { data: Widget, message: string }
+ */
 export const createWidget = async (payload: WidgetFormPayload): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     WIDGETS_BASE_ENDPOINT,
@@ -241,13 +224,15 @@ export const createWidget = async (payload: WidgetFormPayload): Promise<Widget> 
     'Erro ao criar widget',
   )
 
-  const raw = extractWidgetPayload(response)
-  const widget = parseWidget(raw)
-  const resolvedId = resolveWidgetId(widget, response)
-
-  return { ...widget, id: resolvedId }
+  return parseWidget(unwrapWidgetData(response))
 }
 
+/**
+ * Atualiza um widget existente.
+ * PUT /v1/widgets-base/{id}
+ * Body: { title?, config?, css?, html?, is_active? }
+ * Response: { data: Widget, message: string }
+ */
 export const updateWidget = async (id: number, payload: UpdateWidgetFormPayload): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     `${WIDGETS_BASE_ENDPOINT}/${id}`,
@@ -258,11 +243,8 @@ export const updateWidget = async (id: number, payload: UpdateWidgetFormPayload)
     'Erro ao atualizar widget',
   )
 
-  const raw = extractWidgetPayload(response)
-  const widget = parseWidget(raw)
-  const resolvedId = resolveWidgetId(widget, response, id)
-
-  return { ...widget, id: resolvedId }
+  const widget = parseWidget(unwrapWidgetData(response))
+  return { ...widget, id: widget.id || id }
 }
 
 export const deleteWidget = async (id: number): Promise<void> => {
@@ -280,16 +262,18 @@ export const restoreWidget = async (id: number): Promise<Widget> => {
     'Erro ao restaurar widget',
   )
 
-  const raw = extractWidgetPayload(response)
-  return parseWidget(raw)
+  return parseWidget(unwrapWidgetData(response))
 }
 
+// ---------------------------------------------------------------------------
+// Endpoints públicos (offer, tracking, visitor)
+// ---------------------------------------------------------------------------
 
 export const getWidgetOffer = async (
   apiKey: string,
   params: WidgetOfferParams,
 ) => {
-  const query = toQueryString(params)
+  const query = buildQueryString(params)
   return widgetPublicRequest<Record<string, unknown>>(
     `/v1/widget/offer?${query}`,
     apiKey,
@@ -347,7 +331,7 @@ export const getWidgetVisitor = async (
   apiKey: string,
   params: WidgetVisitorParams,
 ) => {
-  const query = toQueryString(params)
+  const query = buildQueryString(params)
   return widgetPublicRequest<Record<string, unknown>>(
     `/v1/widget/visitor?${query}`,
     apiKey,
