@@ -56,7 +56,7 @@ const WidgetDetailsPage = () => {
   }
 
   return (
-    <DashboardPage title="Detalhes do Widget" subtitle="Template visual, metadados e saída técnica gerada automaticamente">
+    <DashboardPage title="Detalhes do Widget" subtitle="Visualize as informações e o preview do widget">
       {loading ? (
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">Carregando...</div>
       ) : widget ? (
@@ -81,17 +81,49 @@ const WidgetDetailsPage = () => {
                 <div><dt className="font-semibold text-slate-500">Criado em</dt><dd>{formatDate(widget.created_at)}</dd></div>
                 <div><dt className="font-semibold text-slate-500">Atualizado em</dt><dd>{formatDate(widget.updated_at)}</dd></div>
               </dl>
-              <div>
-                <p className="mb-1 text-sm font-semibold text-slate-700">Config visual (JSON)</p>
-                <pre className="max-h-64 overflow-auto rounded-xl bg-slate-900 p-4 text-xs text-emerald-400">{JSON.stringify(widget.config, null, 2)}</pre>
-              </div>
-              <details>
-                <summary className="cursor-pointer text-sm font-semibold text-slate-700">Aba técnica (HTML/CSS gerados)</summary>
-                <div className="mt-3 grid gap-4">
-                  <pre className="max-h-40 overflow-auto rounded-xl bg-slate-900 p-4 text-xs text-blue-300">{widget.html}</pre>
-                  <pre className="max-h-40 overflow-auto rounded-xl bg-slate-900 p-4 text-xs text-fuchsia-300">{widget.css}</pre>
+              {widget.config && typeof widget.config === 'object' ? (
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-slate-700">Personalização</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(widget.config as Record<string, unknown>).backgroundColor ? (
+                      <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs">
+                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config as Record<string, unknown>).backgroundColor) }} />
+                        <span className="text-slate-600">Fundo: {String((widget.config as Record<string, unknown>).backgroundColor)}</span>
+                      </div>
+                    ) : null}
+                    {(widget.config as Record<string, unknown>).textColor ? (
+                      <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs">
+                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config as Record<string, unknown>).textColor) }} />
+                        <span className="text-slate-600">Texto: {String((widget.config as Record<string, unknown>).textColor)}</span>
+                      </div>
+                    ) : null}
+                    {(widget.config as Record<string, unknown>).buttonColor ? (
+                      <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs">
+                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config as Record<string, unknown>).buttonColor) }} />
+                        <span className="text-slate-600">Botão: {String((widget.config as Record<string, unknown>).buttonColor)}</span>
+                      </div>
+                    ) : null}
+                    {(widget.config as Record<string, unknown>).borderColor ? (
+                      <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs">
+                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config as Record<string, unknown>).borderColor) }} />
+                        <span className="text-slate-600">Borda: {String((widget.config as Record<string, unknown>).borderColor)}</span>
+                      </div>
+                    ) : null}
+                    {(widget.config as Record<string, unknown>).layout ? (
+                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Layout: {String((widget.config as Record<string, unknown>).layout)}</div>
+                    ) : null}
+                    {(widget.config as Record<string, unknown>).variant ? (
+                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Variante: {String((widget.config as Record<string, unknown>).variant)}</div>
+                    ) : null}
+                    {(widget.config as Record<string, unknown>).width ? (
+                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Largura: {String((widget.config as Record<string, unknown>).width)}px</div>
+                    ) : null}
+                    {(widget.config as Record<string, unknown>).borderRadius !== undefined ? (
+                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Arredondamento: {String((widget.config as Record<string, unknown>).borderRadius)}px</div>
+                    ) : null}
+                  </div>
                 </div>
-              </details>
+              ) : null}
               <div className="flex flex-wrap gap-2 pt-2">
                 <Link to={`/widget/${widget.id}/editar`} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Editar</Link>
                 <Link to="/widget" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Voltar para lista</Link>

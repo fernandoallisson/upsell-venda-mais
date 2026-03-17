@@ -48,12 +48,25 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
 
   const handleLayout = (layout: WidgetVisualConfig['layout']) => {
     const def = layoutPresetDefinitions[layout]
-    setConfig((prev) => ({
-      ...prev,
-      layout,
-      mediaType: def.forceMediaType ?? prev.mediaType,
-      showMedia: def.forceMediaType === 'none' ? false : prev.showMedia,
-    }))
+    setConfig((prev) => {
+      let mediaType = def.forceMediaType ?? prev.mediaType
+      let showMedia = prev.showMedia
+
+      if (def.forceMediaType === 'none') {
+        showMedia = false
+        mediaType = 'none'
+      } else if (def.forceMediaType) {
+        // Preset forces a specific media type (image/video) — re-enable media
+        showMedia = true
+        mediaType = def.forceMediaType
+      } else if (!prev.showMedia || prev.mediaType === 'none') {
+        // No forced media type, but user had disabled media — restore default
+        showMedia = true
+        mediaType = 'image'
+      }
+
+      return { ...prev, layout, mediaType, showMedia }
+    })
   }
 
   const handleSubmit = async (event: FormEvent) => {

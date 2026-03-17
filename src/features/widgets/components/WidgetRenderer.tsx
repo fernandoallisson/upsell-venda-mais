@@ -50,7 +50,18 @@ const WidgetRenderer = ({ config, mode = 'preview', viewport = 'desktop' }: Prop
   const mediaBefore = mediaBeforeLayouts.has(config.layout)
 
   return (
-    <div style={styles.surfaceStyle} className={`${variant.cardClass} ${layout.containerClass} flex max-w-full gap-4 overflow-hidden ${config.layout === 'modal' ? 'mx-auto' : ''}`}>
+    <div style={styles.surfaceStyle} className={`${variant.cardClass} ${layout.containerClass} relative flex max-w-full gap-4 overflow-hidden ${config.layout === 'modal' ? 'mx-auto' : ''}`}>
+      <button
+        id="upse-close"
+        type="button"
+        onClick={(e) => e.preventDefault()}
+        className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full border-none bg-black/10 text-lg leading-none hover:bg-black/20"
+        style={{ color: config.textColor }}
+        aria-label="Fechar"
+      >
+        &times;
+      </button>
+
       {mediaBefore ? Media : null}
 
       {config.layout !== 'image-only' ? (
@@ -61,9 +72,14 @@ const WidgetRenderer = ({ config, mode = 'preview', viewport = 'desktop' }: Prop
           {config.showDescription ? <p className="m-0 break-words text-sm">{MOCK_WIDGET_CONTENT.description}</p> : null}
           {config.showComplementaryText ? <p className="m-0 break-words text-xs opacity-75">{MOCK_WIDGET_CONTENT.extraText}</p> : null}
           {config.showButton ? (
-            <button type="button" className={`mt-2 max-w-full px-4 py-2 text-xs text-white ${variant.buttonClass}`} style={styles.buttonStyle}>
-              {MOCK_WIDGET_CONTENT.buttonText}
-            </button>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <button id="upse-accept" type="button" className={`max-w-full px-4 py-2 text-xs text-white ${variant.buttonClass}`} style={styles.buttonStyle}>
+                {MOCK_WIDGET_CONTENT.buttonText}
+              </button>
+              <button id="upse-reject" type="button" className="border-none bg-transparent px-3 py-1.5 text-[11px] opacity-70 hover:opacity-100" style={{ color: variant.bodyClass.includes('dark') ? '#f1f5f9' : config.textColor }}>
+                {MOCK_WIDGET_CONTENT.rejectText}
+              </button>
+            </div>
           ) : null}
         </div>
       ) : null}

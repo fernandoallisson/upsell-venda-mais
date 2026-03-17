@@ -172,13 +172,16 @@ const renderContentHtml = (config: WidgetVisualConfig) => {
   if (config.layout === 'image-only') return ''
   const c = MOCK_WIDGET_CONTENT
 
+  const acceptBtn = config.showButton ? `<button id="upse-accept" class="widget-template__button ${config.buttonFullWidth ? 'widget-template__button--full' : ''}">${esc(c.buttonText)}</button>` : ''
+  const rejectBtn = config.showButton ? `<button id="upse-reject" class="widget-template__reject">${esc(c.rejectText)}</button>` : ''
+
   return `<div class="widget-template__content">
     ${config.showBadge ? `<span class="widget-template__badge">${esc(c.badgeText)}</span>` : ''}
     ${config.showTitle ? `<h3 class="widget-template__title">${esc(c.title)}</h3>` : ''}
     ${config.showSubtitle ? `<p class="widget-template__subtitle">${esc(c.subtitle)}</p>` : ''}
     ${config.showDescription ? `<p class="widget-template__description">${esc(c.description)}</p>` : ''}
     ${config.showComplementaryText ? `<p class="widget-template__extra">${esc(c.extraText)}</p>` : ''}
-    ${config.showButton ? `<button class="widget-template__button ${config.buttonFullWidth ? 'widget-template__button--full' : ''}">${esc(c.buttonText)}</button>` : ''}
+    ${acceptBtn || rejectBtn ? `<div class="widget-template__actions">${acceptBtn}${rejectBtn}</div>` : ''}
   </div>`
 }
 
@@ -186,8 +189,9 @@ export const generateWidgetHtml = (config: WidgetVisualConfig) => {
   const media = renderMediaHtml(config)
   const content = renderContentHtml(config)
   const mediaBefore = mediaBeforeLayouts.has(config.layout)
+  const closeBtn = `<button id="upse-close" class="widget-template__close" aria-label="Fechar">&times;</button>`
 
-  return `<div class="widget-template widget-template--${config.layout} widget-template--${config.variant}">${mediaBefore ? media : ''}${content}${mediaBefore ? '' : media}</div>`
+  return `<div class="widget-template widget-template--${config.layout} widget-template--${config.variant}">${closeBtn}${mediaBefore ? media : ''}${content}${mediaBefore ? '' : media}</div>`
 }
 
 const getFlexDirection = (layout: WidgetVisualConfig['layout']) => {
@@ -212,26 +216,239 @@ const getFlexDirection = (layout: WidgetVisualConfig['layout']) => {
 export const generateWidgetCss = (config: WidgetVisualConfig) => {
   const preset = layoutPresetDefinitions[config.layout]
   const variant = variantStyles[config.variant]
-  const mediaWidth = preset.supportsMediaSize ? `${config.mediaSize}%` : '100%'
   const toastPadding = Math.max(14, Math.round(config.padding * 0.65))
+  const mobileMediaWidth = preset.supportsMediaSize ? `${Math.min(58, Math.max(32, config.mediaSize))}%` : '100%'
+  const desktopMediaWidth = preset.supportsMediaSize ? `${config.mediaSize}%` : '100%'
 
-  return `.widget-template{--widget-bg:${config.backgroundColor};--widget-text:${config.textColor};display:flex;flex-direction:${getFlexDirection(config.layout)};gap:16px;width:100%;max-width:${config.width}px;min-height:${config.layout === 'toast' ? 110 : config.minHeight}px;margin:0 auto;padding:${config.layout === 'toast' ? toastPadding : config.padding}px;border-radius:${config.layout === 'banner' ? 999 : config.borderRadius}px;border:1px solid ${config.borderColor};background:${variant.cardBackground};color:${variant.bodyColor};box-shadow:${shadowMap[config.shadow]};overflow:hidden;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
-.widget-template__media{width:${mediaWidth};min-height:${config.layout === 'toast' ? 72 : 140}px;border-radius:${Math.max(config.borderRadius - 4, 10)}px;overflow:hidden;background:#e2e8f0;}
-.widget-template__media-placeholder{display:flex;align-items:center;justify-content:center;height:100%;min-height:140px;padding:12px;font-size:14px;font-weight:700;text-align:center;}
-.widget-template__media-placeholder--image{background:linear-gradient(135deg,#cbd5e1,#94a3b8);color:#334155;}
-.widget-template__media-placeholder--video{background:#0f172a;color:#fff;}
-.widget-template__media-link{display:block;text-decoration:none;color:inherit;}
-.widget-template__content{display:flex;flex-direction:column;flex:1;min-width:0;gap:8px;}
-.widget-template__badge{width:max-content;padding:4px 10px;border-radius:${variant.badgeRadius};background:${config.buttonColor};color:#fff;font-size:11px;font-weight:${variant.badgeWeight};text-transform:${variant.badgeTransform};letter-spacing:${variant.badgeSpacing};}
-.widget-template__title{margin:0;font-size:24px;font-weight:${variant.titleWeight};text-transform:${variant.titleTransform};letter-spacing:${variant.titleSpacing};line-height:1.2;}
-.widget-template__subtitle{margin:0;font-size:12px;opacity:.8;}
-.widget-template__description{margin:0;font-size:14px;line-height:1.45;}
-.widget-template__extra{margin:0;font-size:12px;opacity:.75;}
-.widget-template__button{margin-top:6px;width:max-content;max-width:100%;padding:10px 16px;border:none;border-radius:${variant.buttonRadius};background:${config.buttonColor};color:#fff;font-size:12px;font-weight:${variant.buttonWeight};text-transform:${variant.buttonTransform};letter-spacing:${variant.buttonSpacing};cursor:pointer;}
-.widget-template__button--full{width:100%;}
-.widget-template--modal{max-width:min(${config.width}px,88vw);}
-.widget-template--toast{max-width:360px;}
-.widget-template--glass{backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);} 
-@media (max-width:768px){.widget-template{max-width:100%;}.widget-template__media{width:${preset.supportsMediaSize ? `${Math.min(58, Math.max(32, config.mediaSize))}%` : '100%'};}}
+  // Mobile-first: base styles are for mobile, then scale up with min-width media query
+  return `/* Mobile-first base styles */
+.widget-template {
+  --widget-bg: ${config.backgroundColor};
+  --widget-text: ${config.textColor};
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-height: ${config.layout === 'toast' ? 90 : Math.round(config.minHeight * 0.75)}px;
+  margin: 0 auto;
+  padding: ${config.layout === 'toast' ? Math.round(toastPadding * 0.8) : Math.round(config.padding * 0.75)}px;
+  border-radius: ${config.layout === 'banner' ? 999 : config.borderRadius}px;
+  border: 1px solid ${config.borderColor};
+  background: ${variant.cardBackground};
+  color: ${variant.bodyColor};
+  box-shadow: ${shadowMap[config.shadow]};
+  overflow: hidden;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-sizing: border-box;
+}
+.widget-template__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  color: ${config.textColor};
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.15s;
+}
+.widget-template__close:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+.widget-template__media {
+  width: ${mobileMediaWidth};
+  min-height: ${config.layout === 'toast' ? 60 : 120}px;
+  border-radius: ${Math.max(config.borderRadius - 4, 8)}px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+.widget-template__media-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 120px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+.widget-template__media-placeholder--image {
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  color: #334155;
+}
+.widget-template__media-placeholder--video {
+  background: #0f172a;
+  color: #fff;
+}
+.widget-template__media-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.widget-template__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+}
+.widget-template__badge {
+  width: max-content;
+  padding: 3px 8px;
+  border-radius: ${variant.badgeRadius};
+  background: ${config.buttonColor};
+  color: #fff;
+  font-size: 10px;
+  font-weight: ${variant.badgeWeight};
+  text-transform: ${variant.badgeTransform};
+  letter-spacing: ${variant.badgeSpacing};
+}
+.widget-template__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: ${variant.titleWeight};
+  text-transform: ${variant.titleTransform};
+  letter-spacing: ${variant.titleSpacing};
+  line-height: 1.25;
+}
+.widget-template__subtitle {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.8;
+}
+.widget-template__description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.widget-template__extra {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.75;
+}
+.widget-template__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+.widget-template__button {
+  width: 100%;
+  max-width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-radius: ${variant.buttonRadius};
+  background: ${config.buttonColor};
+  color: #fff;
+  font-size: 12px;
+  font-weight: ${variant.buttonWeight};
+  text-transform: ${variant.buttonTransform};
+  letter-spacing: ${variant.buttonSpacing};
+  cursor: pointer;
+  text-align: center;
+}
+.widget-template__button--full {
+  width: 100%;
+}
+.widget-template__reject {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: ${variant.buttonRadius};
+  background: transparent;
+  color: ${variant.bodyColor};
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.widget-template__reject:hover {
+  opacity: 1;
+}
+.widget-template--modal {
+  max-width: 88vw;
+}
+.widget-template--toast {
+  max-width: 100%;
+}
+.widget-template--glass {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Desktop styles (min-width: 768px) */
+@media (min-width: 768px) {
+  .widget-template {
+    flex-direction: ${getFlexDirection(config.layout)};
+    gap: 16px;
+    max-width: ${config.width}px;
+    min-height: ${config.layout === 'toast' ? 110 : config.minHeight}px;
+    padding: ${config.layout === 'toast' ? toastPadding : config.padding}px;
+  }
+  .widget-template__media {
+    width: ${desktopMediaWidth};
+    min-height: ${config.layout === 'toast' ? 72 : 140}px;
+    border-radius: ${Math.max(config.borderRadius - 4, 10)}px;
+  }
+  .widget-template__media-placeholder {
+    min-height: 140px;
+    padding: 12px;
+    font-size: 14px;
+  }
+  .widget-template__content {
+    gap: 8px;
+  }
+  .widget-template__badge {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+  .widget-template__title {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+  .widget-template__subtitle {
+    font-size: 12px;
+  }
+  .widget-template__description {
+    font-size: 14px;
+  }
+  .widget-template__extra {
+    font-size: 12px;
+  }
+  .widget-template__actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+  .widget-template__button {
+    width: max-content;
+  }
+  .widget-template__button--full {
+    width: 100%;
+  }
+  .widget-template__reject {
+    width: auto;
+  }
+  .widget-template--modal {
+    max-width: min(${config.width}px, 88vw);
+  }
+  .widget-template--toast {
+    max-width: 360px;
+  }
+}
 `
 }

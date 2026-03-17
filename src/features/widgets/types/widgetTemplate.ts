@@ -55,6 +55,7 @@ export const MOCK_WIDGET_CONTENT = {
   subtitle: 'Oferta por tempo limitado',
   description: 'Aproveite essa condição exclusiva para turbinar seu ticket médio.',
   buttonText: 'Comprar agora',
+  rejectText: 'Não, obrigado',
   badgeText: '20% OFF',
   extraText: 'Frete grátis para todo Brasil',
 }
