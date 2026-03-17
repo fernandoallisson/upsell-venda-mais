@@ -1,4 +1,4 @@
-import WidgetLivePreview from './WidgetLivePreview'
+import WidgetHtmlPreview from './WidgetHtmlPreview'
 import { normalizeWidgetConfig } from '../utils/widgetTemplateGenerator'
 import type { Widget } from '../../../types/widget'
 
@@ -11,7 +11,7 @@ const WidgetCardPreview = ({ widget }: Props) => {
 
   return (
     <div className="space-y-2 rounded-xl bg-slate-100 p-3">
-      <WidgetLivePreview config={config} compact />
+      <WidgetHtmlPreview html={widget.html} css={widget.css} compact />
       <p className="truncate text-xs text-slate-500">{config.layout} • {config.variant}</p>
     </div>
   )
