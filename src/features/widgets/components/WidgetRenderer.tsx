@@ -5,6 +5,7 @@ import { getWidgetComputedStyles, getWidgetLayoutDefinition, getWidgetVariantDef
 type Props = {
   config: WidgetVisualConfig
   mode?: WidgetRenderMode
+  viewport?: 'desktop' | 'mobile'
 }
 
 const mediaBeforeLayouts = new Set([
@@ -22,10 +23,10 @@ const mediaBeforeLayouts = new Set([
   'video-button',
 ])
 
-const WidgetRenderer = ({ config, mode = 'preview' }: Props) => {
+const WidgetRenderer = ({ config, mode = 'preview', viewport = 'desktop' }: Props) => {
   const layout = getWidgetLayoutDefinition(config.layout)
   const variant = getWidgetVariantDefinition(config.variant)
-  const styles = getWidgetComputedStyles(config, mode)
+  const styles = getWidgetComputedStyles(config, mode, viewport)
   const showMedia = config.showMedia && config.mediaType !== 'none'
 
   const mediaCore = showMedia ? (
@@ -49,18 +50,18 @@ const WidgetRenderer = ({ config, mode = 'preview' }: Props) => {
   const mediaBefore = mediaBeforeLayouts.has(config.layout)
 
   return (
-    <div style={styles.surfaceStyle} className={`${variant.cardClass} ${layout.containerClass} flex gap-4 ${config.layout === 'modal' ? 'mx-auto' : ''}`}>
+    <div style={styles.surfaceStyle} className={`${variant.cardClass} ${layout.containerClass} flex max-w-full gap-4 overflow-hidden ${config.layout === 'modal' ? 'mx-auto' : ''}`}>
       {mediaBefore ? Media : null}
 
       {config.layout !== 'image-only' ? (
-        <div className={`flex flex-1 flex-col gap-2 ${variant.bodyClass}`}>
+        <div className={`flex min-w-0 flex-1 flex-col gap-2 ${variant.bodyClass}`}>
           {config.showBadge ? <span className={`w-fit bg-black/80 px-3 py-1 text-[11px] text-white ${variant.badgeClass}`}>{MOCK_WIDGET_CONTENT.badgeText}</span> : null}
-          {config.showTitle ? <h3 className={`m-0 text-xl ${variant.titleClass}`}>{MOCK_WIDGET_CONTENT.title}</h3> : null}
-          {config.showSubtitle ? <p className="m-0 text-xs opacity-80">{MOCK_WIDGET_CONTENT.subtitle}</p> : null}
-          {config.showDescription ? <p className="m-0 text-sm">{MOCK_WIDGET_CONTENT.description}</p> : null}
-          {config.showComplementaryText ? <p className="m-0 text-xs opacity-75">{MOCK_WIDGET_CONTENT.extraText}</p> : null}
+          {config.showTitle ? <h3 className={`m-0 break-words text-xl ${variant.titleClass}`}>{MOCK_WIDGET_CONTENT.title}</h3> : null}
+          {config.showSubtitle ? <p className="m-0 break-words text-xs opacity-80">{MOCK_WIDGET_CONTENT.subtitle}</p> : null}
+          {config.showDescription ? <p className="m-0 break-words text-sm">{MOCK_WIDGET_CONTENT.description}</p> : null}
+          {config.showComplementaryText ? <p className="m-0 break-words text-xs opacity-75">{MOCK_WIDGET_CONTENT.extraText}</p> : null}
           {config.showButton ? (
-            <button type="button" className={`mt-2 px-4 py-2 text-xs text-white ${variant.buttonClass}`} style={styles.buttonStyle}>
+            <button type="button" className={`mt-2 max-w-full px-4 py-2 text-xs text-white ${variant.buttonClass}`} style={styles.buttonStyle}>
               {MOCK_WIDGET_CONTENT.buttonText}
             </button>
           ) : null}

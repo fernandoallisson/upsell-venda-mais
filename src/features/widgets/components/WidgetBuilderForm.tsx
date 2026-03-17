@@ -165,7 +165,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
                 </div>
                 <div className="rounded-xl bg-slate-100 p-4">
                   <WidgetPreviewFrame viewport={previewViewport}>
-                    <WidgetLivePreview config={config} />
+                    <WidgetLivePreview config={config} viewport={previewViewport} />
                   </WidgetPreviewFrame>
                 </div>
               </div>
@@ -198,7 +198,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
             </div>
             <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-100 to-slate-200 p-8">
               <WidgetPreviewFrame viewport={previewViewport} fullscreen>
-                <WidgetLivePreview config={config} />
+                <WidgetLivePreview config={config} viewport={previewViewport} />
               </WidgetPreviewFrame>
             </div>
           </div>

@@ -15,7 +15,11 @@ const shadowMap: Record<WidgetVisualConfig['shadow'], string> = {
 export const getWidgetLayoutDefinition = (layout: WidgetVisualConfig['layout']) => layoutPresetDefinitions[layout]
 export const getWidgetVariantDefinition = (variant: WidgetVisualConfig['variant']) => styleVariantDefinitions[variant]
 
-export const getWidgetComputedStyles = (config: WidgetVisualConfig, mode: WidgetRenderMode): {
+export const getWidgetComputedStyles = (
+  config: WidgetVisualConfig,
+  mode: WidgetRenderMode,
+  viewport: 'desktop' | 'mobile' = 'desktop',
+): {
   surfaceStyle: CSSProperties
   mediaStyle: CSSProperties
   buttonStyle: CSSProperties
@@ -23,9 +27,11 @@ export const getWidgetComputedStyles = (config: WidgetVisualConfig, mode: Widget
   const compact = mode === 'thumbnail'
   const minHeight = compact ? Math.max(96, Math.round(config.minHeight * 0.52)) : config.layout === 'toast' ? 110 : config.minHeight
 
+  const responsivePreview = mode !== 'full'
+
   const surfaceStyle: CSSProperties = {
-    width: mode === 'thumbnail' ? '100%' : `${config.width}px`,
-    maxWidth: mode === 'thumbnail' ? '100%' : `${config.width}px`,
+    width: responsivePreview ? '100%' : `${config.width}px`,
+    maxWidth: responsivePreview ? `${config.width}px` : `${config.width}px`,
     minHeight,
     margin: '0 auto',
     borderRadius: config.layout === 'banner' ? 999 : config.borderRadius,
@@ -45,7 +51,11 @@ export const getWidgetComputedStyles = (config: WidgetVisualConfig, mode: Widget
   }
 
   const mediaStyle: CSSProperties = {
-    width: layoutPresetDefinitions[config.layout].supportsMediaSize ? `${Math.min(70, Math.max(20, config.mediaSize))}%` : '100%',
+    width: layoutPresetDefinitions[config.layout].supportsMediaSize
+      ? viewport === 'mobile'
+        ? `${Math.min(58, Math.max(32, config.mediaSize))}%`
+        : `${Math.min(70, Math.max(20, config.mediaSize))}%`
+      : '100%',
     minHeight: compact ? 80 : config.layout === 'toast' ? 72 : 140,
     borderRadius: Math.max(config.borderRadius - 4, 10),
   }

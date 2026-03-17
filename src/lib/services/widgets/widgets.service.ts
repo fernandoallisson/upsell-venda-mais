@@ -90,7 +90,18 @@ const extractWidgetId = (value: JsonValue): number => {
     if (id > 0) return id
   }
 
-  return 0
+  return Number.NaN
+}
+
+const resolveWidgetId = (widget: Widget, response: JsonValue, fallbackId?: number): number => {
+  if (widget.id > 0) return widget.id
+
+  const extractedId = extractWidgetId(response)
+  if (Number.isFinite(extractedId) && extractedId > 0) return extractedId
+
+  if (typeof fallbackId === 'number' && fallbackId > 0) return fallbackId
+
+  throw new ApiError('A API de widget não retornou um ID válido.', 500)
 }
 
 const parseListResponse = (value: JsonValue): WidgetListResponse => {
@@ -232,17 +243,9 @@ export const createWidget = async (payload: WidgetFormPayload): Promise<Widget> 
 
   const raw = extractWidgetPayload(response)
   const widget = parseWidget(raw)
+  const resolvedId = resolveWidgetId(widget, response)
 
-  if (widget.id <= 0) {
-    const extractedId = extractWidgetId(response)
-    if (extractedId <= 0) {
-      throw new ApiError('Widget criado, mas a API não retornou um ID válido.', 500)
-    }
-
-    return { ...widget, id: extractedId }
-  }
-
-  return widget
+  return { ...widget, id: resolvedId }
 }
 
 export const updateWidget = async (id: number, payload: UpdateWidgetFormPayload): Promise<Widget> => {
@@ -256,7 +259,10 @@ export const updateWidget = async (id: number, payload: UpdateWidgetFormPayload)
   )
 
   const raw = extractWidgetPayload(response)
-  return parseWidget(raw)
+  const widget = parseWidget(raw)
+  const resolvedId = resolveWidgetId(widget, response, id)
+
+  return { ...widget, id: resolvedId }
 }
 
 export const deleteWidget = async (id: number): Promise<void> => {

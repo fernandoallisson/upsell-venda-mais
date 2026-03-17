@@ -11,12 +11,12 @@ const WidgetPreviewFrame = ({ viewport, children, fullscreen = false }: Props) =
     return (
       <div className={`mx-auto rounded-[2rem] border-8 border-slate-900 bg-slate-950 p-2 shadow-2xl ${fullscreen ? 'w-[360px]' : 'w-[280px]'}`}>
         <div className="mb-2 h-5 w-24 rounded-full bg-slate-800 mx-auto" />
-        <div className="rounded-[1.4rem] bg-slate-100 p-3 min-h-[520px]">
+        <div className="min-h-[520px] overflow-hidden rounded-[1.4rem] bg-slate-100 p-3">
           <div className="space-y-2 pb-3">
             <div className="h-2.5 w-1/3 rounded bg-slate-200" />
             <div className="h-2.5 w-2/3 rounded bg-slate-200" />
           </div>
-          {children}
+          <div className="mx-auto w-full max-w-[332px] overflow-hidden">{children}</div>
         </div>
       </div>
     )
