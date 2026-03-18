@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Eye, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
+import WidgetHtmlPreview from '../../../widgets/components/WidgetHtmlPreview'
 import { DISPLAY_LOCATIONS } from '../constants'
 import type { CampaignFormState } from '../types'
 
@@ -11,6 +12,18 @@ type Props = {
 type CardProps = {
   form: CampaignFormState
   size?: 'sm' | 'md'
+}
+
+const PresetPreview = ({ form, compact = false }: { form: CampaignFormState; compact?: boolean }) => {
+  if (!form.widget_html.trim() || !form.widget_css.trim()) {
+    return (
+      <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-400">
+        Selecione um preset de widget para visualizar a campanha.
+      </div>
+    )
+  }
+
+  return <WidgetHtmlPreview html={form.widget_html} css={form.widget_css} compact={compact} />
 }
 
 const OfferCard = ({ form, size = 'md' }: CardProps) => {
@@ -112,7 +125,6 @@ const InlineWrapper = ({ form }: { form: CampaignFormState }) => (
   </div>
 )
 
-
 const FullscreenPreview = ({
   form,
   locations,
@@ -152,11 +164,10 @@ const FullscreenPreview = ({
       </div>
 
       <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-        {type === 'modal' ? (
-          <ModalWrapper form={form} />
-        ) : (
-          <InlineWrapper form={form} />
-        )}
+        <PresetPreview form={form} compact={false} />
+        <div className="mt-3">
+          {type === 'modal' ? <ModalWrapper form={form} /> : <InlineWrapper form={form} />}
+        </div>
       </div>
 
       <div className="mt-3 flex items-center justify-between">
@@ -218,14 +229,18 @@ const PreviewPanel = ({ form, fullscreen = false }: Props) => {
         )}
       </div>
 
-      <div className="mx-auto max-w-xs">
-        <OfferCard form={form} size="md" />
+      <div className="space-y-4">
+        <PresetPreview form={form} compact />
 
-        {!form.headline && !form.description && !form.cta_text && (
-          <p className="mt-3 text-center text-xs text-slate-400">
-            Preencha os campos de conteudo para ver o preview
-          </p>
-        )}
+        <div className="mx-auto max-w-xs">
+          <OfferCard form={form} size="md" />
+
+          {!form.headline && !form.description && !form.cta_text && (
+            <p className="mt-3 text-center text-xs text-slate-400">
+              Preencha os campos de conteudo para ver o preview complementar da oferta
+            </p>
+          )}
+        </div>
       </div>
     </section>
   )

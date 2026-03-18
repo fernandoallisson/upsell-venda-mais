@@ -115,6 +115,7 @@ export const DEFAULT_FORM_STATE: CampaignFormState = {
   max_total: 100,
   block_after_conversion_days: 30,
 
+  widget_preset_id: null,
   widget_css: '',
   widget_html: '',
   colors: { bg: '#ffffff', text: '#1f2937', button: '#2563eb', buttonText: '#ffffff' },
