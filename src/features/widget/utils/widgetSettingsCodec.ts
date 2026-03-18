@@ -12,6 +12,11 @@ const SETTINGS_PREFIX = '/* @widget-settings '
 const SETTINGS_SUFFIX = ' */'
 
 type PersistedSettings = {
+  subtitle: string
+  badge: string
+  media_url: string
+  cta_link: string
+  cta_new_tab: boolean
   colors: WidgetColors
   spacing: WidgetSpacing
   typography: WidgetTypography
@@ -21,6 +26,11 @@ type PersistedSettings = {
 
 export const encodeSettingsIntoCss = (form: WidgetFormState, css: string): string => {
   const settings: PersistedSettings = {
+    subtitle: form.subtitle,
+    badge: form.badge,
+    media_url: form.media_url,
+    cta_link: form.cta_link,
+    cta_new_tab: form.cta_new_tab,
     colors: form.colors,
     spacing: form.spacing,
     typography: form.typography,
@@ -79,6 +89,11 @@ export const decodeSettingsFromCss = (cssRaw: string | null | undefined): Persis
     }
 
     return {
+      subtitle: typeof parsed.subtitle === 'string' ? parsed.subtitle : DEFAULT_WIDGET_STATE.subtitle,
+      badge: typeof parsed.badge === 'string' ? parsed.badge : DEFAULT_WIDGET_STATE.badge,
+      media_url: typeof parsed.media_url === 'string' ? parsed.media_url : DEFAULT_WIDGET_STATE.media_url,
+      cta_link: typeof parsed.cta_link === 'string' ? parsed.cta_link : DEFAULT_WIDGET_STATE.cta_link,
+      cta_new_tab: typeof parsed.cta_new_tab === 'boolean' ? parsed.cta_new_tab : DEFAULT_WIDGET_STATE.cta_new_tab,
       colors: { ...DEFAULT_WIDGET_STATE.colors, ...(parsed.colors as WidgetColors) },
       spacing: { ...DEFAULT_WIDGET_STATE.spacing, ...(parsed.spacing as WidgetSpacing) },
       typography: { ...DEFAULT_WIDGET_STATE.typography, ...(parsed.typography as WidgetTypography) },

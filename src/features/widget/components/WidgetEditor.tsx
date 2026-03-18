@@ -5,6 +5,7 @@ import { updateCampaign } from '../../../lib/services/campaigns/campaigns.servic
 import { ApiError } from '../../../lib/api'
 import { useWidgetEditor } from '../hooks/useWidgetEditor'
 import { generateWidgetCss, generateWidgetHtml } from '../utils/generateWidgetCode'
+import { isVideoUrl } from '../utils/widgetMedia'
 import { encodeSettingsIntoCss } from '../utils/widgetSettingsCodec'
 import WidgetEditorTemplates from './WidgetEditorTemplates'
 import WidgetEditorColors from './WidgetEditorColors'
@@ -59,6 +60,9 @@ const WidgetEditor = ({ campaign, onSaved, onBack }: Props) => {
   const generatedCss = generateWidgetCss(editor.form)
   const generatedHtml = generateWidgetHtml(editor.form)
 
+  const mediaUrl = editor.form.media_url.trim()
+  const mediaIsVideo = isVideoUrl(mediaUrl)
+
   const handleSave = async () => {
     setSaving(true)
     setSaveStatus('idle')
@@ -69,8 +73,11 @@ const WidgetEditor = ({ campaign, onSaved, onBack }: Props) => {
         name: editor.form.name || campaign.name,
         headline: editor.form.headline || undefined,
         description: editor.form.description || undefined,
-        image_url: editor.form.image_url || undefined,
+        image_url: mediaUrl && !mediaIsVideo ? mediaUrl : undefined,
+        video_url: mediaUrl && mediaIsVideo ? mediaUrl : undefined,
         cta_text: editor.form.cta_text || undefined,
+        cta_link: editor.form.cta_link || undefined,
+        cta_new_tab: editor.form.cta_new_tab,
         widget_css: encodeSettingsIntoCss(editor.form, generatedCss),
         widget_html: generatedHtml,
       })

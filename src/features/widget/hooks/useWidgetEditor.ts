@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { Campaign } from '../../../lib/services/campaigns/campaigns.types'
 import { DEFAULT_WIDGET_STATE } from '../constants'
 import type {
@@ -19,11 +19,18 @@ const campaignToWidgetState = (campaign: Campaign): WidgetFormState => {
     name: campaign.name ?? '',
     headline: campaign.headline ?? '',
     description: campaign.description ?? '',
-    image_url: campaign.image_url ?? '',
+    media_url: campaign.video_url ?? campaign.image_url ?? '',
     cta_text: campaign.cta_text ?? '',
+    cta_link: campaign.cta_link ?? '',
+    cta_new_tab: campaign.cta_new_tab ?? false,
     widget_css: campaign.widget_css ?? '',
     widget_html: campaign.widget_html ?? '',
     ...(saved && {
+      subtitle: saved.subtitle,
+      badge: saved.badge,
+      media_url: saved.media_url || campaign.video_url || campaign.image_url || '',
+      cta_link: saved.cta_link || campaign.cta_link || '',
+      cta_new_tab: saved.cta_new_tab,
       colors: saved.colors,
       spacing: saved.spacing,
       typography: saved.typography,
@@ -39,12 +46,8 @@ export const useWidgetEditor = (campaign: Campaign | null) => {
   )
   const [isDirty, setIsDirty] = useState(false)
 
-  useEffect(() => {
-    if (campaign) {
-      setForm(campaignToWidgetState(campaign))
-      setIsDirty(false)
-    }
-  }, [campaign])
+
+
 
   const update = useCallback(<K extends keyof WidgetFormState>(
     key: K,

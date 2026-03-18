@@ -57,7 +57,7 @@ const imagePositionOptions: Array<{ value: string; label: string }> = [
   { value: 'top', label: 'Topo' },
   { value: 'left', label: 'Esquerda' },
   { value: 'right', label: 'Direita' },
-  { value: 'none', label: 'Sem imagem' },
+  { value: 'none', label: 'Sem mídia' },
 ]
 
 const WidgetEditorSpacing = ({
@@ -102,7 +102,7 @@ const WidgetEditorSpacing = ({
     </div>
 
     <div className="space-y-3">
-      <p className="text-xs font-semibold text-slate-500">Posição da Imagem</p>
+      <p className="text-xs font-semibold text-slate-500">Posição da mídia</p>
       <div className="flex flex-wrap gap-2">
         {imagePositionOptions.map((opt) => (
           <button
@@ -121,7 +121,7 @@ const WidgetEditorSpacing = ({
       </div>
       {layout.imagePosition !== 'none' && (
         <RangeField
-          label={layout.imagePosition === 'top' ? 'Altura da imagem' : 'Largura da imagem'}
+          label={layout.imagePosition === 'top' ? 'Altura da mídia' : 'Largura da mídia'}
           value={layout.imageHeight}
           min={60}
           max={300}
@@ -149,31 +149,8 @@ const WidgetEditorSpacing = ({
       <RangeField label="Tamanho do botão" value={typography.ctaSize} min={10} max={20} onChange={(v) => onSetTypography('ctaSize', v)} />
     </div>
 
-    <div className="space-y-3">
-      <label className="flex cursor-pointer items-center justify-between">
-        <span className="text-xs text-slate-500">Mostrar botão de recusar</span>
-        <div
-          className={`relative h-5 w-9 rounded-full transition ${layout.showDismiss ? 'bg-blue-500' : 'bg-slate-200'}`}
-          onClick={() => onSetLayout('showDismiss', !layout.showDismiss)}
-        >
-          <span
-            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-              layout.showDismiss ? 'translate-x-4' : 'translate-x-0.5'
-            }`}
-          />
-        </div>
-      </label>
-      {layout.showDismiss && (
-        <label className="block space-y-1.5">
-          <span className="text-xs text-slate-500">Texto do botão recusar</span>
-          <input
-            type="text"
-            value={layout.dismissText}
-            onChange={(e) => onSetLayout('dismissText', e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-blue-300"
-          />
-        </label>
-      )}
+    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+      O fechamento do widget continua configurável por exibição, mas o HTML sempre renderiza o botão com id fixo <code className="font-mono text-slate-700">upse-close</code>.
     </div>
   </div>
 )

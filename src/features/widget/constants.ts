@@ -13,9 +13,13 @@ export const DEFAULT_WIDGET_COLORS: WidgetColors = {
 export const DEFAULT_WIDGET_STATE: WidgetFormState = {
   name: '',
   headline: '',
+  subtitle: '',
   description: '',
-  image_url: '',
+  badge: '',
+  media_url: '',
   cta_text: '',
+  cta_link: '',
+  cta_new_tab: false,
   colors: DEFAULT_WIDGET_COLORS,
   spacing: {
     padding: 24,
@@ -33,7 +37,6 @@ export const DEFAULT_WIDGET_STATE: WidgetFormState = {
     imagePosition: 'top',
     imageHeight: 160,
     showDismiss: true,
-    dismissText: 'Não, obrigado',
     shadowIntensity: 'lg',
     borderWidth: 1,
   },
@@ -43,7 +46,7 @@ export const DEFAULT_WIDGET_STATE: WidgetFormState = {
 }
 
 export const CARD_TEMPLATES: Array<{ key: CardTemplate; label: string; description: string }> = [
-  { key: 'classic', label: 'Clássico', description: 'Card padrão com imagem, título, descrição e botão' },
+  { key: 'classic', label: 'Clássico', description: 'Card padrão com mídia, título, subtítulo, descrição e botão' },
   { key: 'minimal', label: 'Minimalista', description: 'Design limpo, sem distrações e com foco no conteúdo' },
   { key: 'bold', label: 'Impacto', description: 'Cores vibrantes e tipografia forte para chamar atenção' },
   { key: 'compact', label: 'Compacto', description: 'Layout horizontal ideal para áreas com pouco espaço' },
