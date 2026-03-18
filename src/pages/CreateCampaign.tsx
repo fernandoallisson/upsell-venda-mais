@@ -26,6 +26,7 @@ const CreateCampaign = () => {
     form,
     set,
     segments,
+    widgetPresets,
     resourcesLoading,
     toggleDisplayLocation,
     toggleSegment,
@@ -35,6 +36,7 @@ const CreateCampaign = () => {
     clearHours,
     setColors,
     setColor,
+    selectWidgetPreset,
     setWidgetRenderType,
   } = useCreateCampaignForm()
 
@@ -127,9 +129,12 @@ const CreateCampaign = () => {
               <BasicInfoSection
                 form={form}
                 segments={segments}
+                widgetPresets={widgetPresets}
+                widgetPresetsLoading={resourcesLoading}
                 onSet={set}
                 onToggleLocation={toggleDisplayLocation}
                 onToggleSegment={toggleSegment}
+                onSelectWidgetPreset={selectWidgetPreset}
                 onSetWidgetRenderType={setWidgetRenderType}
               />
             </div>

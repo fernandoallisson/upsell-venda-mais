@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getDisplayLocations } from '../../../../lib/services/campaigns/campaigns.service'
 import { getSegments } from '../../../../lib/services/segments/segments.service'
+import { getWidgets } from '../../../../lib/services/widgets/widgets.service'
 import type { Segment } from '../../../../lib/services/segments/segments.types'
 import type { DisplayLocationsResponse } from '../../../../lib/services/campaigns/campaigns.types'
 import type { Campaign } from '../../../../lib/services/campaigns/campaigns.types'
+import type { Widget } from '../../../../types/widget'
 import { DEFAULT_FORM_STATE } from '../../create/constants'
 import type { CampaignFormColors, CampaignFormState, DisplayRenderType } from '../../create/types'
 
@@ -47,6 +49,7 @@ const campaignToFormState = (campaign: Campaign): CampaignFormState => ({
   max_per_day: campaign.max_per_day || DEFAULT_FORM_STATE.max_per_day,
   max_total: campaign.max_total || DEFAULT_FORM_STATE.max_total,
   block_after_conversion_days: campaign.block_after_conversion_days || DEFAULT_FORM_STATE.block_after_conversion_days,
+  widget_preset_id: null,
   widget_css: campaign.widget_css ?? '',
   widget_html: campaign.widget_html ?? '',
   display_location_rules: buildLocationRules(
@@ -60,6 +63,7 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
     campaign ? campaignToFormState(campaign) : DEFAULT_FORM_STATE,
   )
   const [segments, setSegments] = useState<Segment[]>([])
+  const [widgetPresets, setWidgetPresets] = useState<Widget[]>([])
   const [displayLocationsMap, setDisplayLocationsMap] = useState<DisplayLocationsResponse>({})
   const [resourcesLoading, setResourcesLoading] = useState(true)
 
@@ -75,9 +79,10 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
     const loadResources = async () => {
       setResourcesLoading(true)
       try {
-        const [locationsData, segmentsData] = await Promise.allSettled([
+        const [locationsData, segmentsData, widgetsData] = await Promise.allSettled([
           getDisplayLocations(),
           getSegments(1),
+          getWidgets({ page: 1, per_page: 100, is_active: true, sort: 'title', order: 'asc' }),
         ])
 
         if (cancelled) return
@@ -87,6 +92,9 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
         }
         if (segmentsData.status === 'fulfilled') {
           setSegments(segmentsData.value.data)
+        }
+        if (widgetsData.status === 'fulfilled') {
+          setWidgetPresets(widgetsData.value.data)
         }
       } finally {
         if (!cancelled) setResourcesLoading(false)
@@ -127,6 +135,20 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
       display_location_rules: buildLocationRules(prev.display_locations, renderType),
     }))
   }, [])
+
+  const selectWidgetPreset = useCallback((widgetId: number) => {
+    setForm((prev) => {
+      const widget = widgetPresets.find((item) => item.id === widgetId)
+      if (!widget) return prev
+
+      return {
+        ...prev,
+        widget_preset_id: widget.id,
+        widget_html: widget.html,
+        widget_css: widget.css,
+      }
+    })
+  }, [widgetPresets])
 
   const toggleSegment = useCallback((id: number) => {
     setForm((prev) => ({
@@ -178,6 +200,7 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
     form,
     set,
     segments,
+    widgetPresets,
     displayLocationsMap,
     resourcesLoading,
     toggleDisplayLocation,
@@ -188,6 +211,7 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
     clearHours,
     setColors,
     setColor,
+    selectWidgetPreset,
     setWidgetRenderType,
   }
 }

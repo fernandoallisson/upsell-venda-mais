@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getDisplayLocations } from '../../../../lib/services/campaigns/campaigns.service'
 import { getSegments } from '../../../../lib/services/segments/segments.service'
+import { getWidgets } from '../../../../lib/services/widgets/widgets.service'
 import type { Segment } from '../../../../lib/services/segments/segments.types'
 import type { DisplayLocationsResponse } from '../../../../lib/services/campaigns/campaigns.types'
+import type { Widget } from '../../../../types/widget'
 import { DEFAULT_FORM_STATE } from '../constants'
 import type { CampaignFormColors, CampaignFormState, DisplayRenderType } from '../types'
-
-
 
 const buildLocationRules = (locations: string[], renderType: DisplayRenderType | null) => {
   if (!renderType) return []
@@ -16,6 +16,7 @@ const buildLocationRules = (locations: string[], renderType: DisplayRenderType |
 export const useCreateCampaignForm = () => {
   const [form, setForm] = useState<CampaignFormState>(DEFAULT_FORM_STATE)
   const [segments, setSegments] = useState<Segment[]>([])
+  const [widgetPresets, setWidgetPresets] = useState<Widget[]>([])
   const [displayLocationsMap, setDisplayLocationsMap] = useState<DisplayLocationsResponse>({})
   const [resourcesLoading, setResourcesLoading] = useState(true)
 
@@ -25,9 +26,10 @@ export const useCreateCampaignForm = () => {
     const loadResources = async () => {
       setResourcesLoading(true)
       try {
-        const [locationsData, segmentsData] = await Promise.allSettled([
+        const [locationsData, segmentsData, widgetsData] = await Promise.allSettled([
           getDisplayLocations(),
           getSegments(1),
+          getWidgets({ page: 1, per_page: 100, is_active: true, sort: 'title', order: 'asc' }),
         ])
 
         if (cancelled) return
@@ -38,13 +40,18 @@ export const useCreateCampaignForm = () => {
         if (segmentsData.status === 'fulfilled') {
           setSegments(segmentsData.value.data)
         }
+        if (widgetsData.status === 'fulfilled') {
+          setWidgetPresets(widgetsData.value.data)
+        }
       } finally {
         if (!cancelled) setResourcesLoading(false)
       }
     }
 
     loadResources()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const set = useCallback(<K extends keyof CampaignFormState>(
@@ -75,6 +82,20 @@ export const useCreateCampaignForm = () => {
       display_location_rules: buildLocationRules(prev.display_locations, renderType),
     }))
   }, [])
+
+  const selectWidgetPreset = useCallback((widgetId: number) => {
+    setForm((prev) => {
+      const widget = widgetPresets.find((item) => item.id === widgetId)
+      if (!widget) return prev
+
+      return {
+        ...prev,
+        widget_preset_id: widget.id,
+        widget_html: widget.html,
+        widget_css: widget.css,
+      }
+    })
+  }, [widgetPresets])
 
   const toggleSegment = useCallback((id: number) => {
     setForm((prev) => ({
@@ -126,6 +147,7 @@ export const useCreateCampaignForm = () => {
     form,
     set,
     segments,
+    widgetPresets,
     displayLocationsMap,
     resourcesLoading,
     toggleDisplayLocation,
@@ -136,6 +158,7 @@ export const useCreateCampaignForm = () => {
     clearHours,
     setColors,
     setColor,
+    selectWidgetPreset,
     setWidgetRenderType,
   }
 }

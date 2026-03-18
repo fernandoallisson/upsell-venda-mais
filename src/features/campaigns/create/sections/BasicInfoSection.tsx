@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   CreditCard,
   PackageCheck,
@@ -7,11 +7,14 @@ import {
   Check,
   ChevronDown,
   Globe,
+  LayoutTemplate,
   Plus,
   Trash2,
   Users,
 } from 'lucide-react'
 import type { Segment } from '../../../../lib/services/segments/segments.types'
+import type { Widget } from '../../../../types/widget'
+import WidgetHtmlPreview from '../../../widgets/components/WidgetHtmlPreview'
 import { DISPLAY_LOCATIONS, RENDER_TYPE_OPTIONS } from '../constants'
 import type { CampaignFormState, DisplayRenderType } from '../types'
 import CollapsibleSection from '../../../../components/layout/CollapsibleSection'
@@ -26,9 +29,12 @@ const LOCATION_ICONS: Record<string, React.ReactNode> = {
 type Props = {
   form: CampaignFormState
   segments: Segment[]
+  widgetPresets: Widget[]
+  widgetPresetsLoading: boolean
   onSet: <K extends keyof CampaignFormState>(key: K, value: CampaignFormState[K]) => void
   onToggleLocation: (key: string) => void
   onToggleSegment: (id: number) => void
+  onSelectWidgetPreset: (widgetId: number) => void
   onSetWidgetRenderType: (renderType: DisplayRenderType) => void
 }
 
@@ -101,9 +107,12 @@ const DomainInput = ({
 const BasicInfoSection = ({
   form,
   segments,
+  widgetPresets,
+  widgetPresetsLoading,
   onSet,
   onToggleLocation,
   onToggleSegment,
+  onSelectWidgetPreset,
   onSetWidgetRenderType,
 }: Props) => {
   const [segmentOpen, setSegmentOpen] = useState(false)
@@ -111,6 +120,11 @@ const BasicInfoSection = ({
   const selectedSegmentNames = form.segment_ids
     .map((id) => segments.find((s) => s.id === id)?.name)
     .filter(Boolean)
+
+  const selectedWidgetPreset = useMemo(
+    () => widgetPresets.find((widget) => widget.id === form.widget_preset_id) ?? null,
+    [form.widget_preset_id, widgetPresets],
+  )
 
   return (
     <CollapsibleSection number={1} title="Informações Básicas" defaultOpen={true}>
@@ -156,6 +170,43 @@ const BasicInfoSection = ({
           </label>
         </div>
 
+        <label className="block space-y-1.5">
+          <span className="text-xs font-semibold text-slate-600">
+            Preset do Widget <span className="text-rose-500">*</span>
+          </span>
+          <select
+            value={form.widget_preset_id ? String(form.widget_preset_id) : ''}
+            onChange={(e) => onSelectWidgetPreset(Number(e.target.value))}
+            disabled={widgetPresetsLoading || widgetPresets.length === 0}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none transition disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 focus:border-blue-300"
+          >
+            <option value="">
+              {widgetPresetsLoading ? 'Carregando presets...' : 'Selecione um preset existente'}
+            </option>
+            {widgetPresets.map((widget) => (
+              <option key={widget.id} value={widget.id}>
+                {widget.title}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-400">
+            O HTML e CSS do widget selecionado serão copiados para a campanha no salvamento.
+          </p>
+        </label>
+
+        {selectedWidgetPreset && (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <LayoutTemplate className="h-4 w-4 text-slate-400" />
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{selectedWidgetPreset.title}</p>
+                <p className="text-xs text-slate-500">Preset selecionado para inicializar a campanha.</p>
+              </div>
+            </div>
+            <WidgetHtmlPreview html={selectedWidgetPreset.html} css={selectedWidgetPreset.css} compact />
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <span className="text-xs font-semibold text-slate-600">Segmentação</span>
           <div className="relative">
@@ -189,142 +240,82 @@ const BasicInfoSection = ({
                 <div className="max-h-52 overflow-y-auto p-1">
                   {segments.length === 0 ? (
                     <p className="px-3 py-2 text-xs text-slate-400">
-                      Nenhum segmento disponivel.
+                      Nenhum segmento disponível.
                     </p>
                   ) : (
-                    segments.map((seg) => {
-                      const selected = form.segment_ids.includes(seg.id)
+                    segments.map((segment) => {
+                      const active = form.segment_ids.includes(segment.id)
                       return (
                         <button
-                          key={seg.id}
+                          key={segment.id}
                           type="button"
-                          onClick={() => onToggleSegment(seg.id)}
-                          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
-                            selected
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'text-slate-700 hover:bg-slate-50'
+                          onClick={() => onToggleSegment(segment.id)}
+                          className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                            active ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'
                           }`}
                         >
-                          <span
-                            className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
-                              selected
-                                ? 'border-blue-500 bg-blue-500'
-                                : 'border-slate-300'
-                            }`}
-                          >
-                            {selected && (
-                              <Check className="h-2.5 w-2.5 text-white" />
-                            )}
-                          </span>
-                          {seg.name}
+                          <span>{segment.name}</span>
+                          {active && <Check className="h-4 w-4" />}
                         </button>
                       )
                     })
                   )}
                 </div>
-                <div className="border-t border-slate-100 p-2">
-                  <button
-                    type="button"
-                    onClick={() => setSegmentOpen(false)}
-                    className="w-full rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50"
-                  >
-                    Fechar
-                  </button>
-                </div>
               </div>
             )}
           </div>
-          {form.segment_ids.length === 0 && (
-            <p className="text-xs text-slate-400">
-              Todos os visitantes serao alcancados
-            </p>
-          )}
         </div>
 
-        <div className="space-y-1.5">
-          <span className="text-xs font-semibold text-slate-600">
-            Domínios Permitidos
-          </span>
-          <DomainInput
-            domains={form.domains}
-            onSet={(domains) => onSet('domains', domains)}
-          />
-          {form.domains.length === 0 && (
-            <p className="text-xs text-slate-400">
-              Todos os domínios serão aceitos
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          <span className="text-xs font-semibold text-slate-600">
-            Tipo de Exibição da Campanha
-          </span>
+        <div className="space-y-2">
+          <span className="text-xs font-semibold text-slate-600">Locais de Exibição</span>
           <div className="grid gap-2 sm:grid-cols-2">
-            {RENDER_TYPE_OPTIONS.map((option) => {
-              const selected = form.widget_render_type === option.value
+            {DISPLAY_LOCATIONS.map((location) => {
+              const active = form.display_locations.includes(location.key)
               return (
                 <button
-                  key={option.value}
+                  key={location.key}
                   type="button"
-                  onClick={() => onSetWidgetRenderType(option.value)}
-                  className={`rounded-xl border px-3 py-2 text-left text-sm font-medium transition ${
-                    selected
-                      ? 'border-blue-300 bg-blue-50 text-blue-700'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              )
-            })}
-          </div>
-          <p className="text-xs text-slate-400">
-            Uma campanha usa apenas um tipo de widget. Todos os locais selecionados seguem este mesmo tipo.
-          </p>
-        </div>
-
-        <div className="space-y-1.5">
-          <span className="text-xs font-semibold text-slate-600">
-            Local de Exibição
-          </span>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {DISPLAY_LOCATIONS.map((loc) => {
-              const isSelected = form.display_locations.includes(loc.key)
-              return (
-                <button
-                  key={loc.key}
-                  type="button"
-                  onClick={() => onToggleLocation(loc.key)}
-                  className={`relative flex flex-col gap-2 rounded-xl border p-3.5 text-left transition ${
-                    isSelected
-                      ? 'border-emerald-300 bg-emerald-50 ring-1 ring-emerald-200'
+                  onClick={() => onToggleLocation(location.key)}
+                  className={`rounded-xl border p-3 text-left transition ${
+                    active
+                      ? 'border-blue-200 bg-blue-50'
                       : 'border-slate-200 bg-white hover:border-slate-300'
                   }`}
                 >
-                  {isSelected && (
-                    <span className="absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
-                      <Check className="h-3 w-3 text-white" />
-                    </span>
-                  )}
-                  <span
-                    className={`${isSelected ? 'text-emerald-600' : 'text-slate-400'}`}
-                  >
-                    {LOCATION_ICONS[loc.icon]}
-                  </span>
-                  <div>
-                    <p
-                      className={`text-xs font-semibold leading-tight ${
-                        isSelected ? 'text-emerald-800' : 'text-slate-700'
-                      }`}
-                    >
-                      {loc.label}
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <div className={`rounded-lg p-2 ${active ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {LOCATION_ICONS[location.icon]}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{location.label}</p>
+                      <p className="mt-1 text-xs text-slate-500">{location.description}</p>
+                    </div>
                   </div>
                 </button>
               )
             })}
           </div>
+        </div>
+
+        <label className="block space-y-1.5">
+          <span className="text-xs font-semibold text-slate-600">Tipo de Exibição</span>
+          <select
+            value={form.widget_render_type ?? ''}
+            onChange={(e) => onSetWidgetRenderType(e.target.value as DisplayRenderType)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-300"
+          >
+            <option value="">Selecione o tipo de exibição</option>
+            {RENDER_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="space-y-1.5">
+          <span className="text-xs font-semibold text-slate-600">Domínios permitidos</span>
+          <DomainInput domains={form.domains} onSet={(domains) => onSet('domains', domains)} />
         </div>
       </div>
     </CollapsibleSection>
