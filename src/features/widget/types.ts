@@ -26,7 +26,6 @@ export type WidgetLayout = {
   imagePosition: 'top' | 'left' | 'right' | 'none'
   imageHeight: number
   showDismiss: boolean
-  dismissText: string
   shadowIntensity: 'none' | 'sm' | 'md' | 'lg' | 'xl'
   borderWidth: number
 }
@@ -36,9 +35,13 @@ export type CardTemplate = 'classic' | 'minimal' | 'bold' | 'compact' | 'banner'
 export type WidgetFormState = {
   name: string
   headline: string
+  subtitle: string
   description: string
-  image_url: string
+  badge: string
+  media_url: string
   cta_text: string
+  cta_link: string
+  cta_new_tab: boolean
   colors: WidgetColors
   spacing: WidgetSpacing
   typography: WidgetTypography
