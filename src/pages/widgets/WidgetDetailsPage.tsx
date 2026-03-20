@@ -30,7 +30,7 @@ const WidgetDetailsPage = () => {
     setLoading(true)
     setError(null)
     try {
-      const data = slug ? await getWidgetBySlug(slug) : await getWidgetById(Number(id))
+      const data = slug ? await getWidgetBySlug(slug) : await getWidgetById(id ?? '')
       setWidget(data)
     } catch (err) {
       const apiError = err instanceof ApiError ? err : null
@@ -85,41 +85,41 @@ const WidgetDetailsPage = () => {
                 <div>
                   <p className="mb-2 text-sm font-semibold text-slate-700">Personalização</p>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {(widget.config as Record<string, unknown>).backgroundColor ? (
+                    {(widget.config.attributes as Record<string, unknown>).backgroundColor ? (
                       <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs">
-                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config as Record<string, unknown>).backgroundColor) }} />
-                        <span className="text-slate-600">Fundo: {String((widget.config as Record<string, unknown>).backgroundColor)}</span>
+                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config.attributes as Record<string, unknown>).backgroundColor) }} />
+                        <span className="text-slate-600">Fundo: {String((widget.config.attributes as Record<string, unknown>).backgroundColor)}</span>
                       </div>
                     ) : null}
-                    {(widget.config as Record<string, unknown>).textColor ? (
+                    {(widget.config.attributes as Record<string, unknown>).textColor ? (
                       <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs">
-                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config as Record<string, unknown>).textColor) }} />
-                        <span className="text-slate-600">Texto: {String((widget.config as Record<string, unknown>).textColor)}</span>
+                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config.attributes as Record<string, unknown>).textColor) }} />
+                        <span className="text-slate-600">Texto: {String((widget.config.attributes as Record<string, unknown>).textColor)}</span>
                       </div>
                     ) : null}
-                    {(widget.config as Record<string, unknown>).buttonColor ? (
+                    {(widget.config.attributes as Record<string, unknown>).buttonColor ? (
                       <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs">
-                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config as Record<string, unknown>).buttonColor) }} />
-                        <span className="text-slate-600">Botão: {String((widget.config as Record<string, unknown>).buttonColor)}</span>
+                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config.attributes as Record<string, unknown>).buttonColor) }} />
+                        <span className="text-slate-600">Botão: {String((widget.config.attributes as Record<string, unknown>).buttonColor)}</span>
                       </div>
                     ) : null}
-                    {(widget.config as Record<string, unknown>).borderColor ? (
+                    {(widget.config.attributes as Record<string, unknown>).borderColor ? (
                       <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs">
-                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config as Record<string, unknown>).borderColor) }} />
-                        <span className="text-slate-600">Borda: {String((widget.config as Record<string, unknown>).borderColor)}</span>
+                        <span className="inline-block h-4 w-4 rounded border border-slate-300" style={{ background: String((widget.config.attributes as Record<string, unknown>).borderColor) }} />
+                        <span className="text-slate-600">Borda: {String((widget.config.attributes as Record<string, unknown>).borderColor)}</span>
                       </div>
                     ) : null}
-                    {(widget.config as Record<string, unknown>).layout ? (
-                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Layout: {String((widget.config as Record<string, unknown>).layout)}</div>
+                    {(widget.config.attributes as Record<string, unknown>).layout ? (
+                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Layout: {String((widget.config.attributes as Record<string, unknown>).layout)}</div>
                     ) : null}
-                    {(widget.config as Record<string, unknown>).variant ? (
-                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Variante: {String((widget.config as Record<string, unknown>).variant)}</div>
+                    {(widget.config.attributes as Record<string, unknown>).variant ? (
+                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Variante: {String((widget.config.attributes as Record<string, unknown>).variant)}</div>
                     ) : null}
-                    {(widget.config as Record<string, unknown>).width ? (
-                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Largura: {String((widget.config as Record<string, unknown>).width)}px</div>
+                    {(widget.config.attributes as Record<string, unknown>).width ? (
+                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Largura: {String((widget.config.attributes as Record<string, unknown>).width)}px</div>
                     ) : null}
-                    {(widget.config as Record<string, unknown>).borderRadius !== undefined ? (
-                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Arredondamento: {String((widget.config as Record<string, unknown>).borderRadius)}px</div>
+                    {(widget.config.attributes as Record<string, unknown>).borderRadius !== undefined ? (
+                      <div className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">Arredondamento: {String((widget.config.attributes as Record<string, unknown>).borderRadius)}px</div>
                     ) : null}
                   </div>
                 </div>

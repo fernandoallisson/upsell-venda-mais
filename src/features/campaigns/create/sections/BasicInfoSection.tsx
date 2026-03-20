@@ -34,7 +34,7 @@ type Props = {
   onSet: <K extends keyof CampaignFormState>(key: K, value: CampaignFormState[K]) => void
   onToggleLocation: (key: string) => void
   onToggleSegment: (id: number) => void
-  onSelectWidgetPreset: (widgetId: number) => void
+  onSelectWidgetPreset: (widgetId: string) => void
   onSetWidgetRenderType: (renderType: DisplayRenderType) => void
 }
 
@@ -176,7 +176,7 @@ const BasicInfoSection = ({
           </span>
           <select
             value={form.widget_preset_id ? String(form.widget_preset_id) : ''}
-            onChange={(e) => onSelectWidgetPreset(Number(e.target.value))}
+            onChange={(e) => onSelectWidgetPreset(e.target.value)}
             disabled={widgetPresetsLoading || widgetPresets.length === 0}
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none transition disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 focus:border-blue-300"
           >

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { Widget, WidgetApiValidationErrors, WidgetFormPayload } from '../../../types/widget'
+import type { Widget, WidgetApiValidationErrors, WidgetFormPayload, WidgetConfig } from '../../../types/widget'
 import {
   defaultWidgetVisualConfig,
   layoutLabels,
@@ -39,7 +39,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
   const [activeTab, setActiveTab] = useState<EditorTab>('structure')
   const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop')
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false)
-  const [config, setConfig] = useState<WidgetVisualConfig>(() => normalizeWidgetConfig(initialValue?.config ?? defaultWidgetVisualConfig))
+  const [config, setConfig] = useState<WidgetVisualConfig>(() => normalizeWidgetConfig(initialValue?.config ?? { name: 'Widget padrão', slug: 'widget-padrao', attributes: defaultWidgetVisualConfig }))
 
   const generatedHtml = useMemo(() => generateWidgetHtml(config), [config])
   const generatedCss = useMemo(() => generateWidgetCss(config), [config])
@@ -74,9 +74,15 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
     setLocalError(null)
     if (!title.trim()) return setLocalError('Informe o nome do template.')
 
+    const widgetConfig: WidgetConfig = {
+      name: title.trim(),
+      slug: title.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+      attributes: config,
+    }
+
     await onSubmit({
       title: title.trim(),
-      config,
+      config: widgetConfig,
       html: generatedHtml,
       css: generatedCss,
       is_active: isActive,

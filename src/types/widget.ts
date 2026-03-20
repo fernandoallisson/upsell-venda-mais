@@ -1,7 +1,13 @@
-export type WidgetConfig = Record<string, unknown>
+export type WidgetConfigAttributes = Record<string, unknown>
+
+export type WidgetConfig = {
+  name: string
+  slug: string
+  attributes: WidgetConfigAttributes
+}
 
 export type Widget = {
-  id: number
+  id: string
   title: string
   slug: string
   config: WidgetConfig
@@ -37,9 +43,7 @@ export type WidgetFormPayload = {
   is_active?: boolean
 }
 
-export type CreateWidgetPayload = Omit<WidgetFormPayload, 'config'> & {
-  config: string
-}
+export type CreateWidgetPayload = WidgetFormPayload
 
 export type UpdateWidgetFormPayload = Partial<WidgetFormPayload>
 

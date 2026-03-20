@@ -83,7 +83,7 @@ export const useCreateCampaignForm = () => {
     }))
   }, [])
 
-  const selectWidgetPreset = useCallback((widgetId: number) => {
+  const selectWidgetPreset = useCallback((widgetId: string) => {
     setForm((prev) => {
       const widget = widgetPresets.find((item) => item.id === widgetId)
       if (!widget) return prev

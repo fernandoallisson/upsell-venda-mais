@@ -21,7 +21,7 @@ const WidgetEditPage = () => {
     setError(null)
 
     try {
-      const data = await getWidgetById(Number(id))
+      const data = await getWidgetById(id)
       setWidget(data)
     } catch (err) {
       const apiError = err instanceof ApiError ? err : null
@@ -46,7 +46,7 @@ const WidgetEditPage = () => {
     setValidationErrors({})
 
     try {
-      const updated = await updateWidget(Number(id), payload)
+      const updated = await updateWidget(id, payload)
       setWidget(updated)
       navigate(`/widget/${updated.id}`, { state: { success: 'Widget atualizado com sucesso.' } })
     } catch (err) {

@@ -34,6 +34,12 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const asString = (value: unknown): string =>
   typeof value === 'string' ? value : ''
 
+const asId = (value: unknown): string => {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return ''
+}
+
 const asNumber = (value: unknown): number => {
   if (typeof value === 'number') return value
   if (typeof value === 'string') {
@@ -65,7 +71,7 @@ const parseWidget = (raw: unknown): Widget => {
   }
 
   return {
-    id: asNumber(raw.id),
+    id: asId(raw.id),
     title: asString(raw.title),
     slug: asString(raw.slug),
     config: parseWidgetConfig(raw.config),
@@ -188,7 +194,7 @@ export const getWidgets = async (params: WidgetListParams): Promise<WidgetListRe
   return parseListResponse(response)
 }
 
-export const getWidgetById = async (id: number): Promise<Widget> => {
+export const getWidgetById = async (id: string): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     `${WIDGETS_BASE_ENDPOINT}/${id}`,
     { method: 'GET' },
@@ -233,7 +239,7 @@ export const createWidget = async (payload: WidgetFormPayload): Promise<Widget> 
  * Body: { title?, config?, css?, html?, is_active? }
  * Response: { data: Widget, message: string }
  */
-export const updateWidget = async (id: number, payload: UpdateWidgetFormPayload): Promise<Widget> => {
+export const updateWidget = async (id: string, payload: UpdateWidgetFormPayload): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     `${WIDGETS_BASE_ENDPOINT}/${id}`,
     {
@@ -247,7 +253,7 @@ export const updateWidget = async (id: number, payload: UpdateWidgetFormPayload)
   return { ...widget, id: widget.id || id }
 }
 
-export const deleteWidget = async (id: number): Promise<void> => {
+export const deleteWidget = async (id: string): Promise<void> => {
   await widgetRequest(
     `${WIDGETS_BASE_ENDPOINT}/${id}`,
     { method: 'DELETE' },
@@ -255,7 +261,7 @@ export const deleteWidget = async (id: number): Promise<void> => {
   )
 }
 
-export const restoreWidget = async (id: number): Promise<Widget> => {
+export const restoreWidget = async (id: string): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     `/v1/widgets/${id}/restore`,
     { method: 'POST' },
