@@ -119,7 +119,7 @@ const variantStyles: Record<WidgetVisualConfig['variant'], {
 }
 
 export const normalizeWidgetConfig = (config: WidgetConfig | null | undefined): WidgetVisualConfig => {
-  const source = config && typeof config === 'object' ? (config as Record<string, unknown>) : {}
+  const source = config?.attributes && typeof config.attributes === 'object' ? (config.attributes as Record<string, unknown>) : config && typeof config === 'object' ? ((config as unknown as Record<string, unknown>)) : {}
   const normalized: WidgetVisualConfig = {
     ...defaultWidgetVisualConfig,
     ...source,

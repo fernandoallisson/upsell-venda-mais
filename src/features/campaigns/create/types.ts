@@ -36,7 +36,7 @@ export type CampaignFormState = {
   max_total: number
   block_after_conversion_days: number
 
-  widget_preset_id: number | null
+  widget_preset_id: string | null
   widget_css: string
   widget_html: string
   colors: CampaignFormColors
