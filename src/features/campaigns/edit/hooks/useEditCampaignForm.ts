@@ -12,7 +12,11 @@ import type {
   CampaignFormState,
   DisplayRenderType,
 } from "../../create/types";
-import { buildCampaignWidgetMarkup } from "../../create/widgetPresetUtils";
+import {
+  buildCampaignWidgetMarkup,
+  shouldSyncCampaignWidgetMarkup,
+  syncCampaignWidgetMarkup,
+} from "../../create/widgetPresetUtils";
 
 const toDateInputValue = (value: string | null) => {
   if (!value) return "";
@@ -157,9 +161,15 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
       key: K,
       value: CampaignFormState[K],
     ) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
+      setForm((prev) => {
+        const next = { ...prev, [key]: value };
+        if (!shouldSyncCampaignWidgetMarkup(key)) return next;
+
+        const widget = widgetPresets.find((item) => item.id === next.widget_preset_id);
+        return syncCampaignWidgetMarkup(next, widget);
+      });
     },
-    [],
+    [widgetPresets],
   );
 
   const toggleDisplayLocation = useCallback((key: string) => {
