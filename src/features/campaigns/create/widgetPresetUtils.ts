@@ -10,6 +10,17 @@ import {
 } from "../../widgets/utils/widgetTemplateGenerator";
 import type { CampaignFormState } from "./types";
 
+const widgetMarkupDependentFields: Array<keyof CampaignFormState> = [
+  "headline",
+  "subtitle",
+  "description",
+  "complementary_text",
+  "badge_text",
+  "image_url",
+  "video_url",
+  "cta_text",
+];
+
 export const getWidgetPresetConfig = (
   widget: Widget | null | undefined,
 ): WidgetVisualConfig => {
@@ -57,3 +68,22 @@ export const getVisibleFieldsFromWidget = (
     mediaType: config.mediaType,
   };
 };
+
+export const syncCampaignWidgetMarkup = (
+  form: CampaignFormState,
+  widget: Widget | null | undefined,
+) => {
+  if (!form.widget_preset_id || !widget) return form;
+
+  const generated = buildCampaignWidgetMarkup(widget, form);
+
+  return {
+    ...form,
+    widget_html: generated.html,
+    widget_css: generated.css,
+  };
+};
+
+export const shouldSyncCampaignWidgetMarkup = (
+  key: keyof CampaignFormState,
+) => widgetMarkupDependentFields.includes(key);

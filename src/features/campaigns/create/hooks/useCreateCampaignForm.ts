@@ -11,7 +11,11 @@ import type {
   CampaignFormState,
   DisplayRenderType,
 } from "../types";
-import { buildCampaignWidgetMarkup } from "../widgetPresetUtils";
+import {
+  buildCampaignWidgetMarkup,
+  shouldSyncCampaignWidgetMarkup,
+  syncCampaignWidgetMarkup,
+} from "../widgetPresetUtils";
 
 const buildLocationRules = (
   locations: string[],
@@ -75,9 +79,15 @@ export const useCreateCampaignForm = () => {
       key: K,
       value: CampaignFormState[K],
     ) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
+      setForm((prev) => {
+        const next = { ...prev, [key]: value };
+        if (!shouldSyncCampaignWidgetMarkup(key)) return next;
+
+        const widget = widgetPresets.find((item) => item.id === next.widget_preset_id);
+        return syncCampaignWidgetMarkup(next, widget);
+      });
     },
-    [],
+    [widgetPresets],
   );
 
   const toggleDisplayLocation = useCallback((key: string) => {
