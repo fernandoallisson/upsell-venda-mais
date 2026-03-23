@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   HelpCircle,
@@ -7,60 +7,64 @@ import {
   Maximize2,
   Save,
   X,
-} from 'lucide-react'
-import { ApiError } from '../lib/api'
+} from "lucide-react";
+import { ApiError } from "../lib/api";
 import {
   getCampaignById,
   updateCampaign,
-} from '../lib/services/campaigns/campaigns.service'
-import type { Campaign } from '../lib/services/campaigns/campaigns.types'
-import { useEditCampaignForm } from '../features/campaigns/edit/hooks/useEditCampaignForm'
-import { buildCampaignPayload, validateCampaignForm } from '../features/campaigns/create/utils'
-import BasicInfoSection from '../features/campaigns/create/sections/BasicInfoSection'
-import ContentSection from '../features/campaigns/create/sections/ContentSection'
-import ScheduleSection from '../features/campaigns/create/sections/ScheduleSection'
-import FrequencySection from '../features/campaigns/create/sections/FrequencySection'
-import VisualSection from '../features/campaigns/create/sections/VisualSection'
-import PreviewPanel from '../features/campaigns/create/sections/PreviewPanel'
-import CampaignTour from '../features/campaigns/tour/CampaignTour'
+} from "../lib/services/campaigns/campaigns.service";
+import type { Campaign } from "../lib/services/campaigns/campaigns.types";
+import { useEditCampaignForm } from "../features/campaigns/edit/hooks/useEditCampaignForm";
+import {
+  buildCampaignPayload,
+  validateCampaignForm,
+} from "../features/campaigns/create/utils";
+import BasicInfoSection from "../features/campaigns/create/sections/BasicInfoSection";
+import ContentSection from "../features/campaigns/create/sections/ContentSection";
+import ScheduleSection from "../features/campaigns/create/sections/ScheduleSection";
+import FrequencySection from "../features/campaigns/create/sections/FrequencySection";
+import PreviewPanel from "../features/campaigns/create/sections/PreviewPanel";
+import CampaignTour from "../features/campaigns/tour/CampaignTour";
 
 const EditCampaign = () => {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
-  const [loadStatus, setLoadStatus] = useState<'loading' | 'error' | 'idle'>('loading')
-  const [loadError, setLoadError] = useState<string | null>(null)
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [loadStatus, setLoadStatus] = useState<"loading" | "error" | "idle">(
+    "loading",
+  );
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
-      navigate('/upsell/campanhas')
-      return
+      navigate("/upsell/campanhas");
+      return;
     }
 
-    const campaignId = Number(id)
+    const campaignId = Number(id);
     if (Number.isNaN(campaignId)) {
-      navigate('/upsell/campanhas')
-      return
+      navigate("/upsell/campanhas");
+      return;
     }
 
     const fetchCampaign = async () => {
-      setLoadStatus('loading')
-      setLoadError(null)
+      setLoadStatus("loading");
+      setLoadError(null);
       try {
-        const details = await getCampaignById(campaignId)
-        setCampaign(details.campaign)
-        setLoadStatus('idle')
+        const details = await getCampaignById(campaignId);
+        setCampaign(details.campaign);
+        setLoadStatus("idle");
       } catch (err) {
         const message =
-          err instanceof ApiError ? err.message : 'Erro ao carregar campanha.'
-        setLoadError(message)
-        setLoadStatus('error')
+          err instanceof ApiError ? err.message : "Erro ao carregar campanha.";
+        setLoadError(message);
+        setLoadStatus("error");
       }
-    }
+    };
 
-    fetchCampaign()
-  }, [id, navigate])
+    fetchCampaign();
+  }, [id, navigate]);
 
   const {
     form,
@@ -74,51 +78,54 @@ const EditCampaign = () => {
     toggleHour,
     setAllHours,
     clearHours,
-    setColors,
-    setColor,
     selectWidgetPreset,
     setWidgetRenderType,
-  } = useEditCampaignForm(campaign)
+  } = useEditCampaignForm(campaign);
 
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [showFullPreview, setShowFullPreview] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "loading" | "error">(
+    "idle",
+  );
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [showFullPreview, setShowFullPreview] = useState(false);
 
-  const openTourRef = useRef<(() => void) | null>(null)
+  const openTourRef = useRef<(() => void) | null>(null);
   const handleTourOpen = useCallback((fn: () => void) => {
-    openTourRef.current = fn
-  }, [])
+    openTourRef.current = fn;
+  }, []);
 
-  const isValid = form.name.trim().length > 0
+  const selectedWidgetPreset =
+    widgetPresets.find((widget) => widget.id === form.widget_preset_id) ?? null;
+
+  const isValid = form.name.trim().length > 0;
 
   const handleSave = async () => {
-    if (!isValid || !campaign) return
-    const formValidationError = validateCampaignForm(form)
+    if (!isValid || !campaign) return;
+    const formValidationError = validateCampaignForm(form);
     if (formValidationError) {
-      setSaveError(formValidationError)
-      setSaveStatus('error')
-      return
+      setSaveError(formValidationError);
+      setSaveStatus("error");
+      return;
     }
-    setSaveStatus('loading')
-    setSaveError(null)
+    setSaveStatus("loading");
+    setSaveError(null);
 
     try {
-      const payload = buildCampaignPayload(form)
-      console.debug('[campaign:update] form state', form)
-      console.debug('[campaign:update] payload', payload)
-      const response = await updateCampaign(campaign.id, payload)
-      console.debug('[campaign:update] response', response)
-      setSaveStatus('idle')
-      navigate('/upsell/campanhas')
+      const payload = buildCampaignPayload(form);
+      console.debug("[campaign:update] form state", form);
+      console.debug("[campaign:update] payload", payload);
+      const response = await updateCampaign(campaign.id, payload);
+      console.debug("[campaign:update] response", response);
+      setSaveStatus("idle");
+      navigate("/upsell/campanhas");
     } catch (err) {
       const message =
-        err instanceof ApiError ? err.message : 'Erro ao salvar campanha.'
-      setSaveError(message)
-      setSaveStatus('error')
+        err instanceof ApiError ? err.message : "Erro ao salvar campanha.";
+      setSaveError(message);
+      setSaveStatus("error");
     }
-  }
+  };
 
-  if (loadStatus === 'loading') {
+  if (loadStatus === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -126,18 +133,20 @@ const EditCampaign = () => {
           Carregando campanha...
         </div>
       </div>
-    )
+    );
   }
 
-  if (loadStatus === 'error') {
+  if (loadStatus === "error") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
         <div className="w-full max-w-sm rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-sm">
-          <p className="font-semibold text-rose-700">Erro ao carregar campanha</p>
+          <p className="font-semibold text-rose-700">
+            Erro ao carregar campanha
+          </p>
           <p className="mt-1 text-sm text-rose-600">{loadError}</p>
           <button
             type="button"
-            onClick={() => navigate('/upsell/campanhas')}
+            onClick={() => navigate("/upsell/campanhas")}
             className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -145,7 +154,7 @@ const EditCampaign = () => {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -157,7 +166,7 @@ const EditCampaign = () => {
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={() => navigate('/upsell/campanhas')}
+              onClick={() => navigate("/upsell/campanhas")}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -168,7 +177,7 @@ const EditCampaign = () => {
                 Editar Campanha
               </h1>
               <p className="text-xs text-slate-500">
-                {campaign?.name ?? 'Carregando...'}
+                {campaign?.name ?? "Carregando..."}
               </p>
             </div>
           </div>
@@ -210,7 +219,15 @@ const EditCampaign = () => {
               />
             </div>
             <div id="tour-conteudo">
-              <ContentSection form={form} onSet={set} />
+              <ContentSection
+                form={form}
+                selectedWidgetPreset={
+                  widgetPresets.find(
+                    (widget) => widget.id === form.widget_preset_id,
+                  ) ?? null
+                }
+                onSet={set}
+              />
             </div>
           </div>
 
@@ -228,20 +245,19 @@ const EditCampaign = () => {
             <div id="tour-frequencia">
               <FrequencySection form={form} onSet={set} />
             </div>
-            <div id="tour-visual">
-              <VisualSection
-                form={form}
-                onSetColors={setColors}
-                onSetColor={setColor}
-              />
-            </div>
-            <PreviewPanel form={form} />
+            <PreviewPanel
+              form={form}
+              selectedWidgetPreset={selectedWidgetPreset}
+            />
           </div>
         </div>
 
-        <div id="tour-acoes" className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6">
+        <div
+          id="tour-acoes"
+          className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6"
+        >
           <div>
-            {saveStatus === 'error' && saveError && (
+            {saveStatus === "error" && saveError && (
               <p className="text-sm font-medium text-rose-600">{saveError}</p>
             )}
           </div>
@@ -259,15 +275,15 @@ const EditCampaign = () => {
             <button
               type="button"
               onClick={handleSave}
-              disabled={!isValid || saveStatus === 'loading'}
+              disabled={!isValid || saveStatus === "loading"}
               className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saveStatus === 'loading' ? (
+              {saveStatus === "loading" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              {saveStatus === 'loading' ? 'Salvando...' : 'Salvar Alterações'}
+              {saveStatus === "loading" ? "Salvando..." : "Salvar Alterações"}
             </button>
           </div>
         </div>
@@ -283,12 +299,16 @@ const EditCampaign = () => {
             >
               <X className="h-4 w-4 text-slate-600" />
             </button>
-            <PreviewPanel form={form} fullscreen />
+            <PreviewPanel
+              form={form}
+              selectedWidgetPreset={selectedWidgetPreset}
+              fullscreen
+            />
           </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default EditCampaign
+export default EditCampaign;

@@ -1,26 +1,34 @@
-import { useCallback, useEffect, useState } from 'react'
-import { getDisplayLocations } from '../../../../lib/services/campaigns/campaigns.service'
-import { getSegments } from '../../../../lib/services/segments/segments.service'
-import { getWidgets } from '../../../../lib/services/widgets/widgets.service'
-import type { Segment } from '../../../../lib/services/segments/segments.types'
-import type { DisplayLocationsResponse } from '../../../../lib/services/campaigns/campaigns.types'
-import type { Campaign } from '../../../../lib/services/campaigns/campaigns.types'
-import type { Widget } from '../../../../types/widget'
-import { DEFAULT_FORM_STATE } from '../../create/constants'
-import type { CampaignFormColors, CampaignFormState, DisplayRenderType } from '../../create/types'
+import { useCallback, useEffect, useState } from "react";
+import { getDisplayLocations } from "../../../../lib/services/campaigns/campaigns.service";
+import { getSegments } from "../../../../lib/services/segments/segments.service";
+import { getWidgets } from "../../../../lib/services/widgets/widgets.service";
+import type { Segment } from "../../../../lib/services/segments/segments.types";
+import type { DisplayLocationsResponse } from "../../../../lib/services/campaigns/campaigns.types";
+import type { Campaign } from "../../../../lib/services/campaigns/campaigns.types";
+import type { Widget } from "../../../../types/widget";
+import { DEFAULT_FORM_STATE } from "../../create/constants";
+import type {
+  CampaignFormColors,
+  CampaignFormState,
+  DisplayRenderType,
+} from "../../create/types";
+import { buildCampaignWidgetMarkup } from "../../create/widgetPresetUtils";
 
 const toDateInputValue = (value: string | null) => {
-  if (!value) return ''
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return ''
-  return parsed.toISOString().slice(0, 10)
-}
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+};
 
-const buildLocationRules = (locations: string[], renderType: DisplayRenderType | null) => {
-  if (!renderType) return []
-  return locations.map((location) => ({ location, render_type: renderType }))
-}
+const buildLocationRules = (
+  locations: string[],
+  renderType: DisplayRenderType | null,
+) => {
+  if (!renderType) return [];
+  return locations.map((location) => ({ location, render_type: renderType }));
+};
 
 const campaignToFormState = (campaign: Campaign): CampaignFormState => ({
   ...DEFAULT_FORM_STATE,
@@ -28,127 +36,178 @@ const campaignToFormState = (campaign: Campaign): CampaignFormState => ({
   is_active: campaign.is_active,
   priority: campaign.priority,
   display_locations: campaign.display_locations ?? [],
-  widget_render_type: (campaign.display_locations?.length ?? 0) > 0 ? 'widget_modal' : null,
+  widget_render_type:
+    (campaign.display_locations?.length ?? 0) > 0 ? "widget_modal" : null,
   segment_ids: campaign.segment_ids ?? [],
   domains: campaign.domains ?? [],
-  headline: campaign.headline ?? '',
-  description: campaign.description ?? '',
-  image_url: campaign.image_url ?? '',
-  video_url: campaign.video_url ?? '',
-  cta_text: campaign.cta_text ?? '',
-  cta_link: campaign.cta_link ?? '',
+  headline: campaign.headline ?? "",
+  subtitle: "",
+  description: campaign.description ?? "",
+  complementary_text: "",
+  badge_text: "",
+  image_url: campaign.image_url ?? "",
+  video_url: campaign.video_url ?? "",
+  cta_text: campaign.cta_text ?? "",
+  cta_link: campaign.cta_link ?? "",
   cta_new_tab: campaign.cta_new_tab,
   start_date: toDateInputValue(campaign.start_date),
-  start_time: campaign.start_time ?? '00:00',
+  start_time: campaign.start_time ?? "00:00",
   end_date: toDateInputValue(campaign.end_date),
-  end_time: campaign.end_time ?? '23:59',
-  active_days: campaign.active_days && campaign.active_days.length > 0 ? campaign.active_days : DEFAULT_FORM_STATE.active_days,
-  active_hours: campaign.active_hours && campaign.active_hours.length > 0 ? campaign.active_hours : DEFAULT_FORM_STATE.active_hours,
-  cooldown_minutes: campaign.cooldown_minutes || DEFAULT_FORM_STATE.cooldown_minutes,
-  max_per_session: campaign.max_per_session || DEFAULT_FORM_STATE.max_per_session,
+  end_time: campaign.end_time ?? "23:59",
+  active_days:
+    campaign.active_days && campaign.active_days.length > 0
+      ? campaign.active_days
+      : DEFAULT_FORM_STATE.active_days,
+  active_hours:
+    campaign.active_hours && campaign.active_hours.length > 0
+      ? campaign.active_hours
+      : DEFAULT_FORM_STATE.active_hours,
+  cooldown_minutes:
+    campaign.cooldown_minutes || DEFAULT_FORM_STATE.cooldown_minutes,
+  max_per_session:
+    campaign.max_per_session || DEFAULT_FORM_STATE.max_per_session,
   max_per_day: campaign.max_per_day || DEFAULT_FORM_STATE.max_per_day,
   max_total: campaign.max_total || DEFAULT_FORM_STATE.max_total,
-  block_after_conversion_days: campaign.block_after_conversion_days || DEFAULT_FORM_STATE.block_after_conversion_days,
+  block_after_conversion_days:
+    campaign.block_after_conversion_days ||
+    DEFAULT_FORM_STATE.block_after_conversion_days,
   widget_preset_id: null,
-  widget_css: campaign.widget_css ?? '',
-  widget_html: campaign.widget_html ?? '',
+  widget_css: campaign.widget_css ?? "",
+  widget_html: campaign.widget_html ?? "",
   display_location_rules: buildLocationRules(
     campaign.display_locations ?? [],
-    (campaign.display_locations?.length ?? 0) > 0 ? 'widget_modal' : null,
+    (campaign.display_locations?.length ?? 0) > 0 ? "widget_modal" : null,
   ),
-})
+});
 
 export const useEditCampaignForm = (campaign: Campaign | null) => {
   const [form, setForm] = useState<CampaignFormState>(
     campaign ? campaignToFormState(campaign) : DEFAULT_FORM_STATE,
-  )
-  const [segments, setSegments] = useState<Segment[]>([])
-  const [widgetPresets, setWidgetPresets] = useState<Widget[]>([])
-  const [displayLocationsMap, setDisplayLocationsMap] = useState<DisplayLocationsResponse>({})
-  const [resourcesLoading, setResourcesLoading] = useState(true)
+  );
+  const [segments, setSegments] = useState<Segment[]>([]);
+  const [widgetPresets, setWidgetPresets] = useState<Widget[]>([]);
+  const [displayLocationsMap, setDisplayLocationsMap] =
+    useState<DisplayLocationsResponse>({});
+  const [resourcesLoading, setResourcesLoading] = useState(true);
 
   useEffect(() => {
     if (campaign) {
-      setForm(campaignToFormState(campaign))
+      setForm(campaignToFormState(campaign));
     }
-  }, [campaign])
+  }, [campaign]);
 
   useEffect(() => {
-    let cancelled = false
+    if (!campaign || widgetPresets.length === 0) return;
+
+    setForm((prev) => {
+      if (prev.widget_preset_id) return prev;
+      const matched = widgetPresets.find(
+        (widget) =>
+          widget.html === (campaign.widget_html ?? "") ||
+          widget.css === (campaign.widget_css ?? ""),
+      );
+      if (!matched) return prev;
+      return { ...prev, widget_preset_id: matched.id };
+    });
+  }, [campaign, widgetPresets]);
+
+  useEffect(() => {
+    let cancelled = false;
 
     const loadResources = async () => {
-      setResourcesLoading(true)
+      setResourcesLoading(true);
       try {
-        const [locationsData, segmentsData, widgetsData] = await Promise.allSettled([
-          getDisplayLocations(),
-          getSegments(1),
-          getWidgets({ page: 1, per_page: 100, is_active: true, sort: 'title', order: 'asc' }),
-        ])
+        const [locationsData, segmentsData, widgetsData] =
+          await Promise.allSettled([
+            getDisplayLocations(),
+            getSegments(1),
+            getWidgets({
+              page: 1,
+              per_page: 100,
+              is_active: true,
+              sort: "title",
+              order: "asc",
+            }),
+          ]);
 
-        if (cancelled) return
+        if (cancelled) return;
 
-        if (locationsData.status === 'fulfilled') {
-          setDisplayLocationsMap(locationsData.value)
+        if (locationsData.status === "fulfilled") {
+          setDisplayLocationsMap(locationsData.value);
         }
-        if (segmentsData.status === 'fulfilled') {
-          setSegments(segmentsData.value.data)
+        if (segmentsData.status === "fulfilled") {
+          setSegments(segmentsData.value.data);
         }
-        if (widgetsData.status === 'fulfilled') {
-          setWidgetPresets(widgetsData.value.data)
+        if (widgetsData.status === "fulfilled") {
+          setWidgetPresets(widgetsData.value.data);
         }
       } finally {
-        if (!cancelled) setResourcesLoading(false)
+        if (!cancelled) setResourcesLoading(false);
       }
-    }
+    };
 
-    loadResources()
+    loadResources();
     return () => {
-      cancelled = true
-    }
-  }, [])
+      cancelled = true;
+    };
+  }, []);
 
-  const set = useCallback(<K extends keyof CampaignFormState>(
-    key: K,
-    value: CampaignFormState[K],
-  ) => {
-    setForm((prev) => ({ ...prev, [key]: value }))
-  }, [])
+  const set = useCallback(
+    <K extends keyof CampaignFormState>(
+      key: K,
+      value: CampaignFormState[K],
+    ) => {
+      setForm((prev) => ({ ...prev, [key]: value }));
+    },
+    [],
+  );
 
   const toggleDisplayLocation = useCallback((key: string) => {
     setForm((prev) => {
       const display_locations = prev.display_locations.includes(key)
         ? prev.display_locations.filter((k) => k !== key)
-        : [...prev.display_locations, key]
+        : [...prev.display_locations, key];
 
       return {
         ...prev,
         display_locations,
-        display_location_rules: buildLocationRules(display_locations, prev.widget_render_type),
-      }
-    })
-  }, [])
+        display_location_rules: buildLocationRules(
+          display_locations,
+          prev.widget_render_type,
+        ),
+      };
+    });
+  }, []);
 
   const setWidgetRenderType = useCallback((renderType: DisplayRenderType) => {
     setForm((prev) => ({
       ...prev,
       widget_render_type: renderType,
-      display_location_rules: buildLocationRules(prev.display_locations, renderType),
-    }))
-  }, [])
+      display_location_rules: buildLocationRules(
+        prev.display_locations,
+        renderType,
+      ),
+    }));
+  }, []);
 
-  const selectWidgetPreset = useCallback((widgetId: string) => {
-    setForm((prev) => {
-      const widget = widgetPresets.find((item) => item.id === widgetId)
-      if (!widget) return prev
+  const selectWidgetPreset = useCallback(
+    (widgetId: string) => {
+      setForm((prev) => {
+        const widget = widgetPresets.find((item) => item.id === widgetId);
+        if (!widget) return prev;
 
-      return {
-        ...prev,
-        widget_preset_id: widget.id,
-        widget_html: widget.html,
-        widget_css: widget.css,
-      }
-    })
-  }, [widgetPresets])
+        const generated = buildCampaignWidgetMarkup(widget, prev);
+
+        return {
+          ...prev,
+          widget_preset_id: widget.id,
+          widget_html: generated.html,
+          widget_css: generated.css,
+        };
+      });
+    },
+    [widgetPresets],
+  );
 
   const toggleSegment = useCallback((id: number) => {
     setForm((prev) => ({
@@ -156,8 +215,8 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
       segment_ids: prev.segment_ids.includes(id)
         ? prev.segment_ids.filter((s) => s !== id)
         : [...prev.segment_ids, id],
-    }))
-  }, [])
+    }));
+  }, []);
 
   const toggleDay = useCallback((day: number) => {
     setForm((prev) => ({
@@ -165,8 +224,8 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
       active_days: prev.active_days.includes(day)
         ? prev.active_days.filter((d) => d !== day)
         : [...prev.active_days, day],
-    }))
-  }, [])
+    }));
+  }, []);
 
   const toggleHour = useCallback((hour: number) => {
     setForm((prev) => ({
@@ -174,27 +233,33 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
       active_hours: prev.active_hours.includes(hour)
         ? prev.active_hours.filter((h) => h !== hour)
         : [...prev.active_hours, hour],
-    }))
-  }, [])
+    }));
+  }, []);
 
   const setAllHours = useCallback(() => {
     setForm((prev) => ({
       ...prev,
       active_hours: Array.from({ length: 24 }, (_, i) => i),
-    }))
-  }, [])
+    }));
+  }, []);
 
   const clearHours = useCallback(() => {
-    setForm((prev) => ({ ...prev, active_hours: [] }))
-  }, [])
+    setForm((prev) => ({ ...prev, active_hours: [] }));
+  }, []);
 
   const setColors = useCallback((colors: CampaignFormColors) => {
-    setForm((prev) => ({ ...prev, colors }))
-  }, [])
+    setForm((prev) => ({ ...prev, colors }));
+  }, []);
 
-  const setColor = useCallback((key: keyof CampaignFormColors, value: string) => {
-    setForm((prev) => ({ ...prev, colors: { ...prev.colors, [key]: value } }))
-  }, [])
+  const setColor = useCallback(
+    (key: keyof CampaignFormColors, value: string) => {
+      setForm((prev) => ({
+        ...prev,
+        colors: { ...prev.colors, [key]: value },
+      }));
+    },
+    [],
+  );
 
   return {
     form,
@@ -213,5 +278,5 @@ export const useEditCampaignForm = (campaign: Campaign | null) => {
     setColor,
     selectWidgetPreset,
     setWidgetRenderType,
-  }
-}
+  };
+};

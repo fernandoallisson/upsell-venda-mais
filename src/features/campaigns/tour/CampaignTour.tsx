@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   Calendar,
@@ -7,264 +7,264 @@ import {
   ChevronRight,
   Eye,
   Lightbulb,
-  Palette,
   Repeat,
   Rocket,
   Save,
   Settings,
   X,
-} from 'lucide-react'
+} from "lucide-react";
 
-const TOUR_STORAGE_KEY = 'campaignTourCompleted'
+const TOUR_STORAGE_KEY = "campaignTourCompleted";
 
-type StepPosition = 'right' | 'left' | 'top' | 'bottom'
+type StepPosition = "right" | "left" | "top" | "bottom";
 
 type TourStep = {
-  target: string
-  title: string
-  icon: React.ReactNode
-  position: StepPosition
-  description: string
-  tips: string[]
-}
+  target: string;
+  title: string;
+  icon: React.ReactNode;
+  position: StepPosition;
+  description: string;
+  tips: string[];
+};
 
 const STEPS: TourStep[] = [
   {
-    target: '#tour-info-basicas',
-    title: 'Informações Básicas',
+    target: "#tour-info-basicas",
+    title: "Informações Básicas",
     icon: <Settings className="h-5 w-5" />,
-    position: 'right',
+    position: "right",
     description:
-      'Comece dando um nome único para sua campanha. Escolha o status, selecione os segmentos de clientes que deseja alcançar e defina onde a campanha será exibida.',
+      "Comece dando um nome único para sua campanha. Escolha o status, selecione os segmentos de clientes que deseja alcançar e defina onde a campanha será exibida.",
     tips: [
       'Use nomes descritivos como "Black Friday 2026 - Eletrônicos"',
-      'A prioridade define qual campanha aparece primeiro quando há várias ativas',
-      'Deixe a segmentação vazia para alcançar todos os visitantes',
+      "A prioridade define qual campanha aparece primeiro quando há várias ativas",
+      "Deixe a segmentação vazia para alcançar todos os visitantes",
     ],
   },
   {
-    target: '#tour-conteudo',
-    title: 'Conteúdo da Campanha',
+    target: "#tour-conteudo",
+    title: "Conteúdo da Campanha",
     icon: <BookOpen className="h-5 w-5" />,
-    position: 'right',
+    position: "right",
     description:
-      'Aqui você define o que seu cliente verá. Adicione um título chamativo, uma descrição persuasiva, imagem ou vídeo do produto, e configure o botão de ação (CTA).',
+      "Aqui você define o que seu cliente verá. Adicione um título chamativo, uma descrição persuasiva, imagem ou vídeo do produto, e configure o botão de ação (CTA).",
     tips: [
-      'Títulos curtos e impactantes funcionam melhor',
-      'Use imagens de alta qualidade para maior conversão',
+      "Títulos curtos e impactantes funcionam melhor",
+      "Use imagens de alta qualidade para maior conversão",
       'O texto do botão deve ser uma ação clara: "Comprar Agora", "Adicionar ao Carrinho"',
     ],
   },
   {
-    target: '#tour-periodo',
-    title: 'Período de Exibição',
+    target: "#tour-periodo",
+    title: "Período de Exibição",
     icon: <Calendar className="h-5 w-5" />,
-    position: 'left',
+    position: "left",
     description:
-      'Defina quando sua campanha estará ativa. Configure datas de início e fim, escolha os dias da semana e as horas específicas em que ela deve aparecer.',
+      "Defina quando sua campanha estará ativa. Configure datas de início e fim, escolha os dias da semana e as horas específicas em que ela deve aparecer.",
     tips: [
-      'Campanhas com prazo limitado criam senso de urgência',
-      'Considere o horário de pico do seu público-alvo',
-      'Use as horas ativas para evitar exibição em horários de baixa conversão',
+      "Campanhas com prazo limitado criam senso de urgência",
+      "Considere o horário de pico do seu público-alvo",
+      "Use as horas ativas para evitar exibição em horários de baixa conversão",
     ],
   },
   {
-    target: '#tour-frequencia',
-    title: 'Controle de Frequência',
+    target: "#tour-frequencia",
+    title: "Controle de Frequência",
     icon: <Repeat className="h-5 w-5" />,
-    position: 'left',
+    position: "left",
     description:
-      'Evite irritar seus clientes! Configure o intervalo mínimo entre exibições (cooldown), limite por sessão, por dia e o total. Você também pode bloquear a campanha após uma conversão.',
+      "Evite irritar seus clientes! Configure o intervalo mínimo entre exibições (cooldown), limite por sessão, por dia e o total. Você também pode bloquear a campanha após uma conversão.",
     tips: [
-      'Cooldown de 5 minutos evita que o popup apareça repetidamente',
-      'Máximo de 3 por sessão é um bom equilíbrio',
-      'Bloquear após conversão evita mostrar ofertas já aceitas',
+      "Cooldown de 5 minutos evita que o popup apareça repetidamente",
+      "Máximo de 3 por sessão é um bom equilíbrio",
+      "Bloquear após conversão evita mostrar ofertas já aceitas",
     ],
   },
   {
-    target: '#tour-visual',
-    title: 'Personalização Visual',
-    icon: <Palette className="h-5 w-5" />,
-    position: 'left',
-    description:
-      'Deixe sua campanha com a cara da sua marca! Escolha as cores do fundo, texto, botão e veja o preview em tempo real. Use os presets para começar rapidamente.',
-    tips: [
-      'Mantenha contraste entre fundo e texto para legibilidade',
-      'Use cores que combinem com a identidade da sua loja',
-      'O preview mostra exatamente como ficará no site do cliente',
-    ],
-  },
-  {
-    target: '#tour-acoes',
-    title: 'Salvar e Visualizar',
+    target: "#tour-acoes",
+    title: "Salvar e Visualizar",
     icon: <Save className="h-5 w-5" />,
-    position: 'top',
+    position: "top",
     description:
       'Tudo pronto? Use "Preview Full" para ver como ficará no contexto real, e quando estiver satisfeito, clique em "Salvar Campanha" para ativar!',
     tips: [
-      'Sempre faça um preview antes de salvar',
-      'Campanhas inativas não aparecem para clientes',
-      'Você pode editar a campanha a qualquer momento',
+      "Sempre faça um preview antes de salvar",
+      "Campanhas inativas não aparecem para clientes",
+      "Você pode editar a campanha a qualquer momento",
     ],
   },
-]
+];
 
 type HighlightBox = {
-  top: number
-  left: number
-  width: number
-  height: number
-}
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
 
 type Props = {
-  onOpen: (open: () => void) => void
-}
+  onOpen: (open: () => void) => void;
+};
 
 const CampaignTour = ({ onOpen }: Props) => {
-  const [showWelcome, setShowWelcome] = useState(false)
-  const [tourActive, setTourActive] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
-  const [highlight, setHighlight] = useState<HighlightBox>({ top: 0, left: 0, width: 0, height: 0 })
-  const [showToast, setShowToast] = useState(false)
-  const highlightRef = useRef<Element | null>(null)
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [highlight, setHighlight] = useState<HighlightBox>({
+    top: 0,
+    left: 0,
+    width: 0,
+    height: 0,
+  });
+  const [showToast, setShowToast] = useState(false);
+  const highlightRef = useRef<Element | null>(null);
 
   const openWelcome = useCallback(() => {
-    setShowWelcome(true)
-  }, [])
+    setShowWelcome(true);
+  }, []);
 
   useEffect(() => {
-    onOpen(openWelcome)
-  }, [onOpen, openWelcome])
+    onOpen(openWelcome);
+  }, [onOpen, openWelcome]);
 
   useEffect(() => {
     if (!localStorage.getItem(TOUR_STORAGE_KEY)) {
-      const t = setTimeout(() => setShowWelcome(true), 500)
-      return () => clearTimeout(t)
+      const t = setTimeout(() => setShowWelcome(true), 500);
+      return () => clearTimeout(t);
     }
-  }, [])
+  }, []);
 
   const recalcPosition = useCallback(() => {
     if (highlightRef.current) {
-      const rect = highlightRef.current.getBoundingClientRect()
+      const rect = highlightRef.current.getBoundingClientRect();
       setHighlight({
         top: rect.top - 8,
         left: rect.left - 8,
         width: rect.width + 16,
         height: rect.height + 16,
-      })
+      });
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     if (tourActive) {
-      window.addEventListener('resize', recalcPosition)
-      window.addEventListener('scroll', recalcPosition, true)
+      window.addEventListener("resize", recalcPosition);
+      window.addEventListener("scroll", recalcPosition, true);
       return () => {
-        window.removeEventListener('resize', recalcPosition)
-        window.removeEventListener('scroll', recalcPosition, true)
-      }
+        window.removeEventListener("resize", recalcPosition);
+        window.removeEventListener("scroll", recalcPosition, true);
+      };
     }
-  }, [tourActive, recalcPosition])
+  }, [tourActive, recalcPosition]);
 
   const goToStep = useCallback((index: number) => {
-    const step = STEPS[index]
-    const el = document.querySelector(step.target)
-    if (!el) return
+    const step = STEPS[index];
+    const el = document.querySelector(step.target);
+    if (!el) return;
 
-    highlightRef.current = el
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    highlightRef.current = el;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
 
     setTimeout(() => {
-      const rect = el.getBoundingClientRect()
+      const rect = el.getBoundingClientRect();
       setHighlight({
         top: rect.top - 8,
         left: rect.left - 8,
         width: rect.width + 16,
         height: rect.height + 16,
-      })
-    }, 400)
-  }, [])
+      });
+    }, 400);
+  }, []);
 
   const startTour = () => {
-    setShowWelcome(false)
-    setCurrentStep(0)
-    setTourActive(true)
-    setTimeout(() => goToStep(0), 100)
-  }
+    setShowWelcome(false);
+    setCurrentStep(0);
+    setTourActive(true);
+    setTimeout(() => goToStep(0), 100);
+  };
 
   const closeTour = () => {
-    setTourActive(false)
-    highlightRef.current = null
-  }
+    setTourActive(false);
+    highlightRef.current = null;
+  };
 
   const nextStep = () => {
     if (currentStep < STEPS.length - 1) {
-      const next = currentStep + 1
-      setCurrentStep(next)
-      goToStep(next)
+      const next = currentStep + 1;
+      setCurrentStep(next);
+      goToStep(next);
     }
-  }
+  };
 
   const prevStep = () => {
     if (currentStep > 0) {
-      const prev = currentStep - 1
-      setCurrentStep(prev)
-      goToStep(prev)
+      const prev = currentStep - 1;
+      setCurrentStep(prev);
+      goToStep(prev);
     }
-  }
+  };
 
   const completeTour = () => {
-    localStorage.setItem(TOUR_STORAGE_KEY, 'true')
-    setTourActive(false)
-    highlightRef.current = null
-    setShowToast(true)
-    setTimeout(() => setShowToast(false), 4000)
-  }
+    localStorage.setItem(TOUR_STORAGE_KEY, "true");
+    setTourActive(false);
+    highlightRef.current = null;
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 4000);
+  };
 
   const getTooltipStyle = (): React.CSSProperties => {
-    const step = STEPS[currentStep]
-    const t = highlight
-    const vh = window.innerHeight
-    const tooltipW = Math.min(window.innerWidth - 32, 384)
-    const tooltipH = 340
-    const gap = 16
+    const step = STEPS[currentStep];
+    const t = highlight;
+    const vh = window.innerHeight;
+    const tooltipW = Math.min(window.innerWidth - 32, 384);
+    const tooltipH = 340;
+    const gap = 16;
 
-    let top = 0
-    let left = 0
+    let top = 0;
+    let left = 0;
 
     if (window.innerWidth < 768) {
-      left = gap
+      left = gap;
       top =
         t.top > vh / 2
           ? Math.max(gap, t.top - tooltipH - gap)
-          : Math.min(vh - tooltipH - gap, t.top + t.height + gap)
+          : Math.min(vh - tooltipH - gap, t.top + t.height + gap);
     } else {
       switch (step.position) {
-        case 'right':
-          left = Math.min(t.left + t.width + gap, window.innerWidth - tooltipW - gap)
-          top = Math.max(gap, Math.min(t.top, vh - tooltipH - gap))
-          break
-        case 'left':
-          left = Math.max(gap, t.left - tooltipW - gap)
-          top = Math.max(gap, Math.min(t.top, vh - tooltipH - gap))
-          break
-        case 'top':
-          left = Math.max(gap, Math.min(t.left, window.innerWidth - tooltipW - gap))
-          top = Math.max(gap, t.top - tooltipH - gap)
-          break
+        case "right":
+          left = Math.min(
+            t.left + t.width + gap,
+            window.innerWidth - tooltipW - gap,
+          );
+          top = Math.max(gap, Math.min(t.top, vh - tooltipH - gap));
+          break;
+        case "left":
+          left = Math.max(gap, t.left - tooltipW - gap);
+          top = Math.max(gap, Math.min(t.top, vh - tooltipH - gap));
+          break;
+        case "top":
+          left = Math.max(
+            gap,
+            Math.min(t.left, window.innerWidth - tooltipW - gap),
+          );
+          top = Math.max(gap, t.top - tooltipH - gap);
+          break;
         default:
-          left = Math.max(gap, Math.min(t.left, window.innerWidth - tooltipW - gap))
-          top = Math.min(vh - tooltipH - gap, t.top + t.height + gap)
-          break
+          left = Math.max(
+            gap,
+            Math.min(t.left, window.innerWidth - tooltipW - gap),
+          );
+          top = Math.min(vh - tooltipH - gap, t.top + t.height + gap);
+          break;
       }
     }
 
-    return { top: `${top}px`, left: `${left}px` }
-  }
+    return { top: `${top}px`, left: `${left}px` };
+  };
 
-  const step = STEPS[currentStep]
-  const progress = ((currentStep + 1) / STEPS.length) * 100
-  const isLast = currentStep === STEPS.length - 1
+  const step = STEPS[currentStep];
+  const progress = ((currentStep + 1) / STEPS.length) * 100;
+  const isLast = currentStep === STEPS.length - 1;
 
   return (
     <>
@@ -298,9 +298,12 @@ const CampaignTour = ({ onOpen }: Props) => {
                     <BookOpen className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">Tour Interativo</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      Tour Interativo
+                    </p>
                     <p className="text-xs text-slate-500">
-                      Aprenda passo a passo como configurar cada seção da sua campanha.
+                      Aprenda passo a passo como configurar cada seção da sua
+                      campanha.
                     </p>
                   </div>
                 </div>
@@ -310,7 +313,9 @@ const CampaignTour = ({ onOpen }: Props) => {
                     <Eye className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">Preview em Tempo Real</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      Preview em Tempo Real
+                    </p>
                     <p className="text-xs text-slate-500">
                       Veja como sua campanha ficará enquanto configura.
                     </p>
@@ -322,7 +327,9 @@ const CampaignTour = ({ onOpen }: Props) => {
                     <span className="text-xs font-bold">~3min</span>
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">Rápido e Fácil</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      Rápido e Fácil
+                    </p>
                     <p className="text-xs text-slate-500">
                       Duração estimada de 3 minutos para completar o tour.
                     </p>
@@ -408,7 +415,9 @@ const CampaignTour = ({ onOpen }: Props) => {
             </div>
 
             <div className="p-4">
-              <p className="text-sm leading-relaxed text-slate-700">{step.description}</p>
+              <p className="text-sm leading-relaxed text-slate-700">
+                {step.description}
+              </p>
 
               <div className="mt-3 space-y-2">
                 {step.tips.map((tip, i) => (
@@ -478,13 +487,17 @@ const CampaignTour = ({ onOpen }: Props) => {
             <Check className="h-4 w-4 text-emerald-600" />
           </span>
           <div>
-            <p className="text-sm font-semibold text-slate-800">Tour concluído!</p>
-            <p className="text-xs text-slate-500">Agora você está pronto para criar campanhas incríveis.</p>
+            <p className="text-sm font-semibold text-slate-800">
+              Tour concluído!
+            </p>
+            <p className="text-xs text-slate-500">
+              Agora você está pronto para criar campanhas incríveis.
+            </p>
           </div>
         </div>
       )}
     </>
-  )
-}
+  );
+};
 
-export default CampaignTour
+export default CampaignTour;
