@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   HelpCircle,
@@ -7,21 +7,23 @@ import {
   Maximize2,
   Save,
   X,
-} from 'lucide-react'
-import { ApiError } from '../lib/api'
-import { createCampaign } from '../lib/services/campaigns/campaigns.service'
-import { useCreateCampaignForm } from '../features/campaigns/create/hooks/useCreateCampaignForm'
-import { buildCampaignPayload, validateCampaignForm } from '../features/campaigns/create/utils'
-import BasicInfoSection from '../features/campaigns/create/sections/BasicInfoSection'
-import ContentSection from '../features/campaigns/create/sections/ContentSection'
-import ScheduleSection from '../features/campaigns/create/sections/ScheduleSection'
-import FrequencySection from '../features/campaigns/create/sections/FrequencySection'
-import VisualSection from '../features/campaigns/create/sections/VisualSection'
-import PreviewPanel from '../features/campaigns/create/sections/PreviewPanel'
-import CampaignTour from '../features/campaigns/tour/CampaignTour'
+} from "lucide-react";
+import { ApiError } from "../lib/api";
+import { createCampaign } from "../lib/services/campaigns/campaigns.service";
+import { useCreateCampaignForm } from "../features/campaigns/create/hooks/useCreateCampaignForm";
+import {
+  buildCampaignPayload,
+  validateCampaignForm,
+} from "../features/campaigns/create/utils";
+import BasicInfoSection from "../features/campaigns/create/sections/BasicInfoSection";
+import ContentSection from "../features/campaigns/create/sections/ContentSection";
+import ScheduleSection from "../features/campaigns/create/sections/ScheduleSection";
+import FrequencySection from "../features/campaigns/create/sections/FrequencySection";
+import PreviewPanel from "../features/campaigns/create/sections/PreviewPanel";
+import CampaignTour from "../features/campaigns/tour/CampaignTour";
 
 const CreateCampaign = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const {
     form,
     set,
@@ -34,50 +36,53 @@ const CreateCampaign = () => {
     toggleHour,
     setAllHours,
     clearHours,
-    setColors,
-    setColor,
     selectWidgetPreset,
     setWidgetRenderType,
-  } = useCreateCampaignForm()
+  } = useCreateCampaignForm();
 
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'error'>('idle')
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [showFullPreview, setShowFullPreview] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "loading" | "error">(
+    "idle",
+  );
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [showFullPreview, setShowFullPreview] = useState(false);
 
-  const openTourRef = useRef<(() => void) | null>(null)
+  const openTourRef = useRef<(() => void) | null>(null);
   const handleTourOpen = useCallback((fn: () => void) => {
-    openTourRef.current = fn
-  }, [])
+    openTourRef.current = fn;
+  }, []);
 
-  const isValid = form.name.trim().length > 0
+  const selectedWidgetPreset =
+    widgetPresets.find((widget) => widget.id === form.widget_preset_id) ?? null;
+
+  const isValid = form.name.trim().length > 0;
 
   const handleSave = async () => {
-    if (!isValid) return
-    const formValidationError = validateCampaignForm(form)
+    if (!isValid) return;
+    const formValidationError = validateCampaignForm(form);
     if (formValidationError) {
-      setSaveError(formValidationError)
-      setSaveStatus('error')
-      return
+      setSaveError(formValidationError);
+      setSaveStatus("error");
+      return;
     }
-    setSaveStatus('loading')
-    setSaveError(null)
+    setSaveStatus("loading");
+    setSaveError(null);
 
     try {
-      const payload = buildCampaignPayload(form)
-      console.debug('[campaign:create] form state', form)
-      console.debug('[campaign:create] payload', payload)
-      const response = await createCampaign(payload)
-      console.debug('[campaign:create] response', response)
-      setSaveStatus('idle')
-      navigate('/upsell/campanhas')
+      const payload = buildCampaignPayload(form);
+      console.debug("[campaign:create] form state", form);
+      console.debug("[campaign:create] payload", payload);
+      const response = await createCampaign(payload);
+      console.debug("[campaign:create] response", response);
+      setSaveStatus("idle");
+      navigate("/upsell/campanhas");
     } catch (err) {
       const message =
-        err instanceof ApiError ? err.message : 'Erro ao criar campanha.'
-      setSaveError(message)
-      setSaveStatus('loading')
-      setSaveStatus('error')
+        err instanceof ApiError ? err.message : "Erro ao criar campanha.";
+      setSaveError(message);
+      setSaveStatus("loading");
+      setSaveStatus("error");
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -88,14 +93,16 @@ const CreateCampaign = () => {
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={() => navigate('/upsell/campanhas')}
+              onClick={() => navigate("/upsell/campanhas")}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
             >
               <ArrowLeft className="h-4 w-4" />
               Voltar
             </button>
             <div>
-              <h1 className="text-base font-bold text-slate-900">Nova Campanha</h1>
+              <h1 className="text-base font-bold text-slate-900">
+                Nova Campanha
+              </h1>
               <p className="text-xs text-slate-500">
                 Crie e visualize sua campanha de upsell em tempo real
               </p>
@@ -139,7 +146,15 @@ const CreateCampaign = () => {
               />
             </div>
             <div id="tour-conteudo">
-              <ContentSection form={form} onSet={set} />
+              <ContentSection
+                form={form}
+                selectedWidgetPreset={
+                  widgetPresets.find(
+                    (widget) => widget.id === form.widget_preset_id,
+                  ) ?? null
+                }
+                onSet={set}
+              />
             </div>
           </div>
 
@@ -157,20 +172,19 @@ const CreateCampaign = () => {
             <div id="tour-frequencia">
               <FrequencySection form={form} onSet={set} />
             </div>
-            <div id="tour-visual">
-              <VisualSection
-                form={form}
-                onSetColors={setColors}
-                onSetColor={setColor}
-              />
-            </div>
-            <PreviewPanel form={form} />
+            <PreviewPanel
+              form={form}
+              selectedWidgetPreset={selectedWidgetPreset}
+            />
           </div>
         </div>
 
-        <div id="tour-acoes" className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6">
+        <div
+          id="tour-acoes"
+          className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6"
+        >
           <div>
-            {saveStatus === 'error' && saveError && (
+            {saveStatus === "error" && saveError && (
               <p className="text-sm font-medium text-rose-600">{saveError}</p>
             )}
           </div>
@@ -188,15 +202,15 @@ const CreateCampaign = () => {
             <button
               type="button"
               onClick={handleSave}
-              disabled={!isValid || saveStatus === 'loading'}
+              disabled={!isValid || saveStatus === "loading"}
               className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saveStatus === 'loading' ? (
+              {saveStatus === "loading" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              {saveStatus === 'loading' ? 'Salvando...' : 'Salvar Campanha'}
+              {saveStatus === "loading" ? "Salvando..." : "Salvar Campanha"}
             </button>
           </div>
         </div>
@@ -212,12 +226,16 @@ const CreateCampaign = () => {
             >
               <X className="h-4 w-4 text-slate-600" />
             </button>
-            <PreviewPanel form={form} fullscreen />
+            <PreviewPanel
+              form={form}
+              selectedWidgetPreset={selectedWidgetPreset}
+              fullscreen
+            />
           </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default CreateCampaign
+export default CreateCampaign;
