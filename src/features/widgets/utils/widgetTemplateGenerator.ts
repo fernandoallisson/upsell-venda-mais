@@ -13,6 +13,12 @@ const esc = (value: string) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
+const buildCtaAttrs = (content?: WidgetTemplateContent) => {
+  const href = content?.ctaLink?.trim() || "#";
+  const target = content?.ctaNewTab ? ' target="_blank" rel="noopener noreferrer"' : "";
+  return `href="${esc(href)}"${target}`;
+};
+
 const shadowMap: Record<WidgetVisualConfig["shadow"], string> = {
   none: "none",
   sm: "0 2px 10px rgba(15,23,42,.12)",
@@ -198,7 +204,7 @@ const renderMediaHtml = (
   const media = `<div class="widget-template__media">${mediaContent}</div>`;
   if (!config.mediaClickableCta) return media;
 
-  return `<a class="widget-template__media-link" href="#" aria-label="Mídia clicável como CTA">${media}</a>`;
+  return `<a class="widget-template__media-link" ${buildCtaAttrs(content)} aria-label="Mídia clicável como CTA">${media}</a>`;
 };
 
 export type WidgetTemplateContent = {
@@ -210,6 +216,8 @@ export type WidgetTemplateContent = {
   badgeText: string;
   extraText: string;
   mediaUrl?: string;
+  ctaLink?: string;
+  ctaNewTab?: boolean;
 };
 
 const renderContentHtml = (
@@ -220,7 +228,7 @@ const renderContentHtml = (
   const c = content;
 
   const acceptBtn = config.showButton
-    ? `<button id="upse-accept" class="widget-template__button ${config.buttonFullWidth ? "widget-template__button--full" : ""}">${esc(c.buttonText)}</button>`
+    ? `<a id="upse-accept" class="widget-template__button ${config.buttonFullWidth ? "widget-template__button--full" : ""}" ${buildCtaAttrs(c)}>${esc(c.buttonText)}</a>`
     : "";
   const rejectBtn = config.showButton
     ? `<button id="upse-reject" class="widget-template__reject">${esc(c.rejectText)}</button>`

@@ -19,6 +19,8 @@ const widgetMarkupDependentFields: Array<keyof CampaignFormState> = [
   "image_url",
   "video_url",
   "cta_text",
+  "cta_link",
+  "cta_new_tab",
 ];
 
 export const getWidgetPresetConfig = (
@@ -49,6 +51,8 @@ export const buildCampaignWidgetMarkup = (
       badgeText: form.badge_text || "Oferta",
       extraText: form.complementary_text || "Texto complementar da campanha",
       mediaUrl,
+      ctaLink: form.cta_link,
+      ctaNewTab: form.cta_new_tab,
     }),
   };
 };
