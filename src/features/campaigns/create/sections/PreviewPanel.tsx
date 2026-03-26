@@ -55,10 +55,6 @@ const PreviewPanel = ({
             <p className="text-sm font-semibold text-slate-800">
               Preview em Tempo Real
             </p>
-            <p className="text-xs text-slate-500">
-              Este é o mesmo widget base que será duplicado para formar o
-              payload final da campanha.
-            </p>
           </div>
         </div>
         {firstLocation ? (
