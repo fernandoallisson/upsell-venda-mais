@@ -1,4 +1,4 @@
-import { Monitor, Smartphone, Tablet } from 'lucide-react'
+import { Maximize2, Monitor, Smartphone, Tablet, X } from 'lucide-react'
 import { useState } from 'react'
 import { SHADOW_MAP } from '../constants'
 import type { WidgetFormState } from '../types'
@@ -14,6 +14,12 @@ const deviceWidths: Record<DeviceMode, string> = {
   desktop: 'max-w-sm',
   tablet: 'max-w-[280px]',
   mobile: 'max-w-[220px]',
+}
+
+const fullscreenDeviceWidths: Record<DeviceMode, string> = {
+  desktop: 'max-w-2xl',
+  tablet: 'max-w-md',
+  mobile: 'max-w-xs',
 }
 
 const MediaPreview = ({ form, width, height }: { form: WidgetFormState; width: string | number; height?: string | number }) => {
@@ -277,8 +283,99 @@ const renderCard = (form: WidgetFormState) => {
   }
 }
 
+const DeviceSelector = ({ device, onChange }: { device: DeviceMode; onChange: (d: DeviceMode) => void }) => (
+  <div className="flex items-center gap-1 rounded-xl border border-slate-200 p-1">
+    {([
+      { key: 'desktop', icon: Monitor },
+      { key: 'tablet', icon: Tablet },
+      { key: 'mobile', icon: Smartphone },
+    ] as const).map(({ key, icon: Icon }) => (
+      <button
+        key={key}
+        type="button"
+        onClick={() => onChange(key)}
+        className={`rounded-lg p-2 transition ${device === key ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+      >
+        <Icon className="h-4 w-4" />
+      </button>
+    ))}
+  </div>
+)
+
+const FullscreenPreviewModal = ({ form, device, onDeviceChange, onClose }: { form: WidgetFormState; device: DeviceMode; onDeviceChange: (d: DeviceMode) => void; onClose: () => void }) => (
+  <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/80 backdrop-blur-sm">
+    <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4">
+      <div>
+        <h3 className="text-base font-semibold text-white">Preview em tela cheia</h3>
+        <p className="text-xs text-slate-400">Visualize o widget como aparecerá em um cenário real</p>
+      </div>
+      <div className="flex items-center gap-3">
+        <DeviceSelector device={device} onChange={onDeviceChange} />
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-slate-400 hover:text-white"
+        >
+          <X className="h-4 w-4" />
+          Fechar
+        </button>
+      </div>
+    </div>
+
+    <div className="flex flex-1 items-center justify-center overflow-auto p-8">
+      <div className="w-full max-w-5xl">
+        {/* Simulated browser chrome */}
+        <div className="rounded-t-2xl border border-b-0 border-slate-300 bg-slate-200 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full bg-rose-400" />
+            <span className="h-3 w-3 rounded-full bg-amber-400" />
+            <span className="h-3 w-3 rounded-full bg-emerald-400" />
+            <div className="ml-4 flex-1 rounded-lg bg-white px-4 py-1.5 text-xs text-slate-400">
+              https://sua-loja.com.br/produto
+            </div>
+          </div>
+        </div>
+
+        {/* Simulated page content */}
+        <div className="rounded-b-2xl border border-slate-300 bg-white" style={{ minHeight: '70vh' }}>
+          {/* Fake page header */}
+          <div className="border-b border-slate-100 px-8 py-4">
+            <div className="flex items-center gap-4">
+              <div className="h-8 w-8 rounded-lg bg-slate-200" />
+              <div className="flex gap-6">
+                <div className="h-3 w-16 rounded bg-slate-200" />
+                <div className="h-3 w-16 rounded bg-slate-200" />
+                <div className="h-3 w-16 rounded bg-slate-200" />
+              </div>
+            </div>
+          </div>
+
+          {/* Fake page body with widget */}
+          <div className="p-8">
+            <div className="mb-6 space-y-3">
+              <div className="h-4 w-2/5 rounded bg-slate-100" />
+              <div className="h-3 w-3/4 rounded bg-slate-100" />
+              <div className="h-3 w-1/2 rounded bg-slate-100" />
+            </div>
+
+            <div className={`mx-auto transition-all ${fullscreenDeviceWidths[device]}`}>
+              {renderCard(form)}
+            </div>
+
+            <div className="mt-8 space-y-3">
+              <div className="h-3 w-2/3 rounded bg-slate-100" />
+              <div className="h-3 w-1/2 rounded bg-slate-100" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
 const WidgetPreview = ({ form }: Props) => {
   const [device, setDevice] = useState<DeviceMode>('desktop')
+  const [showFullscreen, setShowFullscreen] = useState(false)
 
   return (
     <div className="space-y-5">
@@ -288,21 +385,16 @@ const WidgetPreview = ({ form }: Props) => {
           <p className="text-xs text-slate-500">A mídia sempre usará o link do CTA e o fechamento usa o id upse-close.</p>
         </div>
 
-        <div className="flex items-center gap-1 rounded-xl border border-slate-200 p-1">
-          {([
-            { key: 'desktop', icon: Monitor },
-            { key: 'tablet', icon: Tablet },
-            { key: 'mobile', icon: Smartphone },
-          ] as const).map(({ key, icon: Icon }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setDevice(key)}
-              className={`rounded-lg p-2 transition ${device === key ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              <Icon className="h-4 w-4" />
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowFullscreen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+            Tela cheia
+          </button>
+          <DeviceSelector device={device} onChange={setDevice} />
         </div>
       </div>
 
@@ -311,6 +403,15 @@ const WidgetPreview = ({ form }: Props) => {
           {renderCard(form)}
         </div>
       </div>
+
+      {showFullscreen && (
+        <FullscreenPreviewModal
+          form={form}
+          device={device}
+          onDeviceChange={setDevice}
+          onClose={() => setShowFullscreen(false)}
+        />
+      )}
     </div>
   )
 }

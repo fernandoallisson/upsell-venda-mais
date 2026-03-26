@@ -31,7 +31,7 @@ const RangeField = ({
   <label className="block space-y-1.5">
     <div className="flex items-center justify-between">
       <span className="text-xs text-slate-500">{label}</span>
-      <span className="text-xs font-semibold text-slate-700">{value}{suffix ?? 'px'}</span>
+      <span className="text-xs font-semibold text-slate-700">{value}{suffix ?? 'vw'}</span>
     </div>
     <input
       type="range"

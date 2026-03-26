@@ -13,6 +13,30 @@ const esc = (value: string) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
+/** Convert a px value to a responsive clamp() using vw (calibrated at 1440px viewport) */
+const rVw = (px: number): string => {
+  const vw = +(px / 14.4).toFixed(2);
+  const min = Math.round(px * 0.7);
+  const max = Math.round(px * 1.2);
+  return `clamp(${min}px, ${vw}vw, ${max}px)`;
+};
+
+/** Convert a px value to a responsive clamp() using vh (calibrated at 900px viewport) */
+const rVh = (px: number): string => {
+  const vh = +(px / 9).toFixed(2);
+  const min = Math.round(px * 0.65);
+  const max = Math.round(px * 1.25);
+  return `clamp(${min}px, ${vh}vh, ${max}px)`;
+};
+
+/** Convert a font-size px value to a responsive clamp() */
+const rFont = (px: number): string => {
+  const vw = +(px / 14.4).toFixed(2);
+  const min = Math.max(10, Math.round(px * 0.8));
+  const max = Math.round(px * 1.15);
+  return `clamp(${min}px, ${vw}vw, ${max}px)`;
+};
+
 const buildCtaAttrs = (content?: WidgetTemplateContent) => {
   const href = content?.ctaLink?.trim() || "#";
   const target = content?.ctaNewTab ? ' target="_blank" rel="noopener noreferrer"' : "";
@@ -290,21 +314,26 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
     ? `${config.mediaSize}%`
     : "100%";
 
+  const mobilePadding = config.layout === "toast" ? Math.round(toastPadding * 0.8) : Math.round(config.padding * 0.75);
+  const mobileMinHeight = config.layout === "toast" ? 90 : Math.round(config.minHeight * 0.75);
+  const desktopPadding = config.layout === "toast" ? toastPadding : config.padding;
+  const desktopMinHeight = config.layout === "toast" ? 110 : config.minHeight;
+
   // Mobile-first: base styles are for mobile, then scale up with min-width media query
-  return `/* Mobile-first base styles */
+  return `/* Mobile-first responsive styles (vh/vw units with clamp) */
 .widget-template {
   --widget-bg: ${config.backgroundColor};
   --widget-text: ${config.textColor};
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: ${rVw(12)};
   width: 100%;
   max-width: 100%;
-  min-height: ${config.layout === "toast" ? 90 : Math.round(config.minHeight * 0.75)}px;
+  min-height: ${rVh(mobileMinHeight)};
   margin: 0 auto;
-  padding: ${config.layout === "toast" ? Math.round(toastPadding * 0.8) : Math.round(config.padding * 0.75)}px;
-  border-radius: ${config.layout === "banner" ? 999 : config.borderRadius}px;
+  padding: ${rVw(mobilePadding)};
+  border-radius: ${config.layout === "banner" ? "999px" : rVw(config.borderRadius)};
   border: 1px solid ${config.borderColor};
   background: ${variant.cardBackground};
   color: ${variant.bodyColor};
@@ -315,19 +344,19 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
 }
 .widget-template__close {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: ${rVw(8)};
+  right: ${rVw(8)};
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: ${rVw(28)};
+  height: ${rVw(28)};
   padding: 0;
   border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.08);
   color: ${config.textColor};
-  font-size: 18px;
+  font-size: ${rFont(18)};
   line-height: 1;
   cursor: pointer;
   z-index: 2;
@@ -338,8 +367,8 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
 }
 .widget-template__media {
   width: ${mobileMediaWidth};
-  min-height: ${config.layout === "toast" ? 60 : 120}px;
-  border-radius: ${Math.max(config.borderRadius - 4, 8)}px;
+  min-height: ${rVh(config.layout === "toast" ? 60 : 120)};
+  border-radius: ${rVw(Math.max(config.borderRadius - 4, 8))};
   overflow: hidden;
   background: #e2e8f0;
 }
@@ -354,9 +383,9 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  min-height: 120px;
-  padding: 10px;
-  font-size: 13px;
+  min-height: ${rVh(120)};
+  padding: ${rVw(10)};
+  font-size: ${rFont(13)};
   font-weight: 700;
   text-align: center;
 }
@@ -378,22 +407,22 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
   flex-direction: column;
   flex: 1;
   min-width: 0;
-  gap: 6px;
+  gap: ${rVw(6)};
 }
 .widget-template__badge {
   width: max-content;
-  padding: 3px 8px;
+  padding: ${rVw(3)} ${rVw(8)};
   border-radius: ${variant.badgeRadius};
   background: ${config.buttonColor};
   color: #fff;
-  font-size: 10px;
+  font-size: ${rFont(10)};
   font-weight: ${variant.badgeWeight};
   text-transform: ${variant.badgeTransform};
   letter-spacing: ${variant.badgeSpacing};
 }
 .widget-template__title {
   margin: 0;
-  font-size: 18px;
+  font-size: ${rFont(18)};
   font-weight: ${variant.titleWeight};
   text-transform: ${variant.titleTransform};
   letter-spacing: ${variant.titleSpacing};
@@ -401,34 +430,34 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
 }
 .widget-template__subtitle {
   margin: 0;
-  font-size: 11px;
+  font-size: ${rFont(11)};
   opacity: 0.8;
 }
 .widget-template__description {
   margin: 0;
-  font-size: 13px;
+  font-size: ${rFont(13)};
   line-height: 1.45;
 }
 .widget-template__extra {
   margin: 0;
-  font-size: 11px;
+  font-size: ${rFont(11)};
   opacity: 0.75;
 }
 .widget-template__actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 6px;
+  gap: ${rVw(8)};
+  margin-top: ${rVw(6)};
 }
 .widget-template__button {
   width: 100%;
   max-width: 100%;
-  padding: 10px 16px;
+  padding: ${rVw(10)} ${rVw(16)};
   border: none;
   border-radius: ${variant.buttonRadius};
   background: ${config.buttonColor};
   color: #fff;
-  font-size: 12px;
+  font-size: ${rFont(12)};
   font-weight: ${variant.buttonWeight};
   text-transform: ${variant.buttonTransform};
   letter-spacing: ${variant.buttonSpacing};
@@ -440,12 +469,12 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
 }
 .widget-template__reject {
   width: 100%;
-  padding: 8px 12px;
+  padding: ${rVw(8)} ${rVw(12)};
   border: none;
   border-radius: ${variant.buttonRadius};
   background: transparent;
   color: ${variant.bodyColor};
-  font-size: 11px;
+  font-size: ${rFont(11)};
   font-weight: 500;
   cursor: pointer;
   text-align: center;
@@ -470,51 +499,51 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
 @media (min-width: 768px) {
   .widget-template {
     flex-direction: ${getFlexDirection(config.layout)};
-    gap: 16px;
-    max-width: ${config.width}px;
-    min-height: ${config.layout === "toast" ? 110 : config.minHeight}px;
-    padding: ${config.layout === "toast" ? toastPadding : config.padding}px;
+    gap: ${rVw(16)};
+    max-width: ${rVw(config.width)};
+    min-height: ${rVh(desktopMinHeight)};
+    padding: ${rVw(desktopPadding)};
   }
   .widget-template__media {
     width: ${desktopMediaWidth};
-    min-height: ${config.layout === "toast" ? 72 : 140}px;
-    border-radius: ${Math.max(config.borderRadius - 4, 10)}px;
+    min-height: ${rVh(config.layout === "toast" ? 72 : 140)};
+    border-radius: ${rVw(Math.max(config.borderRadius - 4, 10))};
   }
   .widget-template__media-asset {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.widget-template__media-placeholder {
-    min-height: 140px;
-    padding: 12px;
-    font-size: 14px;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .widget-template__media-placeholder {
+    min-height: ${rVh(140)};
+    padding: ${rVw(12)};
+    font-size: ${rFont(14)};
   }
   .widget-template__content {
-    gap: 8px;
+    gap: ${rVw(8)};
   }
   .widget-template__badge {
-    padding: 4px 10px;
-    font-size: 11px;
+    padding: ${rVw(4)} ${rVw(10)};
+    font-size: ${rFont(11)};
   }
   .widget-template__title {
-    font-size: 24px;
+    font-size: ${rFont(24)};
     line-height: 1.2;
   }
   .widget-template__subtitle {
-    font-size: 12px;
+    font-size: ${rFont(12)};
   }
   .widget-template__description {
-    font-size: 14px;
+    font-size: ${rFont(14)};
   }
   .widget-template__extra {
-    font-size: 12px;
+    font-size: ${rFont(12)};
   }
   .widget-template__actions {
     flex-direction: row;
     align-items: center;
-    gap: 10px;
+    gap: ${rVw(10)};
   }
   .widget-template__button {
     width: max-content;
@@ -526,10 +555,10 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
     width: auto;
   }
   .widget-template--modal {
-    max-width: min(${config.width}px, 88vw);
+    max-width: min(${rVw(config.width)}, 88vw);
   }
   .widget-template--toast {
-    max-width: 360px;
+    max-width: ${rVw(360)};
   }
 }
 `;
