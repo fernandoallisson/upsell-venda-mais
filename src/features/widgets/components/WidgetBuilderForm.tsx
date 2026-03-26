@@ -152,8 +152,8 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
                   </select>
                 </label>
                 <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">{layoutPresetDefinitions[config.layout].description}</p>
-                <label className="block text-sm">Largura do widget ({config.width}px)<input type="range" min={280} max={960} step={10} value={config.width} onChange={(e) => update('width', Number(e.target.value))} className="mt-2 w-full" /></label>
-                <label className="block text-sm">Altura mínima ({config.minHeight}px)<input type="range" min={120} max={520} step={10} value={config.minHeight} onChange={(e) => update('minHeight', Number(e.target.value))} className="mt-2 w-full" /></label>
+                <label className="block text-sm">Largura do widget ({config.width}vw)<input type="range" min={280} max={960} step={10} value={config.width} onChange={(e) => update('width', Number(e.target.value))} className="mt-2 w-full" /></label>
+                <label className="block text-sm">Altura mínima ({config.minHeight}vh)<input type="range" min={120} max={520} step={10} value={config.minHeight} onChange={(e) => update('minHeight', Number(e.target.value))} className="mt-2 w-full" /></label>
                 <label className="block text-sm">Tamanho da mídia ({config.mediaSize}%)<input type="range" min={20} max={70} value={config.mediaSize} disabled={mediaSizeDisabled} onChange={(e) => update('mediaSize', Number(e.target.value))} className="mt-2 w-full disabled:opacity-40" /></label>
               </>
             ) : null}
@@ -170,8 +170,8 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
                   <label className="block text-sm">Cor do botão<input type="color" value={config.buttonColor} onChange={(e) => update('buttonColor', e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 p-1" /></label>
                   <label className="block text-sm">Cor da borda<input type="color" value={config.borderColor} onChange={(e) => update('borderColor', e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 p-1" /></label>
                 </div>
-                <label className="block text-sm">Border radius ({config.borderRadius}px)<input type="range" min={0} max={40} value={config.borderRadius} onChange={(e) => update('borderRadius', Number(e.target.value))} className="mt-2 w-full" /></label>
-                <label className="block text-sm">Padding ({config.padding}px)<input type="range" min={0} max={56} value={config.padding} onChange={(e) => update('padding', Number(e.target.value))} className="mt-2 w-full" /></label>
+                <label className="block text-sm">Border radius ({config.borderRadius}vw)<input type="range" min={0} max={40} value={config.borderRadius} onChange={(e) => update('borderRadius', Number(e.target.value))} className="mt-2 w-full" /></label>
+                <label className="block text-sm">Padding ({config.padding}vw)<input type="range" min={0} max={56} value={config.padding} onChange={(e) => update('padding', Number(e.target.value))} className="mt-2 w-full" /></label>
               </>
             ) : null}
 
@@ -204,21 +204,66 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
       </form>
 
       {showFullscreenPreview ? (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 p-6">
-          <div className="flex h-full flex-col rounded-2xl bg-white p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">Preview em tela cheia</h3>
-              <div className="flex items-center gap-2">
-                {(['desktop', 'mobile'] as const).map((mode) => (
-                  <button key={mode} type="button" onClick={() => setPreviewViewport(mode)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${previewViewport === mode ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{mode === 'desktop' ? 'Desktop' : 'Mobile'}</button>
-                ))}
-                <button type="button" onClick={() => setShowFullscreenPreview(false)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Fechar</button>
-              </div>
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/80 backdrop-blur-sm">
+          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4">
+            <div>
+              <h3 className="text-base font-semibold text-white">Preview em tela cheia</h3>
+              <p className="text-xs text-slate-400">Visualize o widget como aparecerá em um cenário real</p>
             </div>
-            <div className="flex-1 overflow-auto rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-100 to-slate-200 p-8">
-              <WidgetPreviewFrame viewport={previewViewport} fullscreen>
-                <WidgetLivePreview config={config} viewport={previewViewport} />
-              </WidgetPreviewFrame>
+            <div className="flex items-center gap-3">
+              {(['desktop', 'mobile'] as const).map((mode) => (
+                <button key={mode} type="button" onClick={() => setPreviewViewport(mode)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${previewViewport === mode ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}>{mode === 'desktop' ? 'Desktop' : 'Mobile'}</button>
+              ))}
+              <button type="button" onClick={() => setShowFullscreenPreview(false)} className="flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-slate-400 hover:text-white">Fechar</button>
+            </div>
+          </div>
+
+          <div className="flex flex-1 items-center justify-center overflow-auto p-8">
+            <div className="w-full max-w-5xl">
+              {/* Simulated browser chrome */}
+              <div className="rounded-t-2xl border border-b-0 border-slate-300 bg-slate-200 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-rose-400" />
+                  <span className="h-3 w-3 rounded-full bg-amber-400" />
+                  <span className="h-3 w-3 rounded-full bg-emerald-400" />
+                  <div className="ml-4 flex-1 rounded-lg bg-white px-4 py-1.5 text-xs text-slate-400">
+                    https://sua-loja.com.br/produto
+                  </div>
+                </div>
+              </div>
+
+              {/* Simulated page content */}
+              <div className="rounded-b-2xl border border-slate-300 bg-white" style={{ minHeight: '70vh' }}>
+                {/* Fake page header */}
+                <div className="border-b border-slate-100 px-8 py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-8 w-8 rounded-lg bg-slate-200" />
+                    <div className="flex gap-6">
+                      <div className="h-3 w-16 rounded bg-slate-200" />
+                      <div className="h-3 w-16 rounded bg-slate-200" />
+                      <div className="h-3 w-16 rounded bg-slate-200" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fake page body with widget */}
+                <div className="p-8">
+                  <div className="mb-6 space-y-3">
+                    <div className="h-4 w-2/5 rounded bg-slate-100" />
+                    <div className="h-3 w-3/4 rounded bg-slate-100" />
+                    <div className="h-3 w-1/2 rounded bg-slate-100" />
+                  </div>
+
+                  <WidgetPreviewFrame viewport={previewViewport} fullscreen>
+                    <WidgetLivePreview config={config} viewport={previewViewport} />
+                  </WidgetPreviewFrame>
+
+                  <div className="mt-8 space-y-3">
+                    <div className="h-3 w-2/3 rounded bg-slate-100" />
+                    <div className="h-3 w-1/2 rounded bg-slate-100" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
