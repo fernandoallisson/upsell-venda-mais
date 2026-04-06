@@ -67,12 +67,24 @@ const WidgetEditPage = () => {
   }
 
   return (
-    <DashboardPage title="Editar Widget" subtitle="Edite o template visual do widget">
+    <DashboardPage title="Editar Widget" subtitle="Personalize o template visual do widget">
       {loading ? (
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">Carregando widget...</div>
+        <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-16">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            <span className="text-sm text-slate-500">Carregando widget...</span>
+          </div>
+        </div>
       ) : widget ? (
         <div className="space-y-4">
-          {error ? <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
+          {error && (
+            <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              <svg className="h-5 w-5 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
           <WidgetBuilderForm
             initialValue={widget}
             submitting={submitting}
@@ -82,7 +94,12 @@ const WidgetEditPage = () => {
           />
         </div>
       ) : (
-        <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error ?? 'Widget não encontrado.'}</div>
+        <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <svg className="h-5 w-5 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+          </svg>
+          <span>{error ?? 'Widget não encontrado.'}</span>
+        </div>
       )}
     </DashboardPage>
   )
