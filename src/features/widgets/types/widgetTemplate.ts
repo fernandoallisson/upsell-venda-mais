@@ -60,6 +60,15 @@ export const MOCK_WIDGET_CONTENT = {
   extraText: 'Frete grátis para todo Brasil',
 }
 
+/** Dimension constraints — keep widgets compact and responsive */
+export const WIDGET_LIMITS = {
+  width: { min: 280, max: 680 },
+  minHeight: { min: 80, max: 360 },
+  mediaSize: { min: 20, max: 60 },
+  borderRadius: { min: 0, max: 28 },
+  padding: { min: 0, max: 32 },
+} as const
+
 export const defaultWidgetVisualConfig: WidgetVisualConfig = {
   layout: 'media-left',
   variant: 'modern',
@@ -73,16 +82,16 @@ export const defaultWidgetVisualConfig: WidgetVisualConfig = {
   showMedia: true,
   buttonFullWidth: false,
   mediaClickableCta: false,
-  width: 620,
-  minHeight: 250,
-  mediaSize: 42,
+  width: 520,
+  minHeight: 220,
+  mediaSize: 40,
   backgroundColor: '#ffffff',
   textColor: '#0f172a',
   buttonColor: '#2563eb',
   borderColor: '#cbd5e1',
-  borderRadius: 18,
+  borderRadius: 16,
   shadow: 'md',
-  padding: 24,
+  padding: 20,
 }
 
 export const layoutLabels: Record<WidgetLayout, string> = {

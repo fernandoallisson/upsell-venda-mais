@@ -20,6 +20,7 @@ import {
 import type { Widget, WidgetApiValidationErrors, WidgetFormPayload, WidgetConfig } from '../../../types/widget'
 import {
   defaultWidgetVisualConfig,
+  WIDGET_LIMITS,
   layoutLabels,
   mediaTypeOptions,
   shadowOptions,
@@ -369,19 +370,19 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
               onToggle={() => toggleSection('dimensions')}
             >
               <div className="space-y-4">
-                <RangeControl label="Largura" value={config.width} min={280} max={960} step={10} unit="px" onChange={(v) => update('width', v)} />
-                <RangeControl label="Altura mínima" value={config.minHeight} min={120} max={520} step={10} unit="px" onChange={(v) => update('minHeight', v)} />
+                <RangeControl label="Largura" value={config.width} min={WIDGET_LIMITS.width.min} max={WIDGET_LIMITS.width.max} step={10} unit="px" onChange={(v) => update('width', v)} />
+                <RangeControl label="Altura mínima" value={config.minHeight} min={WIDGET_LIMITS.minHeight.min} max={WIDGET_LIMITS.minHeight.max} step={10} unit="px" onChange={(v) => update('minHeight', v)} />
                 <RangeControl
                   label="Tamanho da mídia"
                   value={config.mediaSize}
-                  min={20}
-                  max={70}
+                  min={WIDGET_LIMITS.mediaSize.min}
+                  max={WIDGET_LIMITS.mediaSize.max}
                   unit="%"
                   disabled={mediaSizeDisabled}
                   onChange={(v) => update('mediaSize', v)}
                 />
-                <RangeControl label="Border radius" value={config.borderRadius} min={0} max={40} unit="px" onChange={(v) => update('borderRadius', v)} />
-                <RangeControl label="Padding" value={config.padding} min={0} max={56} unit="px" onChange={(v) => update('padding', v)} />
+                <RangeControl label="Border radius" value={config.borderRadius} min={WIDGET_LIMITS.borderRadius.min} max={WIDGET_LIMITS.borderRadius.max} unit="px" onChange={(v) => update('borderRadius', v)} />
+                <RangeControl label="Padding" value={config.padding} min={WIDGET_LIMITS.padding.min} max={WIDGET_LIMITS.padding.max} unit="px" onChange={(v) => update('padding', v)} />
               </div>
             </CollapsiblePanel>
           </div>

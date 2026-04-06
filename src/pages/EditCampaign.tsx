@@ -11,7 +11,6 @@ import {
   FileText,
   Calendar,
   Repeat,
-  Palette,
 } from "lucide-react";
 import { ApiError } from "../lib/api";
 import {
@@ -28,11 +27,10 @@ import BasicInfoSection from "../features/campaigns/create/sections/BasicInfoSec
 import ContentSection from "../features/campaigns/create/sections/ContentSection";
 import ScheduleSection from "../features/campaigns/create/sections/ScheduleSection";
 import FrequencySection from "../features/campaigns/create/sections/FrequencySection";
-import VisualSection from "../features/campaigns/create/sections/VisualSection";
 import PreviewPanel from "../features/campaigns/create/sections/PreviewPanel";
 import CampaignTour from "../features/campaigns/tour/CampaignTour";
 
-type PanelSection = "info" | "content" | "visual" | "schedule" | "frequency";
+type PanelSection = "info" | "content" | "schedule" | "frequency";
 
 const sectionConfig: Array<{
   key: PanelSection;
@@ -42,7 +40,6 @@ const sectionConfig: Array<{
 }> = [
   { key: "info", label: "Configuração", icon: Settings, tourId: "tour-info-basicas" },
   { key: "content", label: "Conteúdo", icon: FileText, tourId: "tour-conteudo" },
-  { key: "visual", label: "Visual", icon: Palette },
   { key: "schedule", label: "Período", icon: Calendar, tourId: "tour-periodo" },
   { key: "frequency", label: "Frequência", icon: Repeat, tourId: "tour-frequencia" },
 ];
@@ -97,8 +94,6 @@ const EditCampaign = () => {
     toggleHour,
     setAllHours,
     clearHours,
-    setColors,
-    setColor,
     selectWidgetPreset,
     setWidgetRenderType,
   } = useEditCampaignForm(campaign);
@@ -300,13 +295,6 @@ const EditCampaign = () => {
                         form={form}
                         selectedWidgetPreset={selectedWidgetPreset}
                         onSet={set}
-                      />
-                    )}
-                    {section.key === "visual" && (
-                      <VisualSection
-                        form={form}
-                        onSetColors={setColors}
-                        onSetColor={setColor}
                       />
                     )}
                     {section.key === "schedule" && (

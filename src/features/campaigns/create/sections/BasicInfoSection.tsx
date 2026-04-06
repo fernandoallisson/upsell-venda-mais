@@ -149,46 +149,63 @@ const BasicInfoSection = ({
 
   return (
     <div className="space-y-5">
-      {/* ── Campaign Name + Status ── */}
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-        <label className="block space-y-1">
-          <span className="text-xs font-semibold text-slate-600">
-            Nome da Campanha <span className="text-rose-500">*</span>
-          </span>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => onSet("name", e.target.value)}
-            placeholder="Ex: Black Friday 2026"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-50"
-          />
-        </label>
+      {/* ── Campaign Name ── */}
+      <label className="block space-y-1.5">
+        <span className="text-xs font-semibold text-slate-600">
+          Nome da Campanha <span className="text-rose-500">*</span>
+        </span>
+        <input
+          type="text"
+          value={form.name}
+          onChange={(e) => onSet("name", e.target.value)}
+          placeholder="Ex: Black Friday 2026"
+          className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-50"
+        />
+      </label>
 
-        <label className="block space-y-1">
-          <span className="text-xs font-semibold text-slate-600">Status</span>
-          <select
-            value={form.is_active ? "active" : "inactive"}
-            onChange={(e) => onSet("is_active", e.target.value === "active")}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-300"
+      {/* ── Status (toggle button) ── */}
+      <div className="space-y-1.5">
+        <span className="text-xs font-semibold text-slate-600">Status</span>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onSet("is_active", true)}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition ${
+              form.is_active
+                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                : "border-slate-200 text-slate-500 hover:border-slate-300"
+            }`}
           >
-            <option value="active">Ativo</option>
-            <option value="inactive">Inativo</option>
-          </select>
-        </label>
-
-        <label className="block space-y-1">
-          <span className="text-xs font-semibold text-slate-600">
-            Prioridade
-          </span>
-          <input
-            type="number"
-            min={0}
-            value={form.priority}
-            onChange={(e) => onSet("priority", Number(e.target.value))}
-            className="w-24 rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-blue-300"
-          />
-        </label>
+            <span className={`h-2 w-2 rounded-full ${form.is_active ? "bg-emerald-500" : "bg-slate-300"}`} />
+            Ativo
+          </button>
+          <button
+            type="button"
+            onClick={() => onSet("is_active", false)}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition ${
+              !form.is_active
+                ? "border-slate-500 bg-slate-100 text-slate-700"
+                : "border-slate-200 text-slate-500 hover:border-slate-300"
+            }`}
+          >
+            <span className={`h-2 w-2 rounded-full ${!form.is_active ? "bg-slate-500" : "bg-slate-300"}`} />
+            Inativo
+          </button>
+        </div>
       </div>
+
+      {/* ── Priority ── */}
+      <label className="block space-y-1.5">
+        <span className="text-xs font-semibold text-slate-600">Prioridade</span>
+        <input
+          type="number"
+          min={0}
+          value={form.priority}
+          onChange={(e) => onSet("priority", Number(e.target.value))}
+          className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-300"
+        />
+        <p className="text-[10px] text-slate-400">Maior valor = mais prioritário</p>
+      </label>
 
       {/* ── Widget Preset Selection ── */}
       <div className="space-y-3">

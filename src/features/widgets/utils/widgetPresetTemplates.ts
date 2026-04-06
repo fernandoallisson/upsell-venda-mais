@@ -143,7 +143,7 @@ const presets: WidgetPresetTemplate[] = [
       shadow: 'sm',
       padding: 20,
       width: 400,
-      minHeight: 380,
+      minHeight: 340,
       mediaSize: 50,
     },
   },
