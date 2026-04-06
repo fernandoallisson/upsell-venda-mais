@@ -420,7 +420,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
             </div>
 
             {/* Preview Content */}
-            <div className="flex flex-1 items-start justify-center overflow-auto bg-gradient-to-br from-slate-50 to-slate-100 p-6" style={{ minHeight: 480 }}>
+            <div className="flex flex-1 items-start justify-center overflow-auto bg-gradient-to-br from-slate-50 to-slate-100 p-6" style={{ minHeight: 380 }}>
               <WidgetPreviewFrame viewport={previewViewport}>
                 <WidgetLivePreview config={config} viewport={previewViewport} />
               </WidgetPreviewFrame>

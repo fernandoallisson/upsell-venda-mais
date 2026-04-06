@@ -134,7 +134,7 @@ const PreviewPanel = ({ form, selectedWidgetPreset }: Props) => {
           </div>
 
           <div className="flex flex-1 items-center justify-center overflow-auto p-8">
-            <div className="w-full max-w-5xl">
+            <div className="w-full max-w-2xl">
               {/* Browser chrome */}
               <div className="rounded-t-2xl border border-b-0 border-slate-300 bg-slate-200 px-4 py-3">
                 <div className="flex items-center gap-2">
