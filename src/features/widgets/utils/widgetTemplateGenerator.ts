@@ -317,7 +317,7 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
   const variant = variantStyles[config.variant];
   const toastPadding = Math.max(14, Math.round(config.padding * 0.65));
   const mobileMediaWidth = preset.supportsMediaSize
-    ? `${Math.min(58, Math.max(32, config.mediaSize))}%`
+    ? `${Math.min(100, Math.max(32, config.mediaSize))}%`
     : "100%";
   const desktopMediaWidth = preset.supportsMediaSize
     ? `${config.mediaSize}%`
