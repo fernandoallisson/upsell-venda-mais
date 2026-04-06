@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Eye, MapPin, Monitor, Smartphone, Maximize2, X } from "lucide-react";
 import type { Widget } from "../../../../types/widget";
 import WidgetHtmlPreview from "../../../widgets/components/WidgetHtmlPreview";
+import WidgetPreviewFrame from "../../../widgets/components/WidgetPreviewFrame";
 import { DISPLAY_LOCATIONS } from "../constants";
 import type { CampaignFormState } from "../types";
 import { buildCampaignWidgetMarkup } from "../widgetPresetUtils";
@@ -38,9 +39,21 @@ const PreviewPanel = ({ form, selectedWidgetPreset }: Props) => {
     ? buildCampaignWidgetMarkup(selectedWidgetPreset, form)
     : null;
 
+  const FRAME = {
+    desktop: { width: 683, height: 512 },
+    mobile: { width: 207, height: 448 },
+  } as const;
+
+  const frame = FRAME[viewport];
+
   const previewContent = generated ? (
-    <div className={viewport === "mobile" ? "mx-auto max-w-[360px]" : ""}>
-      <WidgetHtmlPreview html={generated.html} css={generated.css} compact={viewport === "mobile"} />
+    <div
+      className={`mx-auto flex-shrink-0 rounded-xl border border-slate-200 bg-slate-100 overflow-auto ${viewport === "mobile" ? "p-2" : "p-4"}`}
+      style={{ width: frame.width, height: frame.height }}
+    >
+      <div className={`w-full ${viewport === "mobile" ? "origin-top" : ""}`} style={viewport === "mobile" ? { transform: `scale(${Math.min(1, frame.width / 520)})` } : undefined}>
+        <WidgetHtmlPreview html={generated.html} css={generated.css} compact={viewport === "mobile"} />
+      </div>
     </div>
   ) : (
     emptyState
@@ -134,49 +147,9 @@ const PreviewPanel = ({ form, selectedWidgetPreset }: Props) => {
           </div>
 
           <div className="flex flex-1 items-center justify-center overflow-auto p-8">
-            <div className="w-full max-w-2xl">
-              {/* Browser chrome */}
-              <div className="rounded-t-2xl border border-b-0 border-slate-300 bg-slate-200 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full bg-rose-400" />
-                  <span className="h-3 w-3 rounded-full bg-amber-400" />
-                  <span className="h-3 w-3 rounded-full bg-emerald-400" />
-                  <div className="ml-4 flex-1 rounded-lg bg-white px-4 py-1.5 text-xs text-slate-400">
-                    https://sua-loja.com.br/produto
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-b-2xl border border-slate-300 bg-white" style={{ minHeight: "70vh" }}>
-                <div className="border-b border-slate-100 px-8 py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-8 w-8 rounded-lg bg-slate-200" />
-                    <div className="flex gap-6">
-                      <div className="h-3 w-16 rounded bg-slate-200" />
-                      <div className="h-3 w-16 rounded bg-slate-200" />
-                      <div className="h-3 w-16 rounded bg-slate-200" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-8">
-                  <div className="mb-6 space-y-3">
-                    <div className="h-4 w-2/5 rounded bg-slate-100" />
-                    <div className="h-3 w-3/4 rounded bg-slate-100" />
-                    <div className="h-3 w-1/2 rounded bg-slate-100" />
-                  </div>
-
-                  <div className={viewport === "mobile" ? "mx-auto max-w-[360px]" : ""}>
-                    <WidgetHtmlPreview html={generated.html} css={generated.css} />
-                  </div>
-
-                  <div className="mt-8 space-y-3">
-                    <div className="h-3 w-2/3 rounded bg-slate-100" />
-                    <div className="h-3 w-1/2 rounded bg-slate-100" />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <WidgetPreviewFrame viewport={viewport} fullscreen>
+              <WidgetHtmlPreview html={generated.html} css={generated.css} compact={viewport === "mobile"} />
+            </WidgetPreviewFrame>
           </div>
         </div>
       )}
