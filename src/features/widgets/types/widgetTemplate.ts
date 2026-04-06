@@ -64,7 +64,7 @@ export const MOCK_WIDGET_CONTENT = {
 export const WIDGET_LIMITS = {
   width: { min: 280, max: 680 },
   minHeight: { min: 80, max: 360 },
-  mediaSize: { min: 20, max: 100 },
+  mediaSize: { min: 20, max: 60 },
   borderRadius: { min: 0, max: 28 },
   padding: { min: 0, max: 32 },
 } as const
