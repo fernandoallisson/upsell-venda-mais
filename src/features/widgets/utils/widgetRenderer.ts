@@ -53,8 +53,8 @@ export const getWidgetComputedStyles = (
   const mediaStyle: CSSProperties = {
     width: layoutPresetDefinitions[config.layout].supportsMediaSize
       ? viewport === 'mobile'
-        ? `${Math.min(58, Math.max(32, config.mediaSize))}%`
-        : `${Math.min(70, Math.max(20, config.mediaSize))}%`
+        ? `${Math.min(100, Math.max(32, config.mediaSize))}%`
+        : `${Math.min(100, Math.max(20, config.mediaSize))}%`
       : '100%',
     minHeight: compact ? 80 : config.layout === 'toast' ? 72 : 140,
     borderRadius: Math.max(config.borderRadius - 4, 10),

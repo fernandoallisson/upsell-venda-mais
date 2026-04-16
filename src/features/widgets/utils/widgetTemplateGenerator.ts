@@ -2,6 +2,7 @@ import type { WidgetConfig } from "../../../types/widget";
 import {
   defaultWidgetVisualConfig,
   MOCK_WIDGET_CONTENT,
+  WIDGET_LIMITS,
   type WidgetVisualConfig,
 } from "../types/widgetTemplate";
 import { layoutPresetDefinitions } from "./layoutPresetDefinitions";
@@ -192,6 +193,14 @@ export const normalizeWidgetConfig = (
   if (!normalized.showMedia) normalized.mediaType = "none";
   if (normalized.mediaType === "none") normalized.mediaClickableCta = false;
 
+  // Clamp dimensions to safe responsive limits
+  const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+  normalized.width = clamp(normalized.width, WIDGET_LIMITS.width.min, WIDGET_LIMITS.width.max);
+  normalized.minHeight = clamp(normalized.minHeight, WIDGET_LIMITS.minHeight.min, WIDGET_LIMITS.minHeight.max);
+  normalized.mediaSize = clamp(normalized.mediaSize, WIDGET_LIMITS.mediaSize.min, WIDGET_LIMITS.mediaSize.max);
+  normalized.borderRadius = clamp(normalized.borderRadius, WIDGET_LIMITS.borderRadius.min, WIDGET_LIMITS.borderRadius.max);
+  normalized.padding = clamp(normalized.padding, WIDGET_LIMITS.padding.min, WIDGET_LIMITS.padding.max);
+
   return normalized;
 };
 
@@ -308,7 +317,7 @@ export const generateWidgetCss = (config: WidgetVisualConfig) => {
   const variant = variantStyles[config.variant];
   const toastPadding = Math.max(14, Math.round(config.padding * 0.65));
   const mobileMediaWidth = preset.supportsMediaSize
-    ? `${Math.min(58, Math.max(32, config.mediaSize))}%`
+    ? `${Math.min(100, Math.max(32, config.mediaSize))}%`
     : "100%";
   const desktopMediaWidth = preset.supportsMediaSize
     ? `${config.mediaSize}%`

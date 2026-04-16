@@ -1,10 +1,27 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import type { FormEvent } from 'react'
+import {
+  Layers,
+  Paintbrush,
+  SlidersHorizontal,
+  Eye,
+  Monitor,
+  Smartphone,
+  Maximize2,
+  X,
+  ChevronDown,
+  ChevronRight,
+  ToggleLeft,
+  ToggleRight,
+  Undo2,
+  Save,
+  Sparkles,
+} from 'lucide-react'
 import type { Widget, WidgetApiValidationErrors, WidgetFormPayload, WidgetConfig } from '../../../types/widget'
 import {
   defaultWidgetVisualConfig,
+  WIDGET_LIMITS,
   layoutLabels,
-  layoutOptions,
   mediaTypeOptions,
   shadowOptions,
   variantOptions,
@@ -14,6 +31,9 @@ import { isMediaApplicable, layoutPresetDefinitions } from '../utils/layoutPrese
 import { generateWidgetCss, generateWidgetHtml, normalizeWidgetConfig } from '../utils/widgetTemplateGenerator'
 import WidgetLivePreview from './WidgetLivePreview'
 import WidgetPreviewFrame from './WidgetPreviewFrame'
+import WidgetTemplateGallery from './WidgetTemplateGallery'
+import WidgetColorPresets from './WidgetColorPresets'
+import WidgetLayoutPicker from './WidgetLayoutPicker'
 
 type Props = {
   initialValue?: Widget
@@ -23,30 +43,47 @@ type Props = {
   onSubmit: (payload: WidgetFormPayload) => Promise<void>
 }
 
-type EditorTab = 'structure' | 'layout' | 'style' | 'preview'
+type EditorSection = 'layout' | 'structure' | 'style' | 'dimensions'
 
-const tabs: Array<{ key: EditorTab; label: string }> = [
-  { key: 'structure', label: 'Estrutura' },
-  { key: 'layout', label: 'Layout' },
-  { key: 'style', label: 'Estilo' },
-  { key: 'preview', label: 'Preview' },
-]
+type BuilderStep = 'template' | 'customize'
+
+const variantLabels: Record<WidgetVisualConfig['variant'], string> = {
+  modern: 'Moderno',
+  minimal: 'Minimalista',
+  premium: 'Premium',
+  promotional: 'Promocional',
+  glass: 'Glass',
+  bold: 'Bold',
+}
+
+const shadowLabels: Record<WidgetVisualConfig['shadow'], string> = {
+  none: 'Nenhuma',
+  sm: 'Suave',
+  md: 'Média',
+  lg: 'Forte',
+}
 
 const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, onSubmit }: Props) => {
-  const [title, setTitle] = useState(initialValue?.title ?? 'Template de Widget')
+  const isEditing = !!initialValue
+  const [step, setStep] = useState<BuilderStep>(isEditing ? 'customize' : 'template')
+  const [title, setTitle] = useState(initialValue?.title ?? '')
   const [isActive, setIsActive] = useState(initialValue?.is_active ?? true)
   const [localError, setLocalError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<EditorTab>('structure')
   const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop')
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false)
-  const [config, setConfig] = useState<WidgetVisualConfig>(() => normalizeWidgetConfig(initialValue?.config ?? { name: 'Widget padrão', slug: 'widget-padrao', attributes: defaultWidgetVisualConfig }))
+  const [expandedSections, setExpandedSections] = useState<Set<EditorSection>>(new Set(['layout', 'style']))
+  const [config, setConfig] = useState<WidgetVisualConfig>(() =>
+    normalizeWidgetConfig(initialValue?.config ?? { name: 'Widget padrão', slug: 'widget-padrao', attributes: defaultWidgetVisualConfig }),
+  )
 
   const generatedHtml = useMemo(() => generateWidgetHtml(config), [config])
   const generatedCss = useMemo(() => generateWidgetCss(config), [config])
 
-  const update = <K extends keyof WidgetVisualConfig>(key: K, value: WidgetVisualConfig[K]) => setConfig((prev) => ({ ...prev, [key]: value }))
+  const update = useCallback(<K extends keyof WidgetVisualConfig>(key: K, value: WidgetVisualConfig[K]) => {
+    setConfig((prev) => ({ ...prev, [key]: value }))
+  }, [])
 
-  const handleLayout = (layout: WidgetVisualConfig['layout']) => {
+  const handleLayout = useCallback((layout: WidgetVisualConfig['layout']) => {
     const def = layoutPresetDefinitions[layout]
     setConfig((prev) => {
       let mediaType = def.forceMediaType ?? prev.mediaType
@@ -56,27 +93,49 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
         showMedia = false
         mediaType = 'none'
       } else if (def.forceMediaType) {
-        // Preset forces a specific media type (image/video) — re-enable media
         showMedia = true
         mediaType = def.forceMediaType
       } else if (!prev.showMedia || prev.mediaType === 'none') {
-        // No forced media type, but user had disabled media — restore default
         showMedia = true
         mediaType = 'image'
       }
 
       return { ...prev, layout, mediaType, showMedia }
     })
+  }, [])
+
+  const toggleSection = (section: EditorSection) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(section)) next.delete(section)
+      else next.add(section)
+      return next
+    })
+  }
+
+  const handleSelectTemplate = (templateConfig: WidgetVisualConfig) => {
+    setConfig(templateConfig)
+    setStep('customize')
+  }
+
+  const handleResetToDefaults = () => {
+    setConfig(normalizeWidgetConfig({ name: '', slug: '', attributes: defaultWidgetVisualConfig }))
   }
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setLocalError(null)
-    if (!title.trim()) return setLocalError('Informe o nome do template.')
+    if (!title.trim()) return setLocalError('Informe o nome do widget.')
 
     const widgetConfig: WidgetConfig = {
       name: title.trim(),
-      slug: title.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+      slug: title
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, ''),
       attributes: config,
     }
 
@@ -92,149 +151,331 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
   const fieldError = apiErrors ?? {}
   const mediaSizeDisabled = !layoutPresetDefinitions[config.layout].supportsMediaSize || !isMediaApplicable(config.layout) || !config.showMedia || config.mediaType === 'none'
 
+  // ─── Step 1: Template Gallery ───
+  if (step === 'template') {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <WidgetTemplateGallery
+          onSelect={handleSelectTemplate}
+          onSkip={() => setStep('customize')}
+        />
+      </div>
+    )
+  }
+
+  // ─── Step 2: Customization Builder ───
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-        {localError ? <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{localError}</div> : null}
-        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-          <label className="space-y-1">
-            <span className="text-sm font-semibold text-slate-700">Nome do template</span>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
-            {fieldError.title?.[0] ? <p className="text-xs text-rose-600">{fieldError.title[0]}</p> : null}
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Template ativo</label>
-        </div>
-
-        <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 p-2">
-          {tabs.map((tab) => (
-            <button key={tab.key} type="button" onClick={() => setActiveTab(tab.key)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${activeTab === tab.key ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
-              {tab.label}
+      <form onSubmit={handleSubmit} className="space-y-0">
+        {/* Top Bar */}
+        <div className="flex flex-wrap items-center gap-3 rounded-t-2xl border border-slate-200 bg-white px-5 py-4">
+          {/* Back to templates (only on create) */}
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => setStep('template')}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Modelos
             </button>
-          ))}
-          <button type="button" onClick={() => setShowFullscreenPreview(true)} className="ml-auto rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Abrir preview fullscreen</button>
-        </div>
+          )}
 
-        <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-          <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
-            {activeTab === 'structure' ? (
-              <>
-                <p className="text-sm text-slate-600">Defina os blocos visuais que o template irá renderizar com conteúdo simulado.</p>
-                <div className="grid gap-2 md:grid-cols-2">
-                  {([
-                    ['showTitle', 'Exibir título'],
-                    ['showSubtitle', 'Exibir subtítulo'],
-                    ['showDescription', 'Exibir descrição'],
-                    ['showButton', 'Exibir botão'],
-                    ['showComplementaryText', 'Exibir texto complementar'],
-                    ['showBadge', 'Exibir selo/badge'],
-                    ['showMedia', 'Exibir mídia'],
-                  ] as Array<[keyof WidgetVisualConfig, string]>).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><input type="checkbox" checked={Boolean(config[key])} onChange={(e) => update(key, e.target.checked as never)} /> {label}</label>
-                  ))}
-                </div>
-                <div className="grid gap-2 md:grid-cols-2">
-                  <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><input type="checkbox" checked={config.buttonFullWidth} onChange={(e) => update('buttonFullWidth', e.target.checked)} /> Botão com largura total</label>
-                  <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"><input type="checkbox" checked={config.mediaClickableCta} disabled={!config.showMedia || config.mediaType === 'none'} onChange={(e) => update('mediaClickableCta', e.target.checked)} /> Mídia clicável como CTA</label>
-                </div>
-                <label className="block text-sm">Tipo de mídia
-                  <select value={config.mediaType} disabled={!config.showMedia} onChange={(e) => update('mediaType', e.target.value as WidgetVisualConfig['mediaType'])} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 disabled:bg-slate-100">
-                    {mediaTypeOptions.map((option) => <option key={option}>{option}</option>)}
-                  </select>
-                </label>
-              </>
-            ) : null}
-
-            {activeTab === 'layout' ? (
-              <>
-                <label className="block text-sm">Preset de layout
-                  <select value={config.layout} onChange={(e) => handleLayout(e.target.value as WidgetVisualConfig['layout'])} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">
-                    {layoutOptions.map((option) => <option key={option} value={option}>{layoutLabels[option]}</option>)}
-                  </select>
-                </label>
-                <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">{layoutPresetDefinitions[config.layout].description}</p>
-                <label className="block text-sm">Largura do widget ({config.width}vw)<input type="range" min={280} max={960} step={10} value={config.width} onChange={(e) => update('width', Number(e.target.value))} className="mt-2 w-full" /></label>
-                <label className="block text-sm">Altura mínima ({config.minHeight}vh)<input type="range" min={120} max={520} step={10} value={config.minHeight} onChange={(e) => update('minHeight', Number(e.target.value))} className="mt-2 w-full" /></label>
-                <label className="block text-sm">Tamanho da mídia ({config.mediaSize}%)<input type="range" min={20} max={70} value={config.mediaSize} disabled={mediaSizeDisabled} onChange={(e) => update('mediaSize', Number(e.target.value))} className="mt-2 w-full disabled:opacity-40" /></label>
-              </>
-            ) : null}
-
-            {activeTab === 'style' ? (
-              <>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="block text-sm">Variante<select value={config.variant} onChange={(e) => update('variant', e.target.value as WidgetVisualConfig['variant'])} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">{variantOptions.map((v) => <option key={v}>{v}</option>)}</select></label>
-                  <label className="block text-sm">Sombra<select value={config.shadow} onChange={(e) => update('shadow', e.target.value as WidgetVisualConfig['shadow'])} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2">{shadowOptions.map((v) => <option key={v}>{v}</option>)}</select></label>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="block text-sm">Cor de fundo<input type="color" value={config.backgroundColor} onChange={(e) => update('backgroundColor', e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 p-1" /></label>
-                  <label className="block text-sm">Cor do texto<input type="color" value={config.textColor} onChange={(e) => update('textColor', e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 p-1" /></label>
-                  <label className="block text-sm">Cor do botão<input type="color" value={config.buttonColor} onChange={(e) => update('buttonColor', e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 p-1" /></label>
-                  <label className="block text-sm">Cor da borda<input type="color" value={config.borderColor} onChange={(e) => update('borderColor', e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 p-1" /></label>
-                </div>
-                <label className="block text-sm">Border radius ({config.borderRadius}vw)<input type="range" min={0} max={40} value={config.borderRadius} onChange={(e) => update('borderRadius', Number(e.target.value))} className="mt-2 w-full" /></label>
-                <label className="block text-sm">Padding ({config.padding}vw)<input type="range" min={0} max={56} value={config.padding} onChange={(e) => update('padding', Number(e.target.value))} className="mt-2 w-full" /></label>
-              </>
-            ) : null}
-
-            {activeTab === 'preview' ? (
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
-                <div className="flex gap-2">
-                  {(['desktop', 'mobile'] as const).map((mode) => (
-                    <button key={mode} type="button" onClick={() => setPreviewViewport(mode)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${previewViewport === mode ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{mode === 'desktop' ? 'Desktop' : 'Mobile'}</button>
-                  ))}
-                </div>
-                <div className="rounded-xl bg-slate-100 p-4">
-                  <WidgetPreviewFrame viewport={previewViewport}>
-                    <WidgetLivePreview config={config} viewport={previewViewport} />
-                  </WidgetPreviewFrame>
-                </div>
-              </div>
-            ) : null}
+          {/* Title input */}
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Nome do widget..."
+              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-900 transition focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+            {fieldError.title?.[0] ? <p className="shrink-0 text-xs text-rose-600">{fieldError.title[0]}</p> : null}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <p className="mb-3 text-sm font-semibold text-slate-700">Preview ao vivo</p>
-            <div className="rounded-xl bg-slate-100 p-4">
-              <WidgetLivePreview config={config} compact />
+          {/* Status toggle */}
+          <button
+            type="button"
+            onClick={() => setIsActive(!isActive)}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+              isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+            }`}
+          >
+            {isActive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+            {isActive ? 'Ativo' : 'Inativo'}
+          </button>
+
+          {/* Reset */}
+          <button
+            type="button"
+            onClick={handleResetToDefaults}
+            title="Resetar para valores padrão"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-2 text-xs text-slate-500 transition hover:bg-slate-50"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700 disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {submitting ? 'Salvando...' : submitLabel}
+          </button>
+        </div>
+
+        {localError ? (
+          <div className="border-x border-slate-200 bg-rose-50 px-5 py-3 text-sm text-rose-700">{localError}</div>
+        ) : null}
+        {fieldError.config?.[0] ? (
+          <div className="border-x border-slate-200 bg-rose-50 px-5 py-3 text-sm text-rose-700">{fieldError.config[0]}</div>
+        ) : null}
+
+        {/* Main Editor Area */}
+        <div className="grid rounded-b-2xl border border-t-0 border-slate-200 bg-slate-50 lg:grid-cols-[380px_1fr]">
+          {/* ── Left: Controls Panel ── */}
+          <div className="max-h-[calc(100vh-200px)] overflow-y-auto border-r border-slate-200 bg-white">
+            {/* Layout Section */}
+            <CollapsiblePanel
+              icon={<Layers className="h-4 w-4" />}
+              title="Layout"
+              expanded={expandedSections.has('layout')}
+              onToggle={() => toggleSection('layout')}
+            >
+              <div className="space-y-4">
+                <WidgetLayoutPicker value={config.layout} onChange={handleLayout} />
+                <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                  {layoutPresetDefinitions[config.layout].description}
+                </p>
+              </div>
+            </CollapsiblePanel>
+
+            {/* Structure Section */}
+            <CollapsiblePanel
+              icon={<SlidersHorizontal className="h-4 w-4" />}
+              title="Estrutura"
+              expanded={expandedSections.has('structure')}
+              onToggle={() => toggleSection('structure')}
+            >
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500">Defina os blocos visuais que o widget irá exibir.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ['showTitle', 'Título'],
+                    ['showSubtitle', 'Subtítulo'],
+                    ['showDescription', 'Descrição'],
+                    ['showButton', 'Botão CTA'],
+                    ['showComplementaryText', 'Texto extra'],
+                    ['showBadge', 'Badge/Selo'],
+                    ['showMedia', 'Mídia'],
+                  ] as Array<[keyof WidgetVisualConfig, string]>).map(([key, label]) => (
+                    <ToggleSwitch key={key} label={label} checked={Boolean(config[key])} onChange={(v) => update(key, v as never)} />
+                  ))}
+                </div>
+
+                <div className="space-y-2 border-t border-slate-100 pt-3">
+                  <ToggleSwitch label="Botão largura total" checked={config.buttonFullWidth} onChange={(v) => update('buttonFullWidth', v)} />
+                  <ToggleSwitch
+                    label="Mídia clicável (CTA)"
+                    checked={config.mediaClickableCta}
+                    disabled={!config.showMedia || config.mediaType === 'none'}
+                    onChange={(v) => update('mediaClickableCta', v)}
+                  />
+                </div>
+
+                <label className="block text-xs font-medium text-slate-600">
+                  Tipo de mídia
+                  <select
+                    value={config.mediaType}
+                    disabled={!config.showMedia}
+                    onChange={(e) => update('mediaType', e.target.value as WidgetVisualConfig['mediaType'])}
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                  >
+                    {mediaTypeOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt === 'image' ? 'Imagem' : opt === 'video' ? 'Vídeo' : 'Nenhuma'}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </CollapsiblePanel>
+
+            {/* Style Section */}
+            <CollapsiblePanel
+              icon={<Paintbrush className="h-4 w-4" />}
+              title="Estilo"
+              expanded={expandedSections.has('style')}
+              onToggle={() => toggleSection('style')}
+            >
+              <div className="space-y-4">
+                {/* Variant selector */}
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Variante visual</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {variantOptions.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => update('variant', v)}
+                        className={`rounded-lg border-2 px-3 py-2 text-xs font-semibold transition-all ${
+                          config.variant === v
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        {variantLabels[v]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Colors */}
+                <WidgetColorPresets
+                  currentBg={config.backgroundColor}
+                  currentText={config.textColor}
+                  currentButton={config.buttonColor}
+                  currentBorder={config.borderColor}
+                  onApply={(s) => setConfig((prev) => ({ ...prev, backgroundColor: s.bg, textColor: s.text, buttonColor: s.button, borderColor: s.border }))}
+                  onChangeColor={(key, value) => update(key, value)}
+                />
+
+                {/* Shadow */}
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Sombra</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {shadowOptions.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => update('shadow', s)}
+                        className={`rounded-lg border-2 px-2 py-1.5 text-xs font-semibold transition ${
+                          config.shadow === s ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        {shadowLabels[s]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CollapsiblePanel>
+
+            {/* Dimensions Section */}
+            <CollapsiblePanel
+              icon={<Eye className="h-4 w-4" />}
+              title="Dimensões"
+              expanded={expandedSections.has('dimensions')}
+              onToggle={() => toggleSection('dimensions')}
+            >
+              <div className="space-y-4">
+                <RangeControl label="Largura" value={config.width} min={WIDGET_LIMITS.width.min} max={WIDGET_LIMITS.width.max} step={10} unit="px" onChange={(v) => update('width', v)} />
+                <RangeControl label="Altura mínima" value={config.minHeight} min={WIDGET_LIMITS.minHeight.min} max={WIDGET_LIMITS.minHeight.max} step={10} unit="px" onChange={(v) => update('minHeight', v)} />
+                <RangeControl
+                  label="Tamanho da mídia"
+                  value={config.mediaSize}
+                  min={WIDGET_LIMITS.mediaSize.min}
+                  max={WIDGET_LIMITS.mediaSize.max}
+                  unit="%"
+                  disabled={mediaSizeDisabled}
+                  onChange={(v) => update('mediaSize', v)}
+                />
+                <RangeControl label="Border radius" value={config.borderRadius} min={WIDGET_LIMITS.borderRadius.min} max={WIDGET_LIMITS.borderRadius.max} unit="px" onChange={(v) => update('borderRadius', v)} />
+                <RangeControl label="Padding" value={config.padding} min={WIDGET_LIMITS.padding.min} max={WIDGET_LIMITS.padding.max} unit="px" onChange={(v) => update('padding', v)} />
+              </div>
+            </CollapsiblePanel>
+          </div>
+
+          {/* ── Right: Live Preview ── */}
+          <div className="flex flex-col">
+            {/* Preview Toolbar */}
+            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
+              <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-semibold text-slate-700">Preview ao vivo</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {(['desktop', 'mobile'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setPreviewViewport(mode)}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                      previewViewport === mode ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                  >
+                    {mode === 'desktop' ? <Monitor className="h-3.5 w-3.5" /> : <Smartphone className="h-3.5 w-3.5" />}
+                    {mode === 'desktop' ? 'Desktop' : 'Mobile'}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setShowFullscreenPreview(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Preview Content */}
+            <div className="flex flex-1 items-center justify-center overflow-auto bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+              <WidgetPreviewFrame viewport={previewViewport}>
+                <WidgetLivePreview config={config} viewport={previewViewport} />
+              </WidgetPreviewFrame>
             </div>
           </div>
         </div>
-
-        <button type="submit" disabled={submitting} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{submitting ? 'Salvando...' : submitLabel}</button>
-        {fieldError.config?.[0] ? <p className="text-xs text-rose-600">{fieldError.config[0]}</p> : null}
       </form>
 
-      {showFullscreenPreview ? (
+      {/* ── Fullscreen Preview Modal ── */}
+      {showFullscreenPreview && (
         <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/80 backdrop-blur-sm">
           <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4">
             <div>
               <h3 className="text-base font-semibold text-white">Preview em tela cheia</h3>
-              <p className="text-xs text-slate-400">Visualize o widget como aparecerá em um cenário real</p>
+              <p className="text-xs text-slate-400">Visualize o widget em um cenário real</p>
             </div>
             <div className="flex items-center gap-3">
               {(['desktop', 'mobile'] as const).map((mode) => (
-                <button key={mode} type="button" onClick={() => setPreviewViewport(mode)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${previewViewport === mode ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}>{mode === 'desktop' ? 'Desktop' : 'Mobile'}</button>
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setPreviewViewport(mode)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    previewViewport === mode ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {mode === 'desktop' ? <Monitor className="h-3.5 w-3.5" /> : <Smartphone className="h-3.5 w-3.5" />}
+                  {mode === 'desktop' ? 'Desktop' : 'Mobile'}
+                </button>
               ))}
-              <button type="button" onClick={() => setShowFullscreenPreview(false)} className="flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-slate-400 hover:text-white">Fechar</button>
+              <button
+                type="button"
+                onClick={() => setShowFullscreenPreview(false)}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-slate-400 hover:text-white"
+              >
+                <X className="h-3.5 w-3.5" />
+                Fechar
+              </button>
             </div>
           </div>
 
           <div className="flex flex-1 items-center justify-center overflow-auto p-8">
             <div className="w-full max-w-5xl">
-              {/* Simulated browser chrome */}
+              {/* Browser chrome */}
               <div className="rounded-t-2xl border border-b-0 border-slate-300 bg-slate-200 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <span className="h-3 w-3 rounded-full bg-rose-400" />
                   <span className="h-3 w-3 rounded-full bg-amber-400" />
                   <span className="h-3 w-3 rounded-full bg-emerald-400" />
-                  <div className="ml-4 flex-1 rounded-lg bg-white px-4 py-1.5 text-xs text-slate-400">
-                    https://sua-loja.com.br/produto
-                  </div>
+                  <div className="ml-4 flex-1 rounded-lg bg-white px-4 py-1.5 text-xs text-slate-400">https://sua-loja.com.br/produto</div>
                 </div>
               </div>
 
-              {/* Simulated page content */}
+              {/* Simulated page */}
               <div className="rounded-b-2xl border border-slate-300 bg-white" style={{ minHeight: '70vh' }}>
-                {/* Fake page header */}
                 <div className="border-b border-slate-100 px-8 py-4">
                   <div className="flex items-center gap-4">
                     <div className="h-8 w-8 rounded-lg bg-slate-200" />
@@ -246,7 +487,6 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
                   </div>
                 </div>
 
-                {/* Fake page body with widget */}
                 <div className="p-8">
                   <div className="mb-6 space-y-3">
                     <div className="h-4 w-2/5 rounded bg-slate-100" />
@@ -267,8 +507,97 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </>
+  )
+}
+
+// ─── Sub-Components ───
+
+type CollapsiblePanelProps = {
+  icon: React.ReactNode
+  title: string
+  expanded: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}
+
+const CollapsiblePanel = ({ icon, title, expanded, onToggle, children }: CollapsiblePanelProps) => (
+  <div className="border-b border-slate-100">
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition hover:bg-slate-50"
+    >
+      <span className="text-slate-400">{icon}</span>
+      <span className="flex-1 text-sm font-bold text-slate-800">{title}</span>
+      {expanded ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+    </button>
+    {expanded && <div className="px-5 pb-5">{children}</div>}
+  </div>
+)
+
+type ToggleSwitchProps = {
+  label: string
+  checked: boolean
+  disabled?: boolean
+  onChange: (v: boolean) => void
+}
+
+const ToggleSwitch = ({ label, checked, disabled, onChange }: ToggleSwitchProps) => (
+  <label className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs transition ${checked ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600'} ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-slate-50'}`}>
+    <div
+      role="switch"
+      aria-checked={checked}
+      onClick={(e) => {
+        if (disabled) return
+        e.preventDefault()
+        onChange(!checked)
+      }}
+      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? 'bg-blue-600' : 'bg-slate-300'} ${disabled ? '' : 'cursor-pointer'}`}
+    >
+      <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
+    </div>
+    <span className="font-medium">{label}</span>
+  </label>
+)
+
+type RangeControlProps = {
+  label: string
+  value: number
+  min: number
+  max: number
+  step?: number
+  unit: string
+  disabled?: boolean
+  onChange: (v: number) => void
+}
+
+const RangeControl = ({ label, value, min, max, step = 1, unit, disabled, onChange }: RangeControlProps) => {
+  const percentage = ((value - min) / (max - min)) * 100
+
+  return (
+    <label className={`block ${disabled ? 'opacity-40' : ''}`}>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-medium text-slate-600">{label}</span>
+        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold tabular-nums text-slate-700">
+          {value}{unit}
+        </span>
+      </div>
+      <div className="relative">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="widget-range-slider w-full"
+        />
+        <div className="pointer-events-none absolute left-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-blue-500" style={{ width: `${percentage}%` }} />
+      </div>
+    </label>
   )
 }
 

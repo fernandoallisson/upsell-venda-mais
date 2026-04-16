@@ -29,18 +29,23 @@ const WidgetRenderer = ({ config, mode = 'preview', viewport = 'desktop' }: Prop
   const styles = getWidgetComputedStyles(config, mode, viewport)
   const showMedia = config.showMedia && config.mediaType !== 'none'
 
+  const isClickableMedia = config.mediaClickableCta && showMedia
+  const mediaStyleForCore = isClickableMedia
+    ? { ...styles.mediaStyle, width: '100%' as const }
+    : styles.mediaStyle
+
   const mediaCore = showMedia ? (
-    <div style={styles.mediaStyle} className="overflow-hidden bg-slate-200">
+    <div className={`overflow-hidden bg-slate-200 ${config.mediaType === 'video' ? 'bg-slate-900' : 'bg-slate-300'}`} style={mediaStyleForCore}>
       <div
-        className={`flex h-full min-h-[120px] items-center justify-center font-semibold ${config.mediaType === 'video' ? 'bg-slate-900 text-white' : 'bg-slate-300 text-slate-700'}`}
+        className={`flex h-full min-h-[120px] items-center justify-center font-semibold ${config.mediaType === 'video' ? 'text-white' : 'text-slate-700'}`}
       >
         {config.mediaType === 'video' ? '▶ Vídeo mockado' : 'Imagem mockada'}
       </div>
     </div>
   ) : null
 
-  const Media: ReactNode = config.mediaClickableCta && showMedia ? (
-    <a href="#" onClick={(event) => event.preventDefault()} className="block cursor-pointer" aria-label="Mídia clicável como CTA">
+  const Media: ReactNode = isClickableMedia ? (
+    <a href="#" onClick={(event) => event.preventDefault()} className="block shrink-0 cursor-pointer" style={{ width: styles.mediaStyle.width }} aria-label="Mídia clicável como CTA">
       {mediaCore}
     </a>
   ) : (
