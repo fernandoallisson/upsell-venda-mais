@@ -4,6 +4,7 @@ import { ApiError } from '../../lib/api'
 import DashboardPage from '../../components/layout/DashboardPage'
 import WidgetStatusBadge from '../../features/widgets/components/WidgetStatusBadge'
 import WidgetHtmlPreview from '../../features/widgets/components/WidgetHtmlPreview'
+import { isHtmlWidgetTemplateConfig } from '../../features/widgets/utils/htmlWidgetTemplateGenerator'
 import { getWidgetById, getWidgetBySlug, restoreWidget } from '../../lib/services/widgets/widgets.service'
 import type { Widget } from '../../types/widget'
 
@@ -54,6 +55,9 @@ const WidgetDetailsPage = () => {
       setError(err instanceof ApiError ? err.message : 'Erro ao restaurar widget')
     }
   }
+  const htmlTemplateConfig = isHtmlWidgetTemplateConfig(widget?.config?.attributes)
+    ? widget.config.attributes
+    : null
 
   return (
     <DashboardPage title="Detalhes do Widget" subtitle="Visualize as informações e o preview do widget">
@@ -73,7 +77,7 @@ const WidgetDetailsPage = () => {
                 </div>
                 <WidgetStatusBadge active={widget.is_active} />
               </div>
-              <WidgetHtmlPreview html={widget.html} css={widget.css} />
+              <WidgetHtmlPreview html={widget.html} css={widget.css} allowScripts={Boolean(htmlTemplateConfig?.supportsScript)} />
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">

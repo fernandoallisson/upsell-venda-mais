@@ -3,6 +3,7 @@ import { Eye, MapPin, Monitor, Smartphone, Maximize2, X } from "lucide-react";
 import type { Widget } from "../../../../types/widget";
 import WidgetHtmlPreview from "../../../widgets/components/WidgetHtmlPreview";
 import WidgetPreviewFrame from "../../../widgets/components/WidgetPreviewFrame";
+import { isHtmlWidgetTemplateConfig } from "../../../widgets/utils/htmlWidgetTemplateGenerator";
 import { DISPLAY_LOCATIONS } from "../constants";
 import type { CampaignFormState } from "../types";
 import { buildCampaignWidgetMarkup } from "../widgetPresetUtils";
@@ -38,23 +39,20 @@ const PreviewPanel = ({ form, selectedWidgetPreset }: Props) => {
   const generated = selectedWidgetPreset
     ? buildCampaignWidgetMarkup(selectedWidgetPreset, form)
     : null;
-
-  const FRAME = {
-    desktop: { width: 683, height: 512 },
-    mobile: { width: 207, height: 448 },
-  } as const;
-
-  const frame = FRAME[viewport];
+  const allowScripts = isHtmlWidgetTemplateConfig(selectedWidgetPreset?.config?.attributes)
+    ? selectedWidgetPreset.config.attributes.supportsScript
+    : false;
 
   const previewContent = generated ? (
-    <div
-      className={`mx-auto flex-shrink-0 rounded-xl border border-slate-200 bg-slate-100 overflow-auto ${viewport === "mobile" ? "p-2" : "p-4"}`}
-      style={{ width: frame.width, height: frame.height }}
-    >
-      <div className={`w-full ${viewport === "mobile" ? "origin-top" : ""}`} style={viewport === "mobile" ? { transform: `scale(${Math.min(1, frame.width / 520)})` } : undefined}>
-        <WidgetHtmlPreview html={generated.html} css={generated.css} compact={viewport === "mobile"} />
-      </div>
-    </div>
+    <WidgetPreviewFrame viewport={viewport} compactChrome>
+      <WidgetHtmlPreview
+        html={generated.html}
+        css={generated.css}
+        compact={viewport === "mobile"}
+        allowScripts={allowScripts}
+        fill
+      />
+    </WidgetPreviewFrame>
   ) : (
     emptyState
   );
@@ -106,7 +104,7 @@ const PreviewPanel = ({ form, selectedWidgetPreset }: Props) => {
         </div>
 
         {/* Preview area */}
-        <div className="flex flex-1 items-start justify-center overflow-auto bg-gradient-to-br from-slate-50 to-slate-100 p-5">
+        <div className="flex flex-1 items-center justify-center overflow-auto bg-slate-100 p-4">
           {previewContent}
         </div>
       </div>
@@ -147,8 +145,14 @@ const PreviewPanel = ({ form, selectedWidgetPreset }: Props) => {
           </div>
 
           <div className="flex flex-1 items-center justify-center overflow-auto p-8">
-            <WidgetPreviewFrame viewport={viewport} fullscreen>
-              <WidgetHtmlPreview html={generated.html} css={generated.css} compact={viewport === "mobile"} />
+            <WidgetPreviewFrame viewport={viewport} fullscreen compactChrome>
+              <WidgetHtmlPreview
+                html={generated.html}
+                css={generated.css}
+                compact={viewport === "mobile"}
+                allowScripts={allowScripts}
+                fill
+              />
             </WidgetPreviewFrame>
           </div>
         </div>

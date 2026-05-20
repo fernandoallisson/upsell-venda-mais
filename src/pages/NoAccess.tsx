@@ -1,6 +1,6 @@
 import DashboardLayout from '../components/layout/DashboardLayout'
-import { useAuth } from '../contexts/AuthContext'
-import { usePermissions } from '../contexts/PermissionsContext'
+import { useAuth } from '../contexts/useAuth'
+import { usePermissions } from '../contexts/usePermissions'
 import { logout } from '../lib/services/auth/auth.service'
 
 const NoAccess = () => {
@@ -16,7 +16,7 @@ const NoAccess = () => {
   }
 
   const handleRefresh = () => {
-    void refreshPermissions()
+    void refreshPermissions({ force: true })
   }
 
   return (

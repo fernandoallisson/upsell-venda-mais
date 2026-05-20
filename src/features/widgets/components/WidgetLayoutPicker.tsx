@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import { Check } from 'lucide-react'
 import { layoutOptions, layoutLabels, type WidgetLayout } from '../types/widgetTemplate'
 
@@ -14,7 +15,7 @@ const LayoutThumbnail = ({ layout, active }: { layout: WidgetLayout; active: boo
   const fill = active ? '#dbeafe' : '#e2e8f0'
   const bg = active ? '#eff6ff' : '#f8fafc'
 
-  const thumbnails: Record<WidgetLayout, JSX.Element> = {
+  const thumbnails: Record<WidgetLayout, ReactElement> = {
     'media-left': (
       <svg viewBox="0 0 64 44" className="h-full w-full">
         <rect x="1" y="1" width="62" height="42" rx="4" fill={bg} stroke={accent} strokeWidth="1" />

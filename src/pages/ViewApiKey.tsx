@@ -272,7 +272,7 @@ const ViewApiKey = () => {
 
   if (!apiKey) return null
 
-  const script = `<script src="https://cdn.jsdelivr.net/gh/leo-lizi/it-upsell-sdk@0.0.1-beta/upsell.js" data-key="${apiKey.public_key}" data-api-base="https://vitor-api.vendamais.top/api" data-trigger="${apiKey.type}" data-debug="false"><\/script>`
+  const script = `<script src="https://cdn.jsdelivr.net/gh/leo-lizi/it-upsell-sdk@0.0.1-beta/upsell.js" data-key="${apiKey.public_key}" data-api-base="https://vitor-api.vendamais.top/api" data-trigger="${apiKey.type}" data-debug="false"></script>`
 
   return (
     <DashboardPage

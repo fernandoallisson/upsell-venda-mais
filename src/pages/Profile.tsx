@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
 import { ApiError } from '../lib/api'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import { logout } from '../lib/services/auth/auth.service'
-import { getUser, updateAuthenticatedUser } from '../lib/services/users/users.service'
-import type { UpdateUserPayload, User } from '../lib/services/users/users.types'
+import { updateAuthenticatedUser } from '../lib/services/users/users.service'
+import type { UpdateUserPayload } from '../lib/services/users/users.types'
 import DashboardLayout from '../components/layout/DashboardLayout'
 
 type Feedback = {
@@ -17,14 +17,20 @@ type Feedback = {
 
 const Profile = () => {
   const navigate = useNavigate()
-  const { signOut } = useAuth()
+  const {
+    signOut,
+    user,
+    isUserLoading,
+    userError,
+    refreshUser,
+    setAuthenticatedUser,
+  } = useAuth()
 
-  const [user, setUser] = useState<User | null>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(isUserLoading)
   const [isSaving, setIsSaving] = useState(false)
   const [feedback, setFeedback] = useState<Feedback | null>(null)
 
@@ -32,8 +38,8 @@ const Profile = () => {
     setIsLoading(true)
     setFeedback(null)
     try {
-      const data = await getUser()
-      setUser(data)
+      const data = await refreshUser({ force: true })
+      if (!data) return
       setName(data.name)
       setEmail(data.email)
     } catch (err) {
@@ -43,11 +49,24 @@ const Profile = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [refreshUser])
 
   useEffect(() => {
-    loadUser()
-  }, [loadUser])
+    if (user) {
+      setName(user.name)
+      setEmail(user.email)
+      setIsLoading(false)
+      return
+    }
+
+    if (userError) {
+      setFeedback({ type: 'error', message: userError })
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(isUserLoading)
+  }, [isUserLoading, user, userError])
 
   const handleBackToDashboard = () => {
     navigate('/dashboard')
@@ -97,7 +116,7 @@ const Profile = () => {
 
     try {
       const updated = await updateAuthenticatedUser(payload)
-      setUser(updated)
+      setAuthenticatedUser(updated)
       setName(updated.name)
       setEmail(updated.email)
       setPassword('')

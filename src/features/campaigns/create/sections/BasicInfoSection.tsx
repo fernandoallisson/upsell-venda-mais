@@ -9,8 +9,10 @@ import {
 } from "lucide-react";
 import type { Segment } from "../../../../lib/services/segments/segments.types";
 import type { Widget } from "../../../../types/widget";
+import WidgetHtmlPreview from "../../../widgets/components/WidgetHtmlPreview";
 import WidgetRenderer from "../../../widgets/components/WidgetRenderer";
 import { getWidgetPresetConfig } from "../widgetPresetUtils";
+import { isHtmlWidgetTemplateConfig } from "../../../widgets/utils/htmlWidgetTemplateGenerator";
 import { DISPLAY_LOCATIONS, RENDER_TYPE_OPTIONS } from "../constants";
 import type { CampaignFormState, DisplayRenderType } from "../types";
 
@@ -50,6 +52,7 @@ type Props = {
   onToggleSegment: (id: number) => void;
   onSelectWidgetPreset: (widgetId: string) => void;
   onSetWidgetRenderType: (renderType: DisplayRenderType) => void;
+  onOpenCreateWidget?: () => void;
 };
 
 const DomainInput = ({
@@ -133,6 +136,7 @@ const BasicInfoSection = ({
   onToggleSegment,
   onSelectWidgetPreset,
   onSetWidgetRenderType,
+  onOpenCreateWidget,
 }: Props) => {
   const [segmentOpen, setSegmentOpen] = useState(false);
 
@@ -218,6 +222,17 @@ const BasicInfoSection = ({
           </p>
         </div>
 
+        {onOpenCreateWidget ? (
+          <button
+            type="button"
+            onClick={onOpenCreateWidget}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-blue-200 bg-blue-50 px-3 py-2.5 text-xs font-bold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Criar novo widget
+          </button>
+        ) : null}
+
         {widgetPresetsLoading ? (
           <div className="flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 py-8">
             <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -234,6 +249,9 @@ const BasicInfoSection = ({
             {widgetPresets.map((widget) => {
               const active = widget.id === form.widget_preset_id;
               const config = getWidgetPresetConfig(widget);
+              const htmlTemplateConfig = isHtmlWidgetTemplateConfig(widget.config?.attributes)
+                ? widget.config.attributes
+                : null;
               return (
                 <button
                   key={widget.id}
@@ -247,16 +265,29 @@ const BasicInfoSection = ({
                 >
                   {/* Mini preview */}
                   <div className="overflow-hidden bg-slate-50 px-2 pt-2">
-                    <div className="pointer-events-none mx-auto" style={{ transform: "scale(0.45)", transformOrigin: "top center", maxHeight: 100, overflow: "hidden" }}>
-                      <WidgetRenderer config={config} mode="thumbnail" viewport="mobile" />
-                    </div>
+                    {htmlTemplateConfig ? (
+                      <div className="pointer-events-none h-[100px] overflow-hidden rounded-lg bg-white">
+                        <WidgetHtmlPreview
+                          html={widget.html}
+                          css={widget.css}
+                          compact
+                          allowScripts={htmlTemplateConfig.supportsScript}
+                        />
+                      </div>
+                    ) : (
+                      <div className="pointer-events-none mx-auto" style={{ transform: "scale(0.45)", transformOrigin: "top center", maxHeight: 100, overflow: "hidden" }}>
+                        <WidgetRenderer config={config} mode="thumbnail" viewport="mobile" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Info bar */}
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
                     <div className="min-w-0">
                       <p className="truncate text-xs font-bold text-slate-800">{widget.title}</p>
-                      <p className="truncate text-[10px] text-slate-400">{config.layout} • {config.variant}</p>
+                      <p className="truncate text-[10px] text-slate-400">
+                        {htmlTemplateConfig ? `${htmlTemplateConfig.templateCategory} • HTML` : `${config.layout} • ${config.variant}`}
+                      </p>
                     </div>
                     {active && (
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-600">

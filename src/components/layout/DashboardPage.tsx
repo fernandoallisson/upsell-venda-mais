@@ -1,9 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../contexts/useAuth'
 import { logout } from '../../lib/services/auth/auth.service'
-import { getUser } from '../../lib/services/users/users.service'
-import type { User } from '../../lib/services/users/users.types'
 import DashboardLayout from './DashboardLayout'
 
 type DashboardPageProps = {
@@ -19,21 +16,7 @@ const DashboardPage = ({
   containerClassName,
   children,
 }: DashboardPageProps) => {
-  const { signOut } = useAuth()
-  const [user, setUser] = useState<User | null>(null)
-
-  const fetchUser = useCallback(async () => {
-    try {
-      const data = await getUser()
-      setUser(data)
-    } catch {
-      setUser(null)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchUser()
-  }, [fetchUser])
+  const { signOut, user, refreshUser } = useAuth()
 
   const handleLogout = async () => {
     try {
@@ -46,7 +29,7 @@ const DashboardPage = ({
   return (
     <DashboardLayout
       user={user}
-      onRefresh={fetchUser}
+      onRefresh={() => void refreshUser({ force: true })}
       onLogout={handleLogout}
       title={title}
       subtitle={subtitle}

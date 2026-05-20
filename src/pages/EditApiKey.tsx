@@ -198,7 +198,7 @@ const EditApiKey = () => {
 
   if (!form || !apiKey) return null
 
-  const scriptPreview = `<script src="https://cdn.jsdelivr.net/gh/leo-lizi/it-upsell-sdk@0.0.1-beta/upsell.js" data-key="${apiKey.public_key}" data-api-base="https://vitor-api.vendamais.top/api" data-trigger="${form.type}" data-debug="${form.debug}"><\/script>`
+  const scriptPreview = `<script src="https://cdn.jsdelivr.net/gh/leo-lizi/it-upsell-sdk@0.0.1-beta/upsell.js" data-key="${apiKey.public_key}" data-api-base="https://vitor-api.vendamais.top/api" data-trigger="${form.type}" data-debug="${form.debug}"></script>`
 
   return (
     <DashboardPage

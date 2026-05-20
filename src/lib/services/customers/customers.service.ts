@@ -87,8 +87,8 @@ const parseRules = (data: unknown): SegmentRules => {
   const parsed: Record<string, { value: number | string; operator: string }> = {}
   for (const [key, value] of Object.entries(data)) {
     if (!isRecord(value)) continue
-    const operator = (value as any).operator
-    const ruleValue = (value as any).value
+    const operator = value.operator
+    const ruleValue = value.value
     if (typeof operator !== 'string') continue
     if (typeof ruleValue !== 'string' && typeof ruleValue !== 'number') continue
     parsed[key] = { operator, value: ruleValue }
@@ -139,8 +139,8 @@ const parseSegment = (data: unknown): CustomerSegment => {
 
 const unwrapCustomer = (data: JsonValue): unknown => {
   if (!isRecord(data)) return data
-  if (isRecord((data as any).data)) return (data as any).data
-  if (isRecord((data as any).customer)) return (data as any).customer
+  if (isRecord(data.data)) return data.data
+  if (isRecord(data.customer)) return data.customer
   return data
 }
 

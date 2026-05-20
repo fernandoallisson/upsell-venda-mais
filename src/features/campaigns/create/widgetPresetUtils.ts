@@ -8,6 +8,12 @@ import {
   generateWidgetHtml,
   normalizeWidgetConfig,
 } from "../../widgets/utils/widgetTemplateGenerator";
+import {
+  generateHtmlWidgetTemplateCss,
+  generateHtmlWidgetTemplateHtml,
+  getHtmlWidgetTemplateById,
+  isHtmlWidgetTemplateConfig,
+} from "../../widgets/utils/htmlWidgetTemplateGenerator";
 import type { CampaignFormState } from "./types";
 
 const widgetMarkupDependentFields: Array<keyof CampaignFormState> = [
@@ -34,6 +40,29 @@ export const buildCampaignWidgetMarkup = (
   widget: Widget | null | undefined,
   form: CampaignFormState,
 ) => {
+  const attributes = widget?.config?.attributes;
+  if (isHtmlWidgetTemplateConfig(attributes)) {
+    const template = getHtmlWidgetTemplateById(attributes.templateId);
+    if (template) {
+      const savedContent = attributes.contentOverrides ?? {};
+      return {
+        config: getWidgetPresetConfig(widget),
+        css: generateHtmlWidgetTemplateCss(template),
+        html: generateHtmlWidgetTemplateHtml(template, {
+          ...savedContent,
+          title: form.headline || savedContent.title,
+          subtitle: form.subtitle || savedContent.subtitle,
+          description: form.description || savedContent.description,
+          buttonText: form.cta_text || savedContent.buttonText,
+          badgeText: form.badge_text || savedContent.badgeText,
+          extraText: form.complementary_text || savedContent.extraText,
+          ctaLink: form.cta_link || savedContent.ctaLink,
+          ctaNewTab: form.cta_new_tab || savedContent.ctaNewTab,
+        }, attributes.fieldOverrides ?? {}, attributes.hiddenElementIds ?? []),
+      };
+    }
+  }
+
   const config = getWidgetPresetConfig(widget);
   const mediaUrl =
     config.mediaType === "video"
@@ -60,6 +89,11 @@ export const buildCampaignWidgetMarkup = (
 export const getVisibleFieldsFromWidget = (
   widget: Widget | null | undefined,
 ) => {
+  const attributes = widget?.config?.attributes;
+  if (isHtmlWidgetTemplateConfig(attributes)) {
+    return attributes.visibleFields;
+  }
+
   const config = getWidgetPresetConfig(widget);
   return {
     showTitle: config.showTitle,

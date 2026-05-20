@@ -18,13 +18,11 @@ import type {
   OfferAnalytics,
 } from '../lib/services/analytics/analytics.types'
 import { logout } from '../lib/services/auth/auth.service'
-import { getUser } from '../lib/services/users/users.service'
-import type { User } from '../lib/services/users/users.types'
 import { getCampaigns } from '../lib/services/campaigns/campaigns.service'
 import type { Campaign } from '../lib/services/campaigns/campaigns.types'
 import { getProducts } from '../lib/services/products/products.service'
 import type { Product } from '../lib/services/products/products.types'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/useAuth'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
 import KpiCard from '../components/dashboard/KpiCard'
 import OffersCharts from '../components/dashboard/OffersCharts'
@@ -41,12 +39,11 @@ const calcRate = (numerator: number, denominator: number) =>
   denominator > 0 ? numerator / denominator : 0
 
 const Dashboard = () => {
-  const { signOut } = useAuth()
+  const { signOut, user, refreshUser } = useAuth()
   const [offers, setOffers] = useState<OfferAnalytics[]>([])
   const [overview, setOverview] = useState<AnalyticsOverviewResponse | null>(null)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
-  const [user, setUser] = useState<User | null>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [products, setProducts] = useState<Product[]>([])
 
@@ -93,19 +90,9 @@ const Dashboard = () => {
     }
   }, [])
 
-  const fetchUser = useCallback(async () => {
-    try {
-      const data = await getUser()
-      setUser(data)
-    } catch {
-      setUser(null)
-    }
-  }, [])
-
   useEffect(() => {
     fetchAnalytics()
-    fetchUser()
-  }, [fetchAnalytics, fetchUser])
+  }, [fetchAnalytics])
 
   const filteredOffers = useMemo(() => {
     let data = [...offers]
@@ -173,7 +160,7 @@ const Dashboard = () => {
 
   const handleRefresh = () => {
     fetchAnalytics()
-    fetchUser()
+    void refreshUser({ force: true })
   }
 
   return (

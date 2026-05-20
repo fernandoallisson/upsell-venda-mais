@@ -1,46 +1,107 @@
 import {
-  createContext,
   type PropsWithChildren,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
 } from 'react'
-import { useAuth } from './AuthContext'
+import { useAuth } from './useAuth'
 import type { Permission } from '../lib/services/permissions/permissions.types'
 import { getUserPermissions } from '../lib/services/permissions/permissions.service'
-import { getUser } from '../lib/services/users/users.service'
+import { PermissionsContext } from './PermissionsContextBase'
 
-type PermissionsContextValue = {
-  permissions: Permission[]
-  categories: string[]
-  slugs: string[]
-  isLoading: boolean
-  hasLoaded: boolean
-  error: string | null
-  hasPermission: (slug: string) => boolean
-  hasModuleAccess: (category: string) => boolean
-  hasAnyModuleAccess: boolean
-  refreshPermissions: () => Promise<void>
+const PERMISSIONS_CACHE_PREFIX = 'upsell_venda_mais_permissions'
+
+const hashCacheKeyPart = (value: string) => {
+  let hash = 0
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0
+  }
+
+  return hash.toString(36)
 }
 
-const PermissionsContext = createContext<PermissionsContextValue | undefined>(
-  undefined,
-)
+const getPermissionsCacheKey = (userId: number, token: string) =>
+  `${PERMISSIONS_CACHE_PREFIX}:${userId}:${hashCacheKeyPart(token)}`
+
+const isPermission = (value: unknown): value is Permission => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const permission = value as Record<string, unknown>
+
+  return (
+    typeof permission.id === 'number' &&
+    typeof permission.slug === 'string' &&
+    typeof permission.name === 'string' &&
+    typeof permission.category === 'string' &&
+    (
+      permission.description === undefined ||
+      typeof permission.description === 'string'
+    )
+  )
+}
+
+const readCachedPermissions = (
+  userId: number,
+  token: string,
+): Permission[] | null => {
+  try {
+    const raw = sessionStorage.getItem(getPermissionsCacheKey(userId, token))
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed) || !parsed.every(isPermission)) return null
+
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+const writeCachedPermissions = (
+  userId: number,
+  token: string,
+  nextPermissions: Permission[],
+) => {
+  try {
+    sessionStorage.setItem(
+      getPermissionsCacheKey(userId, token),
+      JSON.stringify(nextPermissions),
+    )
+  } catch {
+    // Cache is an optimization; permission state still works without it.
+  }
+}
 
 export const PermissionsProvider = ({ children }: PropsWithChildren) => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, token, user, isUserLoading, userError } = useAuth()
 
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadPermissions = useCallback(async () => {
+  const loadPermissions = useCallback(async (options?: { force?: boolean }) => {
     if (!isAuthenticated) {
       setPermissions([])
       setError(null)
+      setIsLoading(false)
+      setHasLoaded(true)
+      return
+    }
+
+    if (isUserLoading) {
+      setIsLoading(true)
+      setHasLoaded(false)
+      return
+    }
+
+    if (userError) {
+      setPermissions([])
+      setError(userError)
       setIsLoading(false)
       setHasLoaded(true)
       return
@@ -50,10 +111,19 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
     setError(null)
 
     try {
-      const user = await getUser()
-
       if (!user?.id) {
         throw new Error('Usuário autenticado sem ID válido.')
+      }
+
+      if (!options?.force) {
+        const cachedPermissions = token
+          ? readCachedPermissions(user.id, token)
+          : null
+
+        if (cachedPermissions) {
+          setPermissions(cachedPermissions)
+          return
+        }
       }
 
       const response = await getUserPermissions(user.id)
@@ -63,6 +133,9 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
         : []
 
       setPermissions(normalizedPermissions)
+      if (token) {
+        writeCachedPermissions(user.id, token, normalizedPermissions)
+      }
     } catch (err) {
       const message =
         err instanceof Error
@@ -75,7 +148,7 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       setIsLoading(false)
       setHasLoaded(true)
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, isUserLoading, token, user, userError])
 
   useEffect(() => {
     void loadPermissions()
@@ -155,14 +228,4 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       {children}
     </PermissionsContext.Provider>
   )
-}
-
-export const usePermissions = () => {
-  const context = useContext(PermissionsContext)
-
-  if (!context) {
-    throw new Error('usePermissions deve ser usado dentro de PermissionsProvider')
-  }
-
-  return context
 }

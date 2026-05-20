@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { usePermissions } from '../contexts/PermissionsContext'
+import { useAuth } from '../contexts/useAuth'
+import { usePermissions } from '../contexts/usePermissions'
 
 const MODULE_DEFAULT_ROUTES: Array<{ category: string; path: string }> = [
   { category: 'analytics', path: '/dashboard' },

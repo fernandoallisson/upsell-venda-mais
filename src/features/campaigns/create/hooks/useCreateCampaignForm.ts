@@ -137,6 +137,26 @@ export const useCreateCampaignForm = () => {
     [widgetPresets],
   );
 
+  const addAndSelectWidgetPreset = useCallback((widget: Widget) => {
+    setWidgetPresets((prev) => {
+      const withoutDuplicate = prev.filter((item) => item.id !== widget.id);
+      return [...withoutDuplicate, widget].sort((a, b) =>
+        a.title.localeCompare(b.title, "pt-BR"),
+      );
+    });
+
+    setForm((prev) => {
+      const generated = buildCampaignWidgetMarkup(widget, prev);
+
+      return {
+        ...prev,
+        widget_preset_id: widget.id,
+        widget_html: generated.html,
+        widget_css: generated.css,
+      };
+    });
+  }, []);
+
   const toggleSegment = useCallback((id: number) => {
     setForm((prev) => ({
       ...prev,
@@ -205,6 +225,7 @@ export const useCreateCampaignForm = () => {
     setColors,
     setColor,
     selectWidgetPreset,
+    addAndSelectWidgetPreset,
     setWidgetRenderType,
   };
 };

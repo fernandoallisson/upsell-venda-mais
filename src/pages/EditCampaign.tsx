@@ -29,6 +29,7 @@ import ScheduleSection from "../features/campaigns/create/sections/ScheduleSecti
 import FrequencySection from "../features/campaigns/create/sections/FrequencySection";
 import PreviewPanel from "../features/campaigns/create/sections/PreviewPanel";
 import CampaignTour from "../features/campaigns/tour/CampaignTour";
+import CampaignWidgetCreateModal from "../features/campaigns/create/components/CampaignWidgetCreateModal";
 
 type PanelSection = "info" | "content" | "schedule" | "frequency";
 
@@ -95,11 +96,13 @@ const EditCampaign = () => {
     setAllHours,
     clearHours,
     selectWidgetPreset,
+    addAndSelectWidgetPreset,
     setWidgetRenderType,
   } = useEditCampaignForm(campaign);
 
   const [saveStatus, setSaveStatus] = useState<"idle" | "loading" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [createWidgetOpen, setCreateWidgetOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<PanelSection>>(
     new Set(["info", "content"]),
   );
@@ -288,6 +291,7 @@ const EditCampaign = () => {
                         onToggleSegment={toggleSegment}
                         onSelectWidgetPreset={selectWidgetPreset}
                         onSetWidgetRenderType={setWidgetRenderType}
+                        onOpenCreateWidget={() => setCreateWidgetOpen(true)}
                       />
                     )}
                     {section.key === "content" && (
@@ -320,6 +324,12 @@ const EditCampaign = () => {
         {/* ── Right: Live Preview ── */}
         <PreviewPanel form={form} selectedWidgetPreset={selectedWidgetPreset} />
       </div>
+
+      <CampaignWidgetCreateModal
+        open={createWidgetOpen}
+        onClose={() => setCreateWidgetOpen(false)}
+        onCreated={addAndSelectWidgetPreset}
+      />
     </div>
   );
 };

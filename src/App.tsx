@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { useAuth } from './contexts/AuthContext'
-import { usePermissions } from './contexts/PermissionsContext'
+import { useAuth } from './contexts/useAuth'
+import { usePermissions } from './contexts/usePermissions'
 import Categories from './pages/Categories'
 import Clients from './pages/Clients'
 import Dashboard from './pages/Dashboard'

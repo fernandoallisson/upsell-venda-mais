@@ -4,9 +4,11 @@ type Props = {
   html: string
   css: string
   compact?: boolean
+  allowScripts?: boolean
+  fill?: boolean
 }
 
-const WidgetHtmlPreview = ({ html, css, compact = false }: Props) => {
+const WidgetHtmlPreview = ({ html, css, compact = false, allowScripts = false, fill = false }: Props) => {
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
@@ -23,9 +25,21 @@ const WidgetHtmlPreview = ({ html, css, compact = false }: Props) => {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; padding: 8px; }
+  * { box-sizing: border-box; }
+  html, body { width: 100%; min-height: 100%; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: auto; }
   ${css}
+  html, body { width: 100%; min-height: 0 !important; height: 100%; background: transparent !important; }
+  body { margin: 0 !important; padding: 12px !important; overflow: auto; }
+  :where(.hero, .overlay, .banner, .popup, .card, .offer-box, .showcase, .cd-section, .vagas-box, .progress-card, .prize-card, .dep-card, .testimonials, .urgency-wrap, .flash-banner) {
+    width: min(100%, 600px) !important;
+    max-width: 600px !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+  :where(.hero) { padding: 24px 20px !important; border-radius: 20px !important; }
+  :where(.overlay) { position: relative !important; inset: auto !important; padding: 0 !important; background: transparent !important; backdrop-filter: none !important; }
+  :where(.banner, .flash-banner) { position: relative !important; inset: auto !important; border-radius: 16px !important; flex-wrap: wrap !important; }
 </style>
 </head>
 <body>${html}</body>
@@ -45,8 +59,8 @@ const WidgetHtmlPreview = ({ html, css, compact = false }: Props) => {
     <iframe
       ref={iframeRef}
       title="Widget preview"
-      sandbox="allow-same-origin"
-      className={`w-full border-0 rounded-xl bg-white ${compact ? 'h-[160px]' : 'h-[300px]'}`}
+      sandbox={allowScripts ? 'allow-same-origin allow-scripts' : 'allow-same-origin'}
+      className={`w-full rounded-xl border-0 bg-white ${fill ? 'h-full min-h-[260px]' : compact ? 'h-[180px]' : 'h-[340px]'}`}
     />
   )
 }

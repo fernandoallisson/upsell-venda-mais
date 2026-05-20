@@ -21,7 +21,6 @@ import type { Widget, WidgetApiValidationErrors, WidgetFormPayload, WidgetConfig
 import {
   defaultWidgetVisualConfig,
   WIDGET_LIMITS,
-  layoutLabels,
   mediaTypeOptions,
   shadowOptions,
   variantOptions,
@@ -29,11 +28,22 @@ import {
 } from '../types/widgetTemplate'
 import { isMediaApplicable, layoutPresetDefinitions } from '../utils/layoutPresetDefinitions'
 import { generateWidgetCss, generateWidgetHtml, normalizeWidgetConfig } from '../utils/widgetTemplateGenerator'
+import {
+  buildHtmlWidgetTemplateConfig,
+  generateHtmlWidgetTemplateCss,
+  generateHtmlWidgetTemplateHtml,
+  getHtmlWidgetTemplateHideableElements,
+  getHtmlWidgetTemplateEditableFields,
+  getHtmlWidgetTemplateById,
+  isHtmlWidgetTemplateConfig,
+} from '../utils/htmlWidgetTemplateGenerator'
+import type { HtmlWidgetTemplate, HtmlWidgetTemplateContent } from '../utils/htmlWidgetTemplateTypes'
 import WidgetLivePreview from './WidgetLivePreview'
 import WidgetPreviewFrame from './WidgetPreviewFrame'
-import WidgetTemplateGallery from './WidgetTemplateGallery'
+import WidgetTemplateGallery, { type WidgetTemplateSelection } from './WidgetTemplateGallery'
 import WidgetColorPresets from './WidgetColorPresets'
 import WidgetLayoutPicker from './WidgetLayoutPicker'
+import HtmlTemplateInlineEditorPreview from './HtmlTemplateInlineEditorPreview'
 
 type Props = {
   initialValue?: Widget
@@ -43,7 +53,7 @@ type Props = {
   onSubmit: (payload: WidgetFormPayload) => Promise<void>
 }
 
-type EditorSection = 'layout' | 'structure' | 'style' | 'dimensions'
+type EditorSection = 'layout' | 'structure' | 'style' | 'dimensions' | 'htmlContent'
 
 type BuilderStep = 'template' | 'customize'
 
@@ -65,22 +75,63 @@ const shadowLabels: Record<WidgetVisualConfig['shadow'], string> = {
 
 const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, onSubmit }: Props) => {
   const isEditing = !!initialValue
+  const initialAttributes = initialValue?.config?.attributes
+  const initialHtmlTemplate = isHtmlWidgetTemplateConfig(initialAttributes)
+    ? getHtmlWidgetTemplateById(initialAttributes.templateId)
+    : null
   const [step, setStep] = useState<BuilderStep>(isEditing ? 'customize' : 'template')
   const [title, setTitle] = useState(initialValue?.title ?? '')
   const [isActive, setIsActive] = useState(initialValue?.is_active ?? true)
+  const [selectedHtmlTemplate, setSelectedHtmlTemplate] = useState<HtmlWidgetTemplate | null>(initialHtmlTemplate)
+  const [htmlContent, setHtmlContent] = useState<HtmlWidgetTemplateContent>(() =>
+    isHtmlWidgetTemplateConfig(initialAttributes) ? initialAttributes.contentOverrides ?? {} : {},
+  )
+  const [htmlFieldOverrides, setHtmlFieldOverrides] = useState<Record<string, string>>(() =>
+    isHtmlWidgetTemplateConfig(initialAttributes) ? initialAttributes.fieldOverrides ?? {} : {},
+  )
+  const [hiddenElementIds, setHiddenElementIds] = useState<string[]>(() =>
+    isHtmlWidgetTemplateConfig(initialAttributes) ? initialAttributes.hiddenElementIds ?? [] : [],
+  )
   const [localError, setLocalError] = useState<string | null>(null)
   const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop')
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false)
-  const [expandedSections, setExpandedSections] = useState<Set<EditorSection>>(new Set(['layout', 'style']))
+  const [hiddenItemsExpanded, setHiddenItemsExpanded] = useState(false)
+  const [expandedSections, setExpandedSections] = useState<Set<EditorSection>>(
+    new Set(initialHtmlTemplate ? ['htmlContent'] : ['layout', 'style']),
+  )
   const [config, setConfig] = useState<WidgetVisualConfig>(() =>
     normalizeWidgetConfig(initialValue?.config ?? { name: 'Widget padrão', slug: 'widget-padrao', attributes: defaultWidgetVisualConfig }),
   )
 
-  const generatedHtml = useMemo(() => generateWidgetHtml(config), [config])
-  const generatedCss = useMemo(() => generateWidgetCss(config), [config])
+  const generatedHtml = useMemo(
+    () =>
+      selectedHtmlTemplate
+        ? generateHtmlWidgetTemplateHtml(selectedHtmlTemplate, htmlContent, htmlFieldOverrides, hiddenElementIds)
+        : generateWidgetHtml(config),
+    [config, hiddenElementIds, htmlContent, htmlFieldOverrides, selectedHtmlTemplate],
+  )
+  const generatedCss = useMemo(
+    () =>
+      selectedHtmlTemplate
+        ? generateHtmlWidgetTemplateCss(selectedHtmlTemplate)
+        : generateWidgetCss(config),
+    [config, selectedHtmlTemplate],
+  )
 
   const update = useCallback(<K extends keyof WidgetVisualConfig>(key: K, value: WidgetVisualConfig[K]) => {
     setConfig((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const updateHtmlFieldOverride = useCallback((fieldId: string, value: string) => {
+    setHtmlFieldOverrides((prev) => ({ ...prev, [fieldId]: value }))
+  }, [])
+
+  const hideHtmlElement = useCallback((elementId: string) => {
+    setHiddenElementIds((prev) => (prev.includes(elementId) ? prev : [...prev, elementId]))
+  }, [])
+
+  const restoreHtmlElement = useCallback((elementId: string) => {
+    setHiddenElementIds((prev) => prev.filter((id) => id !== elementId))
   }, [])
 
   const handleLayout = useCallback((layout: WidgetVisualConfig['layout']) => {
@@ -113,12 +164,34 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
     })
   }
 
-  const handleSelectTemplate = (templateConfig: WidgetVisualConfig) => {
-    setConfig(templateConfig)
+  const handleSelectTemplate = (selection: WidgetTemplateSelection) => {
+    if (selection.kind === 'html') {
+      setSelectedHtmlTemplate(selection.template)
+      setHtmlContent({})
+      setHtmlFieldOverrides({})
+      setHiddenElementIds([])
+      setExpandedSections(new Set(['htmlContent']))
+      setTitle((current) => current || selection.name)
+      setStep('customize')
+      return
+    }
+
+    setSelectedHtmlTemplate(null)
+    setHtmlContent({})
+    setHtmlFieldOverrides({})
+    setHiddenElementIds([])
+    setExpandedSections(new Set(['layout', 'style']))
+    setConfig(selection.config)
+    setTitle((current) => current || selection.name)
     setStep('customize')
   }
 
   const handleResetToDefaults = () => {
+    setSelectedHtmlTemplate(null)
+    setHtmlContent({})
+    setHtmlFieldOverrides({})
+    setHiddenElementIds([])
+    setExpandedSections(new Set(['layout', 'style']))
     setConfig(normalizeWidgetConfig({ name: '', slug: '', attributes: defaultWidgetVisualConfig }))
   }
 
@@ -136,7 +209,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, ''),
-      attributes: config,
+      attributes: selectedHtmlTemplate ? buildHtmlWidgetTemplateConfig(selectedHtmlTemplate, htmlContent, htmlFieldOverrides, hiddenElementIds) : { ...config, widgetEngine: 'visual' },
     }
 
     await onSubmit({
@@ -236,155 +309,164 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
         <div className="grid rounded-b-2xl border border-t-0 border-slate-200 bg-slate-50 lg:grid-cols-[380px_1fr]">
           {/* ── Left: Controls Panel ── */}
           <div className="max-h-[calc(100vh-200px)] overflow-y-auto border-r border-slate-200 bg-white">
-            {/* Layout Section */}
-            <CollapsiblePanel
-              icon={<Layers className="h-4 w-4" />}
-              title="Layout"
-              expanded={expandedSections.has('layout')}
-              onToggle={() => toggleSection('layout')}
-            >
-              <div className="space-y-4">
-                <WidgetLayoutPicker value={config.layout} onChange={handleLayout} />
-                <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-                  {layoutPresetDefinitions[config.layout].description}
-                </p>
-              </div>
-            </CollapsiblePanel>
-
-            {/* Structure Section */}
-            <CollapsiblePanel
-              icon={<SlidersHorizontal className="h-4 w-4" />}
-              title="Estrutura"
-              expanded={expandedSections.has('structure')}
-              onToggle={() => toggleSection('structure')}
-            >
-              <div className="space-y-3">
-                <p className="text-xs text-slate-500">Defina os blocos visuais que o widget irá exibir.</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {([
-                    ['showTitle', 'Título'],
-                    ['showSubtitle', 'Subtítulo'],
-                    ['showDescription', 'Descrição'],
-                    ['showButton', 'Botão CTA'],
-                    ['showComplementaryText', 'Texto extra'],
-                    ['showBadge', 'Badge/Selo'],
-                    ['showMedia', 'Mídia'],
-                  ] as Array<[keyof WidgetVisualConfig, string]>).map(([key, label]) => (
-                    <ToggleSwitch key={key} label={label} checked={Boolean(config[key])} onChange={(v) => update(key, v as never)} />
-                  ))}
-                </div>
-
-                <div className="space-y-2 border-t border-slate-100 pt-3">
-                  <ToggleSwitch label="Botão largura total" checked={config.buttonFullWidth} onChange={(v) => update('buttonFullWidth', v)} />
-                  <ToggleSwitch
-                    label="Mídia clicável (CTA)"
-                    checked={config.mediaClickableCta}
-                    disabled={!config.showMedia || config.mediaType === 'none'}
-                    onChange={(v) => update('mediaClickableCta', v)}
-                  />
-                </div>
-
-                <label className="block text-xs font-medium text-slate-600">
-                  Tipo de mídia
-                  <select
-                    value={config.mediaType}
-                    disabled={!config.showMedia}
-                    onChange={(e) => update('mediaType', e.target.value as WidgetVisualConfig['mediaType'])}
-                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
-                  >
-                    {mediaTypeOptions.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt === 'image' ? 'Imagem' : opt === 'video' ? 'Vídeo' : 'Nenhuma'}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </CollapsiblePanel>
-
-            {/* Style Section */}
-            <CollapsiblePanel
-              icon={<Paintbrush className="h-4 w-4" />}
-              title="Estilo"
-              expanded={expandedSections.has('style')}
-              onToggle={() => toggleSection('style')}
-            >
-              <div className="space-y-4">
-                {/* Variant selector */}
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Variante visual</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {variantOptions.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => update('variant', v)}
-                        className={`rounded-lg border-2 px-3 py-2 text-xs font-semibold transition-all ${
-                          config.variant === v
-                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                            : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
-                      >
-                        {variantLabels[v]}
-                      </button>
-                    ))}
+            {selectedHtmlTemplate ? (
+              <HtmlTemplateEditor
+                template={selectedHtmlTemplate}
+                fieldOverrides={htmlFieldOverrides}
+                hiddenElementIds={hiddenElementIds}
+                hiddenItemsExpanded={hiddenItemsExpanded}
+                expanded={expandedSections.has('htmlContent')}
+                onToggle={() => toggleSection('htmlContent')}
+                onFieldChange={updateHtmlFieldOverride}
+                onRestoreElement={restoreHtmlElement}
+                onToggleHiddenItems={() => setHiddenItemsExpanded((prev) => !prev)}
+              />
+            ) : (
+              <>
+                <CollapsiblePanel
+                  icon={<Layers className="h-4 w-4" />}
+                  title="Layout"
+                  expanded={expandedSections.has('layout')}
+                  onToggle={() => toggleSection('layout')}
+                >
+                  <div className="space-y-4">
+                    <WidgetLayoutPicker value={config.layout} onChange={handleLayout} />
+                    <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                      {layoutPresetDefinitions[config.layout].description}
+                    </p>
                   </div>
-                </div>
+                </CollapsiblePanel>
 
-                {/* Colors */}
-                <WidgetColorPresets
-                  currentBg={config.backgroundColor}
-                  currentText={config.textColor}
-                  currentButton={config.buttonColor}
-                  currentBorder={config.borderColor}
-                  onApply={(s) => setConfig((prev) => ({ ...prev, backgroundColor: s.bg, textColor: s.text, buttonColor: s.button, borderColor: s.border }))}
-                  onChangeColor={(key, value) => update(key, value)}
-                />
+                <CollapsiblePanel
+                  icon={<SlidersHorizontal className="h-4 w-4" />}
+                  title="Estrutura"
+                  expanded={expandedSections.has('structure')}
+                  onToggle={() => toggleSection('structure')}
+                >
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-500">Defina os blocos visuais que o widget irá exibir.</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        ['showTitle', 'Título'],
+                        ['showSubtitle', 'Subtítulo'],
+                        ['showDescription', 'Descrição'],
+                        ['showButton', 'Botão CTA'],
+                        ['showComplementaryText', 'Texto extra'],
+                        ['showBadge', 'Badge/Selo'],
+                        ['showMedia', 'Mídia'],
+                      ] as Array<[keyof WidgetVisualConfig, string]>).map(([key, label]) => (
+                        <ToggleSwitch key={key} label={label} checked={Boolean(config[key])} onChange={(v) => update(key, v as never)} />
+                      ))}
+                    </div>
 
-                {/* Shadow */}
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Sombra</p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {shadowOptions.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => update('shadow', s)}
-                        className={`rounded-lg border-2 px-2 py-1.5 text-xs font-semibold transition ${
-                          config.shadow === s ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
+                    <div className="space-y-2 border-t border-slate-100 pt-3">
+                      <ToggleSwitch label="Botão largura total" checked={config.buttonFullWidth} onChange={(v) => update('buttonFullWidth', v)} />
+                      <ToggleSwitch
+                        label="Mídia clicável (CTA)"
+                        checked={config.mediaClickableCta}
+                        disabled={!config.showMedia || config.mediaType === 'none'}
+                        onChange={(v) => update('mediaClickableCta', v)}
+                      />
+                    </div>
+
+                    <label className="block text-xs font-medium text-slate-600">
+                      Tipo de mídia
+                      <select
+                        value={config.mediaType}
+                        disabled={!config.showMedia}
+                        onChange={(e) => update('mediaType', e.target.value as WidgetVisualConfig['mediaType'])}
+                        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
                       >
-                        {shadowLabels[s]}
-                      </button>
-                    ))}
+                        {mediaTypeOptions.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt === 'image' ? 'Imagem' : opt === 'video' ? 'Vídeo' : 'Nenhuma'}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
-                </div>
-              </div>
-            </CollapsiblePanel>
+                </CollapsiblePanel>
 
-            {/* Dimensions Section */}
-            <CollapsiblePanel
-              icon={<Eye className="h-4 w-4" />}
-              title="Dimensões"
-              expanded={expandedSections.has('dimensions')}
-              onToggle={() => toggleSection('dimensions')}
-            >
-              <div className="space-y-4">
-                <RangeControl label="Largura" value={config.width} min={WIDGET_LIMITS.width.min} max={WIDGET_LIMITS.width.max} step={10} unit="px" onChange={(v) => update('width', v)} />
-                <RangeControl label="Altura mínima" value={config.minHeight} min={WIDGET_LIMITS.minHeight.min} max={WIDGET_LIMITS.minHeight.max} step={10} unit="px" onChange={(v) => update('minHeight', v)} />
-                <RangeControl
-                  label="Tamanho da mídia"
-                  value={config.mediaSize}
-                  min={WIDGET_LIMITS.mediaSize.min}
-                  max={WIDGET_LIMITS.mediaSize.max}
-                  unit="%"
-                  disabled={mediaSizeDisabled}
-                  onChange={(v) => update('mediaSize', v)}
-                />
-                <RangeControl label="Border radius" value={config.borderRadius} min={WIDGET_LIMITS.borderRadius.min} max={WIDGET_LIMITS.borderRadius.max} unit="px" onChange={(v) => update('borderRadius', v)} />
-                <RangeControl label="Padding" value={config.padding} min={WIDGET_LIMITS.padding.min} max={WIDGET_LIMITS.padding.max} unit="px" onChange={(v) => update('padding', v)} />
-              </div>
-            </CollapsiblePanel>
+                <CollapsiblePanel
+                  icon={<Paintbrush className="h-4 w-4" />}
+                  title="Estilo"
+                  expanded={expandedSections.has('style')}
+                  onToggle={() => toggleSection('style')}
+                >
+                  <div className="space-y-4">
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Variante visual</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {variantOptions.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => update('variant', v)}
+                            className={`rounded-lg border-2 px-3 py-2 text-xs font-semibold transition-all ${
+                              config.variant === v
+                                ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                                : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                          >
+                            {variantLabels[v]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <WidgetColorPresets
+                      currentBg={config.backgroundColor}
+                      currentText={config.textColor}
+                      currentButton={config.buttonColor}
+                      currentBorder={config.borderColor}
+                      onApply={(s) => setConfig((prev) => ({ ...prev, backgroundColor: s.bg, textColor: s.text, buttonColor: s.button, borderColor: s.border }))}
+                      onChangeColor={(key, value) => update(key, value)}
+                    />
+
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Sombra</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {shadowOptions.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => update('shadow', s)}
+                            className={`rounded-lg border-2 px-2 py-1.5 text-xs font-semibold transition ${
+                              config.shadow === s ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                          >
+                            {shadowLabels[s]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CollapsiblePanel>
+
+                <CollapsiblePanel
+                  icon={<Eye className="h-4 w-4" />}
+                  title="Dimensões"
+                  expanded={expandedSections.has('dimensions')}
+                  onToggle={() => toggleSection('dimensions')}
+                >
+                  <div className="space-y-4">
+                    <RangeControl label="Largura" value={config.width} min={WIDGET_LIMITS.width.min} max={WIDGET_LIMITS.width.max} step={10} unit="px" onChange={(v) => update('width', v)} />
+                    <RangeControl label="Altura mínima" value={config.minHeight} min={WIDGET_LIMITS.minHeight.min} max={WIDGET_LIMITS.minHeight.max} step={10} unit="px" onChange={(v) => update('minHeight', v)} />
+                    <RangeControl
+                      label="Tamanho da mídia"
+                      value={config.mediaSize}
+                      min={WIDGET_LIMITS.mediaSize.min}
+                      max={WIDGET_LIMITS.mediaSize.max}
+                      unit="%"
+                      disabled={mediaSizeDisabled}
+                      onChange={(v) => update('mediaSize', v)}
+                    />
+                    <RangeControl label="Border radius" value={config.borderRadius} min={WIDGET_LIMITS.borderRadius.min} max={WIDGET_LIMITS.borderRadius.max} unit="px" onChange={(v) => update('borderRadius', v)} />
+                    <RangeControl label="Padding" value={config.padding} min={WIDGET_LIMITS.padding.min} max={WIDGET_LIMITS.padding.max} unit="px" onChange={(v) => update('padding', v)} />
+                  </div>
+                </CollapsiblePanel>
+              </>
+            )}
           </div>
 
           {/* ── Right: Live Preview ── */}
@@ -420,9 +502,23 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
             </div>
 
             {/* Preview Content */}
-            <div className="flex flex-1 items-center justify-center overflow-auto bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-              <WidgetPreviewFrame viewport={previewViewport}>
-                <WidgetLivePreview config={config} viewport={previewViewport} />
+            <div className="flex min-h-[620px] flex-1 items-center justify-center overflow-auto bg-slate-100 p-4">
+              <WidgetPreviewFrame viewport={previewViewport} compactChrome={Boolean(selectedHtmlTemplate)}>
+                {selectedHtmlTemplate ? (
+                  <HtmlTemplateInlineEditorPreview
+                    template={selectedHtmlTemplate}
+                    css={generatedCss}
+                    content={htmlContent}
+                    fieldOverrides={htmlFieldOverrides}
+                    hiddenElementIds={hiddenElementIds}
+                    compact={previewViewport === 'mobile'}
+                    fill
+                    onFieldChange={updateHtmlFieldOverride}
+                    onHideElement={hideHtmlElement}
+                  />
+                ) : (
+                  <WidgetLivePreview config={config} viewport={previewViewport} />
+                )}
               </WidgetPreviewFrame>
             </div>
           </div>
@@ -494,8 +590,22 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
                     <div className="h-3 w-1/2 rounded bg-slate-100" />
                   </div>
 
-                  <WidgetPreviewFrame viewport={previewViewport} fullscreen>
-                    <WidgetLivePreview config={config} viewport={previewViewport} />
+                  <WidgetPreviewFrame viewport={previewViewport} fullscreen compactChrome={Boolean(selectedHtmlTemplate)}>
+                    {selectedHtmlTemplate ? (
+                      <HtmlTemplateInlineEditorPreview
+                        template={selectedHtmlTemplate}
+                        css={generatedCss}
+                        content={htmlContent}
+                        fieldOverrides={htmlFieldOverrides}
+                        hiddenElementIds={hiddenElementIds}
+                        compact={previewViewport === 'mobile'}
+                        fill
+                        onFieldChange={updateHtmlFieldOverride}
+                        onHideElement={hideHtmlElement}
+                      />
+                    ) : (
+                      <WidgetLivePreview config={config} viewport={previewViewport} />
+                    )}
                   </WidgetPreviewFrame>
 
                   <div className="mt-8 space-y-3">
@@ -535,6 +645,156 @@ const CollapsiblePanel = ({ icon, title, expanded, onToggle, children }: Collaps
     </button>
     {expanded && <div className="px-5 pb-5">{children}</div>}
   </div>
+)
+
+const HtmlTemplateEditor = ({
+  template,
+  fieldOverrides,
+  hiddenElementIds,
+  hiddenItemsExpanded,
+  expanded,
+  onToggle,
+  onFieldChange,
+  onRestoreElement,
+  onToggleHiddenItems,
+}: {
+  template: HtmlWidgetTemplate
+  fieldOverrides: Record<string, string>
+  hiddenElementIds: string[]
+  hiddenItemsExpanded: boolean
+  expanded: boolean
+  onToggle: () => void
+  onFieldChange: (fieldId: string, value: string) => void
+  onRestoreElement: (elementId: string) => void
+  onToggleHiddenItems: () => void
+}) => {
+  const linkFields = getHtmlWidgetTemplateEditableFields(template).filter((field) => field.type === 'url')
+  const hideableElements = getHtmlWidgetTemplateHideableElements(template)
+  const hiddenElements = hiddenElementIds.map((id) => (
+    hideableElements.find((element) => element.id === id) ?? { id, label: 'Item oculto' }
+  ))
+
+  return (
+    <>
+      <div className="space-y-4 p-5">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+              HTML preservado
+            </span>
+            {template.supportsScript ? (
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+                Script
+              </span>
+            ) : null}
+          </div>
+          <h3 className="text-sm font-bold text-slate-900">{template.name}</h3>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">{template.description}</p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Categoria</p>
+          <div className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
+            {template.categoryLabel}
+          </div>
+        </div>
+      </div>
+
+      <CollapsiblePanel
+        icon={<SlidersHorizontal className="h-4 w-4" />}
+        title="Ajustes"
+        expanded={expanded}
+        onToggle={onToggle}
+      >
+        <div className="space-y-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
+            Edite textos, precos, nomes, rotulos e botoes clicando diretamente no preview.
+          </div>
+
+          {linkFields.length > 0 ? (
+            <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Links</p>
+              {linkFields.map((field) => (
+                <TextField
+                  key={field.id}
+                  label={field.label}
+                  type="url"
+                  value={fieldOverrides[field.id] ?? ''}
+                  placeholder={field.defaultValue}
+                  onChange={(next) => onFieldChange(field.id, next)}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {hiddenElements.length > 0 ? (
+            <div className="space-y-2 rounded-xl border border-rose-100 bg-rose-50 p-3">
+              <button
+                type="button"
+                onClick={onToggleHiddenItems}
+                className="flex w-full items-center justify-between gap-2 text-left"
+              >
+                <span className="text-xs font-semibold uppercase tracking-wide text-rose-600">
+                  Itens ocultos ({hiddenElements.length})
+                </span>
+                {hiddenItemsExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-rose-500" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-rose-500" />
+                )}
+              </button>
+              {hiddenItemsExpanded ? (
+                <div className="space-y-2">
+                  {hiddenElements.map((element) => (
+                    <div key={element.id} className="flex items-center justify-between gap-2 rounded-lg bg-white px-3 py-2">
+                      <span className="min-w-0 truncate text-xs text-slate-600">{element.label}</span>
+                      <button
+                        type="button"
+                        onClick={() => onRestoreElement(element.id)}
+                        className="shrink-0 rounded-md border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50"
+                      >
+                        Restaurar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-blue-700">
+            Campos vazios mantem o valor original do modelo.
+          </div>
+
+        </div>
+      </CollapsiblePanel>
+    </>
+  )
+}
+
+const TextField = ({
+  label,
+  value,
+  placeholder,
+  type = 'text',
+  onChange,
+}: {
+  label: string
+  value: string
+  placeholder?: string
+  type?: 'text' | 'url'
+  onChange: (value: string) => void
+}) => (
+  <label className="block space-y-1">
+    <span className="text-xs font-semibold text-slate-600">{label}</span>
+    <input
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      onChange={(event) => onChange(event.target.value)}
+      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-300"
+    />
+  </label>
 )
 
 type ToggleSwitchProps = {
