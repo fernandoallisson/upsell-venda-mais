@@ -1,4 +1,4 @@
-# Upsell Venda Mais 
+# Upsell Venda Mais
 
 Aplicação web construída com React, TypeScript e Vite para apoiar fluxos de upsell e melhoria de conversão em vendas.
 
