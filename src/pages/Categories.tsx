@@ -12,6 +12,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
+import WorkspaceTabs from '../components/layout/WorkspaceTabs'
 import { ApiError } from '../lib/api'
 import {
   createCategory,
@@ -27,6 +28,7 @@ import type {
   UpdateCategoryPayload,
 } from '../lib/services/categories/categories.types'
 import { getProducts } from '../lib/services/products/products.service'
+import { COMPACT_PAGE_SIZE, loadCompactPage } from '../lib/utils/compactPagination'
 import type { Product } from '../lib/services/products/products.types'
 
 const formatDate = (value: string) => {
@@ -95,6 +97,7 @@ const Categories = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [serverPageSize, setServerPageSize] = useState(COMPACT_PAGE_SIZE)
 
   const [isProductsOpen, setIsProductsOpen] = useState(false)
   const [categoryProducts, setCategoryProducts] = useState<Product[]>([])
@@ -130,6 +133,8 @@ const Categories = () => {
   })
 
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [workspaceView, setWorkspaceView] = useState<'list' | 'details' | 'create'>('list')
+  const [detailView, setDetailView] = useState<'summary' | 'products' | 'edit' | 'actions'>('summary')
 
   const fetchCategoryDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
@@ -153,20 +158,16 @@ const Categories = () => {
       setError(null)
 
       try {
-        const response = await getCategories(targetPage)
+        const response = await loadCompactPage<Category, CategoriesResponse>(
+          getCategories,
+          targetPage,
+          serverPageSize,
+        )
 
         setCategories(response.data)
-        setPagination({
-          current_page: response.current_page,
-          last_page: response.last_page,
-          per_page: response.per_page,
-          total: response.total,
-          from: response.from,
-          to: response.to,
-          next_page_url: response.next_page_url,
-          prev_page_url: response.prev_page_url,
-        })
-        setPage(response.current_page)
+        setPagination(response.pagination)
+        setServerPageSize(response.serverPageSize)
+        setPage(response.pagination.current_page)
 
         const firstCategory = response.data[0] ?? null
         setSelectedCategory(firstCategory)
@@ -185,7 +186,7 @@ const Categories = () => {
         setStatus('error')
       }
     },
-    [fetchCategoryDetails, page],
+    [fetchCategoryDetails, page, serverPageSize],
   )
 
   useEffect(() => {
@@ -233,6 +234,8 @@ const Categories = () => {
 
   const handleSelectCategory = (category: Category) => {
     setSelectedCategory(category)
+    setWorkspaceView('details')
+    setDetailView('summary')
     fetchCategoryDetails(category.id)
   }
 
@@ -360,7 +363,7 @@ const Categories = () => {
     return buildPageItems(pagination.current_page, pagination.last_page)
   }, [pagination])
 
-  const categoryProductsPerPage = 6
+  const categoryProductsPerPage = 3
   const categoryProductsLastPage = Math.max(
     1,
     Math.ceil(categoryProducts.length / categoryProductsPerPage),
@@ -387,37 +390,35 @@ const Categories = () => {
     <DashboardPage
       title="Categorias"
       subtitle="Catálogo"
-      containerClassName="max-w-6xl"
+      containerClassName="viewport-workspace crud-workspace category-workspace max-w-6xl"
     >
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div>
-          <p className="text-sm font-medium text-slate-500">Categorias</p>
-          <div className="mt-1 flex flex-wrap items-baseline gap-3">
-            <p className="text-2xl font-semibold text-slate-900">
+      <section className="category-summary flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
+            <Layers className="h-5 w-5 text-indigo-600" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-500">Categorias cadastradas</p>
+            <div className="flex flex-wrap items-baseline gap-2">
+            <p className="text-xl font-semibold text-slate-900">
               {pagination?.total ?? totals.count}
             </p>
-            <span className="text-sm text-slate-400">
-              total{' '}
+            <span className="text-xs text-slate-400">
               {pagination
-                ? `(pág. ${pagination.current_page} de ${pagination.last_page})`
-                : ''}
+                ? `Mostrando ${pagination.from ?? 0}-${pagination.to ?? 0} de ${pagination.total} | pag. ${pagination.current_page}/${pagination.last_page}`
+                : 'total'}
             </span>
           </div>
-          {pagination ? (
-            <p className="mt-1 text-xs text-slate-400">
-              Mostrando {pagination.from ?? 0}–{pagination.to ?? 0} de{' '}
-              {pagination.total}
-            </p>
-          ) : null}
+          </div>
         </div>
 
         <button
           type="button"
           onClick={() => fetchCategories(page)}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
         >
           <RefreshCcw className="h-4 w-4" />
-          Atualizar (página {page})
+          Atualizar
         </button>
       </section>
 
@@ -447,9 +448,22 @@ const Categories = () => {
       ) : null}
 
       {status === 'idle' ? (
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <>
+        <WorkspaceTabs
+          value={workspaceView}
+          tabs={[
+            { value: 'list', label: 'Lista' },
+            { value: 'details', label: 'Detalhes', disabled: !selectedCategory },
+            { value: 'create', label: 'Nova' },
+          ]}
+          onChange={(next) => {
+            setWorkspaceView(next)
+            if (next === 'create') setIsCreateOpen(true)
+          }}
+        />
+        <div className="desktop-workspace-columns grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
+          <div className="desktop-workspace-stack space-y-6">
+            <section className={`category-panel desktop-workspace-panel ${workspaceView === 'create' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-4 shadow-sm`}>
               <button
                 type="button"
                 onClick={() => setIsCreateOpen((prev) => !prev)}
@@ -466,8 +480,8 @@ const Categories = () => {
 
               {isCreateOpen ? (
                 <>
-                  <div className="mt-4 grid gap-4">
-                    <label className="space-y-2 text-sm text-slate-600">
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <label className="space-y-1 text-sm text-slate-600">
                       <span>Nome</span>
                       <input
                         value={categoryForm.name}
@@ -482,7 +496,7 @@ const Categories = () => {
                       />
                     </label>
 
-                    <label className="space-y-2 text-sm text-slate-600">
+                    <label className="space-y-1 text-sm text-slate-600">
                       <span>External ID</span>
                       <input
                         value={categoryForm.external_id}
@@ -498,7 +512,7 @@ const Categories = () => {
                     </label>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
                     <button
                       type="button"
                       onClick={handleCreateCategory}
@@ -525,44 +539,44 @@ const Categories = () => {
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
+            <section className={`category-panel category-list-panel desktop-workspace-panel ${workspaceView === 'list' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-3 shadow-sm`}>
+              <div className="flex items-center justify-between gap-2 px-1 pb-2 text-sm font-semibold text-slate-700">
+                <span className="flex items-center gap-2">
                 <Layers className="h-4 w-4 text-indigo-500" />
                 Lista de categorias
+                </span>
+                <span className="text-[11px] font-medium text-slate-400">5 por página</span>
               </div>
 
-              <div className="space-y-3">
-                {categories.map((category) => {
+              <div className="category-list-items space-y-2">
+                {categories.slice(0, 5).map((category) => {
                   const isActive = selectedCategory?.id === category.id
                   return (
                     <button
                       key={category.id}
                       type="button"
                       onClick={() => handleSelectCategory(category)}
-                      className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                      className={`category-list-row w-full rounded-lg border px-3 py-2 text-left transition ${
                         isActive
                           ? 'border-indigo-200 bg-indigo-50'
                           : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">
+                      <div className="flex min-w-0 items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900" title={category.name}>
                             {category.name}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="truncate text-xs text-slate-500" title={category.external_id ?? ''}>
                             {category.external_id}
                           </p>
                         </div>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
                           ID {category.id}
                         </span>
                       </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                        <span>Criado em {formatDate(category.created_at)}</span>
-                        <span>
-                          Atualizado em {formatDate(category.updated_at)}
-                        </span>
+                      <div className="mt-1 flex min-w-0 items-center gap-2 text-[11px] text-slate-400">
+                        <span className="truncate">Atualizado: {formatDate(category.updated_at)}</span>
                       </div>
                     </button>
                   )
@@ -577,7 +591,7 @@ const Categories = () => {
               </div>
 
               {pagination ? (
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-2">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
                   <div className="text-xs text-slate-500">
                     Mostrando{' '}
                     <span className="font-semibold text-slate-700">
@@ -604,7 +618,7 @@ const Categories = () => {
                       Anterior
                     </button>
 
-                    <div className="mx-1 flex items-center gap-1">
+                    <div className="category-page-items mx-1 flex items-center gap-1">
                       {pageItems.map((item, idx) =>
                         item === '...' ? (
                           <span
@@ -645,7 +659,7 @@ const Categories = () => {
             </section>
           </div>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className={`category-panel category-detail-panel desktop-workspace-panel ${workspaceView === 'details' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-4 shadow-sm`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-700">Detalhes</p>
@@ -659,13 +673,27 @@ const Categories = () => {
             </div>
 
             {selectedCategory ? (
-              <div className="mt-6 space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <>
+              <WorkspaceTabs
+                value={detailView}
+                onChange={(next) => {
+                  setDetailView(next)
+                  if (next === 'edit') setIsEditOpen(true)
+                }}
+                tabs={[
+                  { value: 'summary', label: 'Resumo' },
+                  { value: 'products', label: 'Produtos' },
+                  { value: 'edit', label: 'Editar' },
+                  { value: 'actions', label: 'Acoes' },
+                ]}
+              />
+              <div className="mt-3 space-y-3">
+                <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} grid gap-4 md:grid-cols-2`}>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <p className="text-xs font-semibold uppercase text-slate-400">
                       Identificação
                     </p>
-                    <div className="mt-2 space-y-2 text-sm text-slate-600">
+                    <div className="mt-2 space-y-1.5 text-sm text-slate-600">
                       <div className="flex items-center gap-2">
                         <Tag className="h-4 w-4 text-indigo-500" />
                         {selectedCategory.name}
@@ -681,11 +709,11 @@ const Categories = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <p className="text-xs font-semibold uppercase text-slate-400">
                       Atualização
                     </p>
-                    <div className="mt-2 space-y-2 text-sm text-slate-600">
+                    <div className="mt-2 space-y-1.5 text-sm text-slate-600">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-indigo-500" />
                         Atualizado em {formatDate(selectedCategory.updated_at)}
@@ -697,7 +725,7 @@ const Categories = () => {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'products' ? 'is-active' : ''} rounded-xl border border-slate-200 bg-white p-3`}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-700">
@@ -718,10 +746,10 @@ const Categories = () => {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'edit' ? 'is-active' : ''} rounded-xl border border-slate-200 p-3`}>
                   <button
                     type="button"
-                    onClick={() => setIsEditOpen((prev) => !prev)}
+                      onClick={() => setIsEditOpen((prev) => !prev)}
                     className="flex w-full items-center justify-between text-left"
                   >
                     <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
@@ -735,8 +763,8 @@ const Categories = () => {
 
                   {isEditOpen ? (
                     <>
-                      <div className="mt-4 grid gap-4">
-                        <label className="space-y-2 text-sm text-slate-600">
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <label className="space-y-1 text-sm text-slate-600">
                           <span>Nome</span>
                           <input
                             value={editForm.name}
@@ -750,7 +778,7 @@ const Categories = () => {
                           />
                         </label>
 
-                        <label className="space-y-2 text-sm text-slate-600">
+                        <label className="space-y-1 text-sm text-slate-600">
                           <span>External ID</span>
                           <input
                             value={editForm.external_id}
@@ -765,7 +793,7 @@ const Categories = () => {
                         </label>
                       </div>
 
-                      <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
                         <button
                           type="button"
                           onClick={handleUpdateCategory}
@@ -792,7 +820,7 @@ const Categories = () => {
                   ) : null}
                 </div>
 
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'actions' ? 'is-active' : ''} rounded-xl border border-rose-200 bg-rose-50 p-3`}>
                   <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
                     <Trash2 className="h-4 w-4" />
                     Remover categoria
@@ -810,6 +838,7 @@ const Categories = () => {
                   </button>
                 </div>
               </div>
+              </>
             ) : (
               <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                 Selecione uma categoria para ver os detalhes.
@@ -817,11 +846,12 @@ const Categories = () => {
             )}
           </section>
         </div>
+        </>
       ) : null}
 
       {isProductsOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+          <div className="category-products-modal w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-700">
@@ -840,9 +870,9 @@ const Categories = () => {
               </button>
             </div>
 
-            <div className="mt-4 space-y-4">
+            <div className="mt-3 space-y-3">
               {categoryProductsStatus === 'loading' ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {Array.from({ length: 3 }).map((_, index) => (
                     <div
                       key={`loading-${index}`}
@@ -870,11 +900,11 @@ const Categories = () => {
 
               {categoryProductsStatus === 'idle' &&
               categoryProducts.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {visibleCategoryProducts.map((product) => (
                     <div
                       key={product.id}
-                      className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3"
+                      className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2"
                     >
                       <div>
                         <p className="text-sm font-semibold text-slate-900">
@@ -902,7 +932,7 @@ const Categories = () => {
 
             {categoryProductsStatus === 'idle' &&
             categoryProducts.length > 0 ? (
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="text-xs text-slate-500">
                   Mostrando{' '}
                   <span className="font-semibold text-slate-700">

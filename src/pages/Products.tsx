@@ -17,6 +17,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
+import WorkspaceTabs from '../components/layout/WorkspaceTabs'
 import { ApiError } from '../lib/api'
 import { getCategories } from '../lib/services/categories/categories.service'
 import type { Category } from '../lib/services/categories/categories.types'
@@ -33,6 +34,7 @@ import type {
   ProductsResponse,
   UpdateProductPayload,
 } from '../lib/services/products/products.types'
+import { COMPACT_PAGE_SIZE, loadCompactPage } from '../lib/utils/compactPagination'
 
 const formatCurrency = (value: string, currency: string) => {
   const number = Number(value)
@@ -107,6 +109,7 @@ const Products = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [serverPageSize, setServerPageSize] = useState(COMPACT_PAGE_SIZE)
 
   const [filters, setFilters] = useState({
     name: '',
@@ -139,6 +142,8 @@ const Products = () => {
   })
 
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [workspaceView, setWorkspaceView] = useState<'list' | 'details' | 'create' | 'filters'>('list')
+  const [detailView, setDetailView] = useState<'summary' | 'edit' | 'actions'>('summary')
 
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
@@ -178,20 +183,16 @@ const Products = () => {
       setError(null)
 
       try {
-        const response = await getProducts(targetPage)
+        const response = await loadCompactPage<Product, ProductsResponse>(
+          getProducts,
+          targetPage,
+          serverPageSize,
+        )
 
         setProducts(response.data)
-        setPagination({
-          current_page: response.current_page,
-          last_page: response.last_page,
-          per_page: response.per_page,
-          total: response.total,
-          from: response.from,
-          to: response.to,
-          next_page_url: response.next_page_url,
-          prev_page_url: response.prev_page_url,
-        })
-        setPage(response.current_page)
+        setPagination(response.pagination)
+        setServerPageSize(response.serverPageSize)
+        setPage(response.pagination.current_page)
 
         const firstProduct = response.data[0] ?? null
         setSelectedProduct(firstProduct)
@@ -208,7 +209,7 @@ const Products = () => {
         setStatus('error')
       }
     },
-    [fetchProductDetails, page],
+    [fetchProductDetails, page, serverPageSize],
   )
 
   const fetchCategories = useCallback(async () => {
@@ -296,6 +297,8 @@ const Products = () => {
 
   const handleSelectProduct = (product: Product) => {
     setSelectedProduct(product)
+    setWorkspaceView('details')
+    setDetailView('summary')
     fetchProductDetails(product.id)
   }
 
@@ -483,7 +486,7 @@ const Products = () => {
     <DashboardPage
       title="Produtos"
       subtitle="Catálogo"
-      containerClassName="max-w-6xl"
+      containerClassName="viewport-workspace crud-workspace max-w-6xl"
     >
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
@@ -492,7 +495,7 @@ const Products = () => {
             <p className="text-2xl font-semibold text-slate-900">
               {pagination?.total ?? totals.count}
             </p>
-            <span className="text-sm text-slate-400">{totals.active} ativos</span>
+            <span className="text-sm text-slate-400">{totals.active} ativos nesta pagina</span>
             <span className="text-sm text-slate-400">
               {pagination
                 ? `(pág. ${pagination.current_page} de ${pagination.last_page})`
@@ -543,9 +546,24 @@ const Products = () => {
       ) : null}
 
       {status === 'idle' ? (
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <>
+        <WorkspaceTabs
+          value={workspaceView}
+          tabs={[
+            { value: 'list', label: 'Lista' },
+            { value: 'details', label: 'Detalhes', disabled: !selectedProduct },
+            { value: 'create', label: 'Novo' },
+            { value: 'filters', label: 'Filtros' },
+          ]}
+          onChange={(next) => {
+            setWorkspaceView(next)
+            if (next === 'create') setIsCreateOpen(true)
+            if (next === 'filters') setIsFiltersOpen(true)
+          }}
+        />
+        <div className="desktop-workspace-columns grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
+          <div className="desktop-workspace-stack space-y-6">
+            <section className={`desktop-workspace-panel ${workspaceView === 'filters' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
@@ -709,7 +727,7 @@ const Products = () => {
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className={`desktop-workspace-panel ${workspaceView === 'create' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
               <button
                 type="button"
                 onClick={() => setIsCreateOpen((prev) => !prev)}
@@ -904,21 +922,21 @@ const Products = () => {
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section className={`workspace-list-panel desktop-workspace-panel ${workspaceView === 'list' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-4 shadow-sm`}>
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
                 <Package className="h-4 w-4 text-indigo-500" />
                 Lista de produtos
               </div>
 
-              <div className="space-y-3">
-                {filteredProducts.map((product) => {
+              <div className="workspace-list-items space-y-3">
+                {filteredProducts.slice(0, 5).map((product) => {
                   const isActive = selectedProduct?.id === product.id
                   return (
                     <button
                       key={product.id}
                       type="button"
                       onClick={() => handleSelectProduct(product)}
-                      className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                      className={`workspace-list-row w-full rounded-xl border px-4 py-3 text-left transition ${
                         isActive
                           ? 'border-indigo-200 bg-indigo-50'
                           : 'border-slate-200 bg-white hover:border-slate-300'
@@ -1034,7 +1052,7 @@ const Products = () => {
             </section>
           </div>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className={`desktop-workspace-panel ${workspaceView === 'details' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-700">Detalhes</p>
@@ -1048,8 +1066,18 @@ const Products = () => {
             </div>
 
             {selectedProduct ? (
-              <div className="mt-6 space-y-6">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <>
+              <WorkspaceTabs
+                value={detailView}
+                onChange={setDetailView}
+                tabs={[
+                  { value: 'summary', label: 'Resumo' },
+                  { value: 'edit', label: 'Editar' },
+                  { value: 'actions', label: 'Acoes' },
+                ]}
+              />
+              <div className="mt-4 space-y-4">
+                <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} rounded-xl border border-slate-200 bg-slate-50 p-4`}>
                   <div className="flex items-start gap-4">
                     <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
                       {selectedProduct.image_url ? (
@@ -1100,7 +1128,7 @@ const Products = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} grid gap-4 md:grid-cols-2`}>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-semibold uppercase text-slate-400">
                       Preços
@@ -1137,7 +1165,7 @@ const Products = () => {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'edit' ? 'is-active' : ''} rounded-xl border border-slate-200 p-4`}>
                   <button
                     type="button"
                     onClick={() => setIsEditOpen((prev) => !prev)}
@@ -1326,7 +1354,7 @@ const Products = () => {
                   ) : null}
                 </div>
 
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'actions' ? 'is-active' : ''} rounded-xl border border-rose-200 bg-rose-50 p-4`}>
                   <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
                     <Trash2 className="h-4 w-4" />
                     Remover produto
@@ -1344,6 +1372,7 @@ const Products = () => {
                   </button>
                 </div>
               </div>
+              </>
             ) : (
               <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                 Selecione um produto para ver os detalhes.
@@ -1420,6 +1449,7 @@ const Products = () => {
             </div>
           ) : null}
         </div>
+        </>
       ) : null}
     </DashboardPage>
   )

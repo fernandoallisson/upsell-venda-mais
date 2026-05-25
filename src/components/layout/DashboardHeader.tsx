@@ -31,15 +31,15 @@ const DashboardHeader = ({
   }, [user])
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
+    <header className="dashboard-header sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="dashboard-header-inner mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50">
+          <div className="dashboard-header-logo flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50">
             <img src={logoMark} alt="Logo Incrível Boost" className="h-9 w-9" />
           </div>
           <div>
             <p className="text-xs font-semibold uppercase text-slate-400">{subtitle}</p>
-            <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
+            <h1 className="dashboard-header-title text-2xl font-semibold text-slate-900">{title}</h1>
           </div>
         </div>
 
@@ -59,7 +59,7 @@ const DashboardHeader = ({
               onClick={() => setOpen((prev) => !prev)}
               className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
+              <div className="dashboard-header-avatar flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
                 {user ? initials : <UserCircle className="h-5 w-5" />}
               </div>
               <div className="text-left">

@@ -19,7 +19,8 @@ import {
   getApiKeys,
   toggleApiKeyActive,
 } from '../lib/services/api-keys/api-keys.service'
-import type { ApiKey, ApiKeyType } from '../lib/services/api-keys/api-keys.types'
+import type { ApiKey, ApiKeysResponse, ApiKeyType } from '../lib/services/api-keys/api-keys.types'
+import { COMPACT_PAGE_SIZE, loadCompactPage } from '../lib/utils/compactPagination'
 
 const TYPE_LABELS: Record<ApiKeyType, string> = {
   pre_checkout: 'Pré-Checkout',
@@ -86,7 +87,7 @@ const ScriptModal = ({
           </button>
         </div>
         <div className="p-6">
-          <pre className="overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs text-emerald-400 whitespace-pre-wrap break-all">
+          <pre className="overflow-hidden rounded-xl bg-slate-900 p-4 text-xs text-emerald-400 whitespace-pre-wrap break-all">
             {script}
           </pre>
           <button
@@ -161,19 +162,29 @@ const ApiKeys = () => {
   const [deleteModal, setDeleteModal] = useState<ApiKey | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [togglingId, setTogglingId] = useState<number | null>(null)
+  const [page, setPage] = useState(1)
+  const [lastPage, setLastPage] = useState(1)
+  const [serverPageSize, setServerPageSize] = useState(COMPACT_PAGE_SIZE)
 
   const fetchApiKeys = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await getApiKeys(typeFilter ? { type: typeFilter } : undefined)
+      const res = await loadCompactPage<ApiKey, ApiKeysResponse>(
+        (options) => getApiKeys({ ...options, type: typeFilter || undefined }),
+        page,
+        serverPageSize,
+      )
       setApiKeys(res.data)
+      setLastPage(res.pagination.last_page)
+      setServerPageSize(res.serverPageSize)
+      setPage(res.pagination.current_page)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Erro ao carregar chaves de API')
     } finally {
       setLoading(false)
     }
-  }, [typeFilter])
+  }, [page, serverPageSize, typeFilter])
 
   useEffect(() => {
     fetchApiKeys()
@@ -221,6 +232,7 @@ const ApiKeys = () => {
     <DashboardPage
       title="Chaves de API"
       subtitle="Gerencie tokens de integração e scripts de incorporação"
+      containerClassName="viewport-workspace api-keys-page max-w-7xl"
     >
       <div className="space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -244,7 +256,10 @@ const ApiKeys = () => {
           </div>
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as ApiKeyType | '')}
+            onChange={(e) => {
+              setTypeFilter(e.target.value as ApiKeyType | '')
+              setPage(1)
+            }}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-300"
           >
             <option value="">Todos os tipos</option>
@@ -375,6 +390,11 @@ const ApiKeys = () => {
                 ))}
               </tbody>
             </table>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-4 py-2 text-xs text-slate-600">
+              <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">Anterior</button>
+              <span>{page} / {lastPage}</span>
+              <button type="button" disabled={page >= lastPage} onClick={() => setPage((value) => value + 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">Proxima</button>
+            </div>
           </div>
         )}
       </div>

@@ -555,10 +555,13 @@ export const updateCampaignSegments = async (
 }
 
 export const getCampaigns = async (
-  page = 1,
+  pageOrOptions: number | { page?: number; perPage?: number } = 1,
   filters?: { is_active?: boolean; display_location?: string },
 ): Promise<CampaignsResponse> => {
+  const page = typeof pageOrOptions === 'number' ? pageOrOptions : (pageOrOptions.page ?? 1)
+  const perPage = typeof pageOrOptions === 'number' ? undefined : pageOrOptions.perPage
   const params = new URLSearchParams({ page: String(page) })
+  if (perPage) params.set('per_page', String(perPage))
   if (filters?.is_active !== undefined) params.set('is_active', filters.is_active ? '1' : '0')
   if (filters?.display_location) params.set('display_location', filters.display_location)
 

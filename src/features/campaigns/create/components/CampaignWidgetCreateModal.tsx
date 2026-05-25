@@ -73,7 +73,7 @@ const CampaignWidgetCreateModal = ({ open, onClose, onCreated }: Props) => {
           </div>
         ) : null}
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-5">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50 p-5">
           <WidgetBuilderForm
             submitting={submitting}
             submitLabel="Salvar e usar"

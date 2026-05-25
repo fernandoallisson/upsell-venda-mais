@@ -60,7 +60,7 @@ const WidgetDetailsPage = () => {
     : null
 
   return (
-    <DashboardPage title="Detalhes do Widget" subtitle="Visualize as informações e o preview do widget">
+    <DashboardPage title="Detalhes do Widget" subtitle="Visualize as informações e o preview do widget" containerClassName="viewport-workspace widget-details-page max-w-7xl">
       {loading ? (
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">Carregando...</div>
       ) : widget ? (
@@ -68,7 +68,7 @@ const WidgetDetailsPage = () => {
           {error ? <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
           {success ? <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div> : null}
 
-          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

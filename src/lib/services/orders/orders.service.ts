@@ -209,8 +209,16 @@ const parsePaginationLink = (data: unknown): PaginationLink => {
   }
 }
 
-export const getOrders = async (page = 1): Promise<OrdersResponse> => {
-  const data = await apiFetch<JsonValue>(`${ORDERS_ENDPOINT}?page=${page}`, {
+type OrdersListOptions = { page?: number; perPage?: number }
+
+export const getOrders = async (
+  options: number | OrdersListOptions = 1,
+): Promise<OrdersResponse> => {
+  const page = typeof options === 'number' ? options : (options.page ?? 1)
+  const perPage = typeof options === 'number' ? undefined : options.perPage
+  const params = new URLSearchParams({ page: String(page) })
+  if (perPage) params.set('per_page', String(perPage))
+  const data = await apiFetch<JsonValue>(`${ORDERS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
     errorMessage: 'Erro ao carregar pedidos',

@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react'
+import { useState, type Dispatch, type SetStateAction } from 'react'
 import type { Segment } from '../../../lib/services/segments/segments.types'
 import {
   toggleFormSegment,
@@ -26,6 +26,8 @@ const CustomerFormFields = ({
   phonePlaceholder,
   externalIdPlaceholder,
 }: CustomerFormFieldsProps) => {
+  const [segmentsPage, setSegmentsPage] = useState(0)
+
   return (
     <div className="mt-4 grid gap-4">
       <div className="grid gap-4 md:grid-cols-2">
@@ -171,7 +173,7 @@ const CustomerFormFields = ({
           </p>
         ) : (
           <div className="grid gap-2 md:grid-cols-2">
-            {segments.map((segment) => (
+            {segments.slice(segmentsPage * 4, segmentsPage * 4 + 4).map((segment) => (
               <label
                 key={segment.id}
                 className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600"
@@ -187,6 +189,13 @@ const CustomerFormFields = ({
             ))}
           </div>
         )}
+        {segments.length > 4 ? (
+          <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
+            <button type="button" disabled={segmentsPage === 0} onClick={() => setSegmentsPage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Anterior</button>
+            <span>{segmentsPage + 1} / {Math.ceil(segments.length / 4)}</span>
+            <button type="button" disabled={segmentsPage + 1 >= Math.ceil(segments.length / 4)} onClick={() => setSegmentsPage((value) => value + 1)} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Proxima</button>
+          </div>
+        ) : null}
       </div>
     </div>
   )

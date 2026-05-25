@@ -154,8 +154,16 @@ const parseProductsResponse = (data: JsonValue): ProductsResponse => {
   }
 }
 
-export const getProducts = async (page = 1): Promise<ProductsResponse> => {
-  const data = await apiFetch<JsonValue>(`${PRODUCTS_ENDPOINT}?page=${page}`, {
+type ProductsListOptions = { page?: number; perPage?: number }
+
+export const getProducts = async (
+  options: number | ProductsListOptions = 1,
+): Promise<ProductsResponse> => {
+  const page = typeof options === 'number' ? options : (options.page ?? 1)
+  const perPage = typeof options === 'number' ? undefined : options.perPage
+  const params = new URLSearchParams({ page: String(page) })
+  if (perPage) params.set('per_page', String(perPage))
+  const data = await apiFetch<JsonValue>(`${PRODUCTS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
     errorMessage: 'Erro ao carregar produtos',

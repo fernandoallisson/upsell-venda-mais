@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Copy, Check, Globe, Plus, Trash2 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
+import WorkspaceTabs from '../components/layout/WorkspaceTabs'
 import { ApiError } from '../lib/api'
 import { getApiKeyById, updateApiKey } from '../lib/services/api-keys/api-keys.service'
 import type { ApiKey, ApiKeyType } from '../lib/services/api-keys/api-keys.types'
@@ -109,6 +110,7 @@ const CopyButton = ({ value }: { value: string }) => {
 }
 
 const EditApiKey = () => {
+  const [step, setStep] = useState<'config' | 'origins' | 'advanced'>('config')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [apiKey, setApiKey] = useState<ApiKey | null>(null)
@@ -204,6 +206,7 @@ const EditApiKey = () => {
     <DashboardPage
       title={`Editar: ${apiKey.name}`}
       subtitle="Atualize as configurações da chave de API"
+      containerClassName="viewport-workspace api-key-editor max-w-7xl"
     >
       <div className="mb-2 flex justify-end">
         <button
@@ -215,7 +218,16 @@ const EditApiKey = () => {
           Voltar
         </button>
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <WorkspaceTabs
+        value={step}
+        onChange={setStep}
+        tabs={[
+          { value: 'config', label: 'Configuracao' },
+          { value: 'origins', label: 'Origens' },
+          { value: 'advanced', label: 'Avancado' },
+        ]}
+      />
+      <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-cols-2">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -223,7 +235,7 @@ const EditApiKey = () => {
             </div>
           )}
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-5">
+          <div className={`desktop-workspace-panel ${step === 'config' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 space-y-5`}>
             <h2 className="text-sm font-semibold text-slate-900">Informações Básicas</h2>
 
             <div>
@@ -285,7 +297,7 @@ const EditApiKey = () => {
             </label>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-5">
+          <div className={`desktop-workspace-panel ${step === 'origins' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 space-y-5`}>
             <h2 className="text-sm font-semibold text-slate-900">Origens Permitidas</h2>
             <OriginsInput
               origins={form.allowed_origins}
@@ -296,7 +308,7 @@ const EditApiKey = () => {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+          <div className={`desktop-workspace-panel ${step === 'advanced' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 space-y-4`}>
             <h2 className="text-sm font-semibold text-slate-900">Configurações</h2>
 
             <label className="flex cursor-pointer items-center justify-between">
@@ -358,7 +370,7 @@ const EditApiKey = () => {
             <p className="mb-3 text-xs text-slate-500">
               Atualizado em tempo real conforme você edita as configurações.
             </p>
-            <pre className="overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs text-emerald-400 whitespace-pre-wrap break-all">
+            <pre className="overflow-hidden rounded-xl bg-slate-900 p-4 text-xs text-emerald-400 whitespace-pre-wrap break-all">
               {scriptPreview}
             </pre>
             <div className="mt-3 flex justify-end">

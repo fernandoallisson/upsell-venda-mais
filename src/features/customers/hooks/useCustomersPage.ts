@@ -10,11 +10,13 @@ import {
 import type {
   Customer,
   CustomerPayload,
+  CustomersResponse,
 } from '../../../lib/services/customers/customers.types'
 import { getOrders } from '../../../lib/services/orders/orders.service'
 import type { Order } from '../../../lib/services/orders/orders.types'
 import { getSegments } from '../../../lib/services/segments/segments.service'
 import type { Segment } from '../../../lib/services/segments/segments.types'
+import { COMPACT_PAGE_SIZE, loadCompactPage } from '../../../lib/utils/compactPagination'
 import {
   createInitialCustomerForm,
   type AsyncStatus,
@@ -37,6 +39,7 @@ export const useCustomersPage = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [serverPageSize, setServerPageSize] = useState(COMPACT_PAGE_SIZE)
 
   const [customerSearch, setCustomerSearch] = useState('')
   const [isOrdersOpen, setIsOrdersOpen] = useState(false)
@@ -85,20 +88,16 @@ export const useCustomersPage = () => {
       setError(null)
 
       try {
-        const response = await getCustomers(targetPage)
+        const response = await loadCompactPage<Customer, CustomersResponse>(
+          getCustomers,
+          targetPage,
+          serverPageSize,
+        )
 
         setCustomers(response.data)
-        setPagination({
-          current_page: response.current_page,
-          last_page: response.last_page,
-          per_page: response.per_page,
-          total: response.total,
-          from: response.from,
-          to: response.to,
-          next_page_url: response.next_page_url,
-          prev_page_url: response.prev_page_url,
-        })
-        setPage(response.current_page)
+        setPagination(response.pagination)
+        setServerPageSize(response.serverPageSize)
+        setPage(response.pagination.current_page)
 
         const firstCustomer = response.data[0] ?? null
         setSelectedCustomer(firstCustomer)
@@ -115,7 +114,7 @@ export const useCustomersPage = () => {
         setStatus('error')
       }
     },
-    [fetchCustomerDetails, page],
+    [fetchCustomerDetails, page, serverPageSize],
   )
 
   const fetchSegmentsList = useCallback(async () => {

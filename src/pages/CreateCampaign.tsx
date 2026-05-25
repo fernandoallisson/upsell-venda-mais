@@ -2,8 +2,6 @@ import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  ChevronDown,
-  ChevronRight,
   HelpCircle,
   Loader2,
   Save,
@@ -63,9 +61,7 @@ const CreateCampaign = () => {
   const [saveStatus, setSaveStatus] = useState<"idle" | "loading" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [createWidgetOpen, setCreateWidgetOpen] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Set<PanelSection>>(
-    new Set(["info", "content"]),
-  );
+  const [activeSection, setActiveSection] = useState<PanelSection>("info");
 
   const openTourRef = useRef<(() => void) | null>(null);
   const handleTourOpen = useCallback((fn: () => void) => {
@@ -76,15 +72,6 @@ const CreateCampaign = () => {
     widgetPresets.find((widget) => widget.id === form.widget_preset_id) ?? null;
 
   const isValid = form.name.trim().length > 0;
-
-  const toggleSection = (section: PanelSection) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(section)) next.delete(section);
-      else next.add(section);
-      return next;
-    });
-  };
 
   const handleSave = async () => {
     if (!isValid) return;
@@ -111,7 +98,7 @@ const CreateCampaign = () => {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50">
+    <div className="campaign-editor flex min-h-screen flex-col bg-slate-50 md:h-screen md:min-h-0 md:overflow-hidden">
       <CampaignTour onOpen={handleTourOpen} />
 
       {/* ── Top Bar ── */}
@@ -177,41 +164,44 @@ const CreateCampaign = () => {
       )}
 
       {/* ── Main Editor: Sidebar + Preview ── */}
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[420px_1fr]">
+      <div className="grid min-h-0 flex-1 md:grid-cols-[minmax(300px,40%)_1fr] lg:grid-cols-[420px_1fr]">
         {/* ── Left: Controls Panel ── */}
-        <div className="overflow-y-auto border-r border-slate-200 bg-white">
+        <div className="campaign-editor-controls border-r border-slate-200 bg-white md:min-h-0 md:overflow-hidden">
+          <nav className="grid grid-cols-4 border-b border-slate-200 bg-slate-50 p-2">
+            {sectionConfig.map((section) => (
+              <button
+                key={section.key}
+                type="button"
+                onClick={() => setActiveSection(section.key)}
+                className={`rounded-lg px-2 py-2 text-[11px] font-semibold transition ${
+                  activeSection === section.key ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"
+                }`}
+              >
+                {section.label}
+              </button>
+            ))}
+          </nav>
           {sectionConfig.map((section) => {
             const Icon = section.icon;
-            const expanded = expandedSections.has(section.key);
+            const expanded = activeSection === section.key;
 
             return (
               <div
                 key={section.key}
                 id={section.tourId}
-                className="border-b border-slate-100"
+                className={expanded ? "block" : "hidden"}
               >
-                {/* Section header */}
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.key)}
-                  className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition hover:bg-slate-50"
-                >
+                <div className="flex w-full items-center gap-3 border-b border-slate-100 px-5 py-3 text-left">
                   <span className="text-slate-400">
                     <Icon className="h-4 w-4" />
                   </span>
                   <span className="flex-1 text-sm font-bold text-slate-800">
                     {section.label}
                   </span>
-                  {expanded ? (
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-slate-400" />
-                  )}
-                </button>
+                </div>
 
-                {/* Section body */}
                 {expanded && (
-                  <div className="px-5 pb-5">
+                  <div className="campaign-editor-step px-5 py-4">
                     {section.key === "info" && (
                       <BasicInfoSection
                         form={form}

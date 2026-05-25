@@ -139,6 +139,11 @@ const BasicInfoSection = ({
   onOpenCreateWidget,
 }: Props) => {
   const [segmentOpen, setSegmentOpen] = useState(false);
+  const [panel, setPanel] = useState<"identity" | "template" | "targeting">("identity");
+  const [widgetPage, setWidgetPage] = useState(0);
+  const [segmentPage, setSegmentPage] = useState(0);
+  const widgetPageSize = 3;
+  const segmentPageSize = 4;
 
   const selectedSegmentNames = form.segment_ids
     .map((id) => segments.find((s) => s.id === id)?.name)
@@ -150,9 +155,39 @@ const BasicInfoSection = ({
       null,
     [form.widget_preset_id, widgetPresets],
   );
+  const widgetLastPage = Math.max(1, Math.ceil(widgetPresets.length / widgetPageSize));
+  const visibleWidgetPresets = widgetPresets.slice(
+    widgetPage * widgetPageSize,
+    widgetPage * widgetPageSize + widgetPageSize,
+  );
+  const segmentLastPage = Math.max(1, Math.ceil(segments.length / segmentPageSize));
+  const visibleSegments = segments.slice(
+    segmentPage * segmentPageSize,
+    segmentPage * segmentPageSize + segmentPageSize,
+  );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
+      <nav className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1">
+        {([
+          ["identity", "Geral"],
+          ["template", "Template"],
+          ["targeting", "Publico"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setPanel(key)}
+            className={`rounded-md px-2 py-1.5 text-xs font-semibold ${
+              panel === key ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      {panel === "identity" && (
+        <div className="space-y-4">
       {/* ── Campaign Name ── */}
       <label className="block space-y-1.5">
         <span className="text-xs font-semibold text-slate-600">
@@ -210,8 +245,11 @@ const BasicInfoSection = ({
         />
         <p className="text-[10px] text-slate-400">Maior valor = mais prioritário</p>
       </label>
+        </div>
+      )}
 
       {/* ── Widget Preset Selection ── */}
+      {panel === "template" && (
       <div className="space-y-3">
         <div>
           <span className="text-xs font-semibold text-slate-600">
@@ -246,7 +284,7 @@ const BasicInfoSection = ({
           </div>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {widgetPresets.map((widget) => {
+            {visibleWidgetPresets.map((widget) => {
               const active = widget.id === form.widget_preset_id;
               const config = getWidgetPresetConfig(widget);
               const htmlTemplateConfig = isHtmlWidgetTemplateConfig(widget.config?.attributes)
@@ -301,6 +339,18 @@ const BasicInfoSection = ({
           </div>
         )}
 
+        {widgetPresets.length > widgetPageSize ? (
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <button type="button" disabled={widgetPage === 0} onClick={() => setWidgetPage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">
+              Anterior
+            </button>
+            <span>{widgetPage + 1} / {widgetLastPage}</span>
+            <button type="button" disabled={widgetPage + 1 >= widgetLastPage} onClick={() => setWidgetPage((value) => Math.min(widgetLastPage - 1, value + 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">
+              Proximo
+            </button>
+          </div>
+        ) : null}
+
         {selectedWidgetPreset && (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
             <Check className="h-3.5 w-3.5 shrink-0" />
@@ -308,8 +358,11 @@ const BasicInfoSection = ({
           </div>
         )}
       </div>
+      )}
 
       {/* ── Segmentation ── */}
+      {panel === "targeting" && (
+      <div className="space-y-4">
       <div className="space-y-1.5">
         <span className="text-xs font-semibold text-slate-600">
           Segmentação
@@ -342,13 +395,13 @@ const BasicInfoSection = ({
 
           {segmentOpen && (
             <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg">
-              <div className="max-h-52 overflow-y-auto p-1">
+              <div className="p-1">
                 {segments.length === 0 ? (
                   <p className="px-3 py-2 text-xs text-slate-400">
                     Nenhum segmento disponível.
                   </p>
                 ) : (
-                  segments.map((segment) => {
+                  visibleSegments.map((segment) => {
                     const active = form.segment_ids.includes(segment.id);
                     return (
                       <button
@@ -367,6 +420,13 @@ const BasicInfoSection = ({
                     );
                   })
                 )}
+                {segments.length > segmentPageSize ? (
+                  <div className="flex items-center justify-between border-t border-slate-100 px-2 pt-1 text-[10px] text-slate-500">
+                    <button type="button" disabled={segmentPage === 0} onClick={() => setSegmentPage((value) => Math.max(0, value - 1))}>Anterior</button>
+                    <span>{segmentPage + 1} / {segmentLastPage}</span>
+                    <button type="button" disabled={segmentPage + 1 >= segmentLastPage} onClick={() => setSegmentPage((value) => Math.min(segmentLastPage - 1, value + 1))}>Proximo</button>
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
@@ -443,6 +503,8 @@ const BasicInfoSection = ({
           />
         </div>
       </div>
+      </div>
+      )}
     </div>
   );
 };

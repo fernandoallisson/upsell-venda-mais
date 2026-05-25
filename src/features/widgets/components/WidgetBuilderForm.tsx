@@ -97,7 +97,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false)
   const [hiddenItemsExpanded, setHiddenItemsExpanded] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<EditorSection>>(
-    new Set(initialHtmlTemplate ? ['htmlContent'] : ['layout', 'style']),
+    new Set(initialHtmlTemplate ? ['htmlContent'] : ['layout']),
   )
   const [config, setConfig] = useState<WidgetVisualConfig>(() =>
     normalizeWidgetConfig(initialValue?.config ?? { name: 'Widget padrão', slug: 'widget-padrao', attributes: defaultWidgetVisualConfig }),
@@ -156,12 +156,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
   }, [])
 
   const toggleSection = (section: EditorSection) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev)
-      if (next.has(section)) next.delete(section)
-      else next.add(section)
-      return next
-    })
+    setExpandedSections(new Set([section]))
   }
 
   const handleSelectTemplate = (selection: WidgetTemplateSelection) => {
@@ -180,7 +175,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
     setHtmlContent({})
     setHtmlFieldOverrides({})
     setHiddenElementIds([])
-    setExpandedSections(new Set(['layout', 'style']))
+    setExpandedSections(new Set(['layout']))
     setConfig(selection.config)
     setTitle((current) => current || selection.name)
     setStep('customize')
@@ -191,7 +186,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
     setHtmlContent({})
     setHtmlFieldOverrides({})
     setHiddenElementIds([])
-    setExpandedSections(new Set(['layout', 'style']))
+    setExpandedSections(new Set(['layout']))
     setConfig(normalizeWidgetConfig({ name: '', slug: '', attributes: defaultWidgetVisualConfig }))
   }
 
@@ -239,7 +234,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
   // ─── Step 2: Customization Builder ───
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-0">
+      <form onSubmit={handleSubmit} className="widget-builder flex min-h-0 flex-col space-y-0">
         {/* Top Bar */}
         <div className="flex flex-wrap items-center gap-3 rounded-t-2xl border border-slate-200 bg-white px-5 py-4">
           {/* Back to templates (only on create) */}
@@ -306,9 +301,9 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
         ) : null}
 
         {/* Main Editor Area */}
-        <div className="grid rounded-b-2xl border border-t-0 border-slate-200 bg-slate-50 lg:grid-cols-[380px_1fr]">
+        <div className="widget-builder-area grid flex-1 rounded-b-2xl border border-t-0 border-slate-200 bg-slate-50 md:min-h-0 md:grid-cols-[minmax(280px,42%)_1fr] lg:grid-cols-[380px_1fr]">
           {/* ── Left: Controls Panel ── */}
-          <div className="max-h-[calc(100vh-200px)] overflow-y-auto border-r border-slate-200 bg-white">
+          <div className="widget-builder-controls border-r border-slate-200 bg-white md:min-h-0 md:overflow-hidden">
             {selectedHtmlTemplate ? (
               <HtmlTemplateEditor
                 template={selectedHtmlTemplate}
@@ -470,7 +465,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
           </div>
 
           {/* ── Right: Live Preview ── */}
-          <div className="flex flex-col">
+          <div className="flex flex-col md:min-h-0">
             {/* Preview Toolbar */}
             <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
               <div className="flex items-center gap-2">
@@ -502,7 +497,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
             </div>
 
             {/* Preview Content */}
-            <div className="flex min-h-[620px] flex-1 items-center justify-center overflow-auto bg-slate-100 p-4">
+            <div className="widget-builder-preview flex flex-1 items-center justify-center bg-slate-100 p-4 md:min-h-0 md:overflow-hidden">
               <WidgetPreviewFrame viewport={previewViewport} compactChrome={Boolean(selectedHtmlTemplate)}>
                 {selectedHtmlTemplate ? (
                   <HtmlTemplateInlineEditorPreview
@@ -558,7 +553,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
             </div>
           </div>
 
-          <div className="flex flex-1 items-center justify-center overflow-auto p-8">
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-8">
             <div className="w-full max-w-5xl">
               {/* Browser chrome */}
               <div className="rounded-t-2xl border border-b-0 border-slate-300 bg-slate-200 px-4 py-3">

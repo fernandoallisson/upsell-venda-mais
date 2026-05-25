@@ -47,6 +47,7 @@ const categoryIcons: Record<string, typeof Sparkles> = {
 const WidgetTemplateGallery = ({ onSelect, onSkip }: Props) => {
   const [activeCategory, setActiveCategory] = useState<GalleryFilter>('all')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
 
   const filters = useMemo(
     () => [
@@ -67,6 +68,14 @@ const WidgetTemplateGallery = ({ onSelect, onSkip }: Props) => {
     : ['botoes', 'hero', 'oferta', 'popup', 'contador', 'premios', 'depoimentos'].includes(activeCategory)
       ? htmlWidgetTemplates.filter((template) => template.category === activeCategory)
       : []
+  const templates = [
+    ...visualTemplates.map((template) => ({ kind: 'visual' as const, template })),
+    ...htmlTemplates.map((template) => ({ kind: 'html' as const, template })),
+  ]
+  const pageSize = 3
+  const lastPage = Math.max(1, Math.ceil(templates.length / pageSize))
+  const currentPage = Math.min(page, lastPage - 1)
+  const visibleTemplates = templates.slice(currentPage * pageSize, currentPage * pageSize + pageSize)
 
   const countByFilter = (filter: GalleryFilter) => {
     if (filter === 'all') return widgetPresetTemplates.length + htmlWidgetTemplates.length
@@ -78,7 +87,7 @@ const WidgetTemplateGallery = ({ onSelect, onSkip }: Props) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="widget-template-gallery space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Escolha um modelo para começar</h2>
@@ -104,7 +113,10 @@ const WidgetTemplateGallery = ({ onSelect, onSkip }: Props) => {
             <button
               key={cat.id}
               type="button"
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => {
+                setActiveCategory(cat.id)
+                setPage(0)
+              }}
               className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-all ${
                 isActive
                   ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/25'
@@ -119,29 +131,41 @@ const WidgetTemplateGallery = ({ onSelect, onSkip }: Props) => {
         })}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visualTemplates.map((preset) => (
-          <VisualTemplateCard
-            key={`visual-${preset.id}`}
-            preset={preset}
-            isHovered={hoveredId === `visual-${preset.id}`}
-            onHover={() => setHoveredId(`visual-${preset.id}`)}
-            onLeave={() => setHoveredId(null)}
-            onSelect={() => onSelect({ kind: 'visual', name: preset.name, config: preset.config })}
-          />
-        ))}
-
-        {htmlTemplates.map((template) => (
-          <HtmlTemplateCard
-            key={`html-${template.id}`}
-            template={template}
-            isHovered={hoveredId === `html-${template.id}`}
-            onHover={() => setHoveredId(`html-${template.id}`)}
-            onLeave={() => setHoveredId(null)}
-            onSelect={() => onSelect({ kind: 'html', name: template.name, template })}
-          />
-        ))}
+      <div className="grid gap-4 md:grid-cols-3">
+        {visibleTemplates.map((item) =>
+          item.kind === 'visual' ? (
+            <VisualTemplateCard
+              key={`visual-${item.template.id}`}
+              preset={item.template}
+              isHovered={hoveredId === `visual-${item.template.id}`}
+              onHover={() => setHoveredId(`visual-${item.template.id}`)}
+              onLeave={() => setHoveredId(null)}
+              onSelect={() => onSelect({ kind: 'visual', name: item.template.name, config: item.template.config })}
+            />
+          ) : (
+            <HtmlTemplateCard
+              key={`html-${item.template.id}`}
+              template={item.template}
+              isHovered={hoveredId === `html-${item.template.id}`}
+              onHover={() => setHoveredId(`html-${item.template.id}`)}
+              onLeave={() => setHoveredId(null)}
+              onSelect={() => onSelect({ kind: 'html', name: item.template.name, template: item.template })}
+            />
+          ),
+        )}
       </div>
+
+      {templates.length > pageSize ? (
+        <div className="flex items-center justify-center gap-3 text-xs text-slate-500">
+          <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">
+            Anterior
+          </button>
+          <span>{currentPage + 1} / {lastPage}</span>
+          <button type="button" disabled={currentPage + 1 >= lastPage} onClick={() => setPage(currentPage + 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">
+            Proximo
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -182,7 +206,7 @@ const VisualTemplateCard = ({ preset, isHovered, onHover, onLeave, onSelect }: V
         : 'border-slate-200 bg-white shadow-sm hover:shadow-md'
     }`}
   >
-    <div className="relative overflow-hidden bg-slate-50 px-4 pb-3 pt-4">
+    <div className="widget-template-thumbnail relative overflow-hidden bg-slate-50 px-4 pb-3 pt-4">
       <div className="pointer-events-none mx-auto" style={{ transform: 'scale(0.58)', transformOrigin: 'top center', maxHeight: 180, overflow: 'hidden' }}>
         <WidgetRenderer config={preset.config} mode="thumbnail" />
       </div>
@@ -217,7 +241,7 @@ const HtmlTemplateCard = ({ template, isHovered, onHover, onLeave, onSelect }: H
         : 'border-slate-200 bg-white shadow-sm hover:shadow-md'
     }`}
   >
-    <div className="relative overflow-hidden bg-slate-950 p-3">
+    <div className="widget-template-thumbnail relative overflow-hidden bg-slate-950 p-3">
       <div className="pointer-events-none h-[180px] overflow-hidden rounded-xl bg-white">
         <WidgetHtmlPreview
           html={generateHtmlWidgetTemplateHtml(template)}
@@ -260,7 +284,7 @@ const CardInfo = ({
   badge: string
   badgeClass: string
 }) => (
-  <div className="flex flex-1 flex-col gap-1.5 px-4 pb-4 pt-3">
+  <div className="widget-template-info flex flex-1 flex-col gap-1.5 px-4 pb-4 pt-3">
     <div className="flex items-center gap-2">
       <h3 className="min-w-0 truncate text-sm font-bold text-slate-900">{name}</h3>
       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${badgeClass}`}>

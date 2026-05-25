@@ -45,10 +45,10 @@ const HtmlTemplateInlineEditorPreview = ({
 <style>
   * { box-sizing: border-box; }
   html, body { width: 100%; min-height: 100%; }
-  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: auto; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: hidden; }
   ${css}
   html, body { width: 100%; min-height: 100%; }
-  body { margin: 0; overflow: auto; }
+  body { margin: 0; overflow: hidden; }
   [data-edit-field-id] {
     cursor: text;
     border-radius: 4px;

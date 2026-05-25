@@ -23,7 +23,7 @@ const CustomersStatsHeader = ({
           <p className="text-2xl font-semibold text-slate-900">
             {pagination?.total ?? totals.count}
           </p>
-          <span className="text-sm text-slate-400">{totals.orders} pedidos</span>
+          <span className="text-sm text-slate-400">{totals.orders} pedidos nesta pagina</span>
           <span className="text-sm text-slate-400">
             {pagination
               ? `(pág. ${pagination.current_page} de ${pagination.last_page})`

@@ -37,7 +37,7 @@ const WidgetPreviewFrame = ({ viewport, children, fullscreen = false, compactChr
                 <div className="h-2 w-2/3 rounded bg-slate-200" />
               </div>
             ) : null}
-            <div className="min-h-0 flex-1 overflow-auto p-2">
+            <div className="min-h-0 flex-1 overflow-hidden p-2">
               <div className="h-full w-full">
                 {children}
               </div>
@@ -60,7 +60,7 @@ const WidgetPreviewFrame = ({ viewport, children, fullscreen = false, compactChr
         <div className="ml-3 h-6 flex-1 rounded-md bg-slate-100" />
       </div>
       <div
-        className="min-h-0 overflow-auto bg-slate-100 p-4"
+        className="min-h-0 overflow-hidden bg-slate-100 p-4"
         style={{ height: frame.height }}
       >
         {!compactChrome ? (

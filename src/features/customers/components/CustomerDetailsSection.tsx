@@ -1,5 +1,7 @@
 import { Calendar, Mail, Pencil, Phone, Tag, Trash2 } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
+import { useState } from 'react'
+import WorkspaceTabs from '../../../components/layout/WorkspaceTabs'
 import type { Customer, CustomerSegment } from '../../../lib/services/customers/customers.types'
 import type { Segment } from '../../../lib/services/segments/segments.types'
 import CustomerFormFields from './CustomerFormFields'
@@ -47,6 +49,8 @@ const CustomerDetailsSection = ({
   onDeleteCustomer,
   segments,
 }: CustomerDetailsSectionProps) => {
+  const [detailView, setDetailView] = useState<'summary' | 'relations' | 'edit' | 'actions'>('summary')
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       {detailStatus === 'loading' ? (
@@ -55,7 +59,17 @@ const CustomerDetailsSection = ({
 
       {detailStatus !== 'loading' && selectedCustomer ? (
         <>
-          <div>
+          <WorkspaceTabs
+            value={detailView}
+            onChange={setDetailView}
+            tabs={[
+              { value: 'summary', label: 'Resumo' },
+              { value: 'relations', label: 'Preferencias' },
+              { value: 'edit', label: 'Editar' },
+              { value: 'actions', label: 'Acoes' },
+            ]}
+          />
+          <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''}`}>
             <p className="text-xs font-semibold text-slate-500">Cliente selecionado</p>
             <h3 className="text-xl font-semibold text-slate-900">
               {selectedCustomer.first_name} {selectedCustomer.last_name}
@@ -65,7 +79,7 @@ const CustomerDetailsSection = ({
             </p>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} mt-6 grid gap-4 md:grid-cols-2`}>
             <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
               <p className="text-xs font-semibold text-slate-500">Total gasto</p>
               <p className="text-lg font-semibold text-slate-900">
@@ -80,7 +94,7 @@ const CustomerDetailsSection = ({
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 text-sm text-slate-600">
+          <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} mt-6 grid gap-4 text-sm text-slate-600`}>
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-indigo-500" />
               {selectedCustomer.email}
@@ -109,7 +123,7 @@ const CustomerDetailsSection = ({
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className={`desktop-workspace-panel ${detailView === 'relations' ? 'is-active' : ''} mt-6`}>
             <p className="text-xs font-semibold text-slate-500">Preferências</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {selectedCustomer.preferences.sms ? (
@@ -133,7 +147,7 @@ const CustomerDetailsSection = ({
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className={`desktop-workspace-panel ${detailView === 'relations' ? 'is-active' : ''} mt-6`}>
             <p className="text-xs font-semibold text-slate-500">Segmentos</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {selectedSegments.length === 0 ? (
@@ -151,7 +165,7 @@ const CustomerDetailsSection = ({
             </div>
           </div>
 
-          <div className="mt-6 rounded-xl border border-slate-200 p-4">
+          <div className={`desktop-workspace-panel ${detailView === 'edit' ? 'is-active' : ''} mt-6 rounded-xl border border-slate-200 p-4`}>
             <button
               type="button"
               onClick={() => setIsEditOpen((prev) => !prev)}
@@ -198,7 +212,7 @@ const CustomerDetailsSection = ({
             ) : null}
           </div>
 
-          <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4">
+          <div className={`desktop-workspace-panel ${detailView === 'actions' ? 'is-active' : ''} mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4`}>
             <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
               <Trash2 className="h-4 w-4" />
               Remover cliente

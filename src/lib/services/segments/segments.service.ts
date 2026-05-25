@@ -315,8 +315,16 @@ const buildFallbackSegmentsResponse = (items: Segment[]): SegmentsResponse => {
   }
 }
 
-export const getSegments = async (page = 1): Promise<SegmentsResponse> => {
-  const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}?page=${page}`, {
+type SegmentsListOptions = { page?: number; perPage?: number }
+
+export const getSegments = async (
+  options: number | SegmentsListOptions = 1,
+): Promise<SegmentsResponse> => {
+  const page = typeof options === 'number' ? options : (options.page ?? 1)
+  const perPage = typeof options === 'number' ? undefined : options.perPage
+  const params = new URLSearchParams({ page: String(page) })
+  if (perPage) params.set('per_page', String(perPage))
+  const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
     errorMessage: 'Erro ao carregar segmentos',

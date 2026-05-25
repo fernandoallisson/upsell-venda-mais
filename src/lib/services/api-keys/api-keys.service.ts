@@ -126,10 +126,14 @@ const parseApiKeysResponse = (data: JsonValue): ApiKeysResponse => {
 export const getApiKeys = async (params?: {
   type?: ApiKeyType
   is_active?: boolean
+  page?: number
+  perPage?: number
 }): Promise<ApiKeysResponse> => {
   const query = new URLSearchParams()
   if (params?.type) query.set('type', params.type)
   if (params?.is_active !== undefined) query.set('is_active', params.is_active ? '1' : '0')
+  if (params?.page) query.set('page', String(params.page))
+  if (params?.perPage) query.set('per_page', String(params.perPage))
 
   const qs = query.toString()
   const data = await apiFetch<JsonValue>(`${ENDPOINT}${qs ? `?${qs}` : ''}`, {

@@ -45,7 +45,7 @@ const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
   if (isLoading) {
     return (
       <aside
-        className={`sticky top-0 flex h-screen flex-col border-r border-slate-200 bg-white px-3 py-6 transition-all duration-200 ${
+        className={`dashboard-sidebar sticky top-0 flex h-screen flex-col border-r border-slate-200 bg-white px-3 py-6 transition-all duration-200 ${
           collapsed ? 'w-20' : 'w-64'
         }`}
       >
@@ -62,7 +62,7 @@ const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
 
   return (
     <aside
-      className={`sticky top-0 flex h-screen flex-col border-r border-slate-200 bg-white px-3 py-6 transition-all duration-200 ${
+      className={`dashboard-sidebar sticky top-0 flex h-screen flex-col border-r border-slate-200 bg-white px-3 py-6 transition-all duration-200 ${
         collapsed ? 'w-20' : 'w-64'
       }`}
     >
@@ -81,7 +81,7 @@ const DashboardSidebar = ({ collapsed, onToggle }: DashboardSidebarProps) => {
         </button>
       </div>
 
-      <nav className="mt-6 flex flex-1 flex-col gap-4">
+      <nav className="dashboard-sidebar-nav mt-6 flex flex-1 flex-col gap-4">
         {hasModuleAccess('analytics') ? (
           <NavLink to="/dashboard" className={linkStyles}>
             <LayoutDashboard className="h-4 w-4" />

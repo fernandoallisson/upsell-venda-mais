@@ -138,7 +138,7 @@ const Profile = () => {
       onLogout={handleLogout}
       title="Perfil"
       subtitle="Gerencie seus dados cadastrais"
-      containerClassName="max-w-5xl"
+      containerClassName="viewport-workspace profile-workspace max-w-5xl"
     >
         <div className="flex items-center justify-between">
           <button

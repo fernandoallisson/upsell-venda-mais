@@ -18,6 +18,8 @@ import type {
   OrdersResponse,
 } from '../lib/services/orders/orders.types'
 import DashboardPage from '../components/layout/DashboardPage'
+import WorkspaceTabs from '../components/layout/WorkspaceTabs'
+import { COMPACT_PAGE_SIZE, loadCompactPage } from '../lib/utils/compactPagination'
 
 const formatCurrency = (value: string, currency: string) => {
   const number = Number(value)
@@ -75,6 +77,9 @@ const buildPageItems = (current: number, last: number) => {
 }
 
 const Orders = () => {
+  const [workspaceView, setWorkspaceView] = useState<'list' | 'details'>('list')
+  const [itemsPage, setItemsPage] = useState(0)
+  const [detailView, setDetailView] = useState<'summary' | 'items' | 'tracking'>('summary')
   const [orders, setOrders] = useState<Order[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -85,6 +90,7 @@ const Orders = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [serverPageSize, setServerPageSize] = useState(COMPACT_PAGE_SIZE)
 
   const fetchOrderDetails = useCallback(async (id: number) => {
     setDetailStatus('loading')
@@ -108,20 +114,16 @@ const Orders = () => {
       setError(null)
 
       try {
-        const response = await getOrders(targetPage)
+        const response = await loadCompactPage<Order, OrdersResponse>(
+          getOrders,
+          targetPage,
+          serverPageSize,
+        )
 
         setOrders(response.data)
-        setPagination({
-          current_page: response.current_page,
-          last_page: response.last_page,
-          per_page: response.per_page,
-          total: response.total,
-          from: response.from,
-          to: response.to,
-          next_page_url: response.next_page_url,
-          prev_page_url: response.prev_page_url,
-        })
-        setPage(response.current_page)
+        setPagination(response.pagination)
+        setServerPageSize(response.serverPageSize)
+        setPage(response.pagination.current_page)
 
         const firstOrder = response.data[0] ?? null
         setSelectedOrder(firstOrder)
@@ -138,7 +140,7 @@ const Orders = () => {
         setStatus('error')
       }
     },
-    [fetchOrderDetails, page],
+    [fetchOrderDetails, page, serverPageSize],
   )
 
   useEffect(() => {
@@ -159,6 +161,9 @@ const Orders = () => {
 
   const handleSelectOrder = (order: Order) => {
     setSelectedOrder(order)
+    setWorkspaceView('details')
+    setDetailView('summary')
+    setItemsPage(0)
     fetchOrderDetails(order.id)
   }
 
@@ -177,7 +182,7 @@ const Orders = () => {
     <DashboardPage
       title="Pedidos"
       subtitle="Operações"
-      containerClassName="max-w-6xl"
+      containerClassName="viewport-workspace crud-workspace max-w-6xl"
     >
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
@@ -251,22 +256,31 @@ const Orders = () => {
       ) : null}
 
       {status === 'idle' && orders.length > 0 ? (
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <>
+        <WorkspaceTabs
+          value={workspaceView}
+          tabs={[
+            { value: 'list', label: 'Lista' },
+            { value: 'details', label: 'Detalhes', disabled: !selectedOrder },
+          ]}
+          onChange={setWorkspaceView}
+        />
+        <div className="desktop-workspace-columns grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
+          <section className={`workspace-list-panel desktop-workspace-panel ${workspaceView === 'list' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-4 shadow-sm`}>
             <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
               <ClipboardList className="h-4 w-4 text-indigo-500" />
               Lista de pedidos
             </div>
 
-            <div className="space-y-3">
-              {orders.map((order) => {
+              <div className="workspace-list-items space-y-3">
+              {orders.slice(0, 5).map((order) => {
                 const isActive = selectedOrder?.id === order.id
                 return (
                   <button
                     key={order.id}
                     type="button"
                     onClick={() => handleSelectOrder(order)}
-                    className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                    className={`workspace-list-row w-full rounded-xl border px-4 py-3 text-left transition ${
                       isActive
                         ? 'border-indigo-200 bg-indigo-50'
                         : 'border-slate-200 bg-white hover:border-slate-300'
@@ -350,7 +364,7 @@ const Orders = () => {
             ) : null}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className={`desktop-workspace-panel ${workspaceView === 'details' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-700">Detalhes</p>
@@ -364,8 +378,18 @@ const Orders = () => {
             </div>
 
             {selectedOrder ? (
-              <div className="mt-6 space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
+              <>
+              <WorkspaceTabs
+                value={detailView}
+                onChange={setDetailView}
+                tabs={[
+                  { value: 'summary', label: 'Resumo' },
+                  { value: 'items', label: 'Itens' },
+                  { value: 'tracking', label: 'Rastreamento' },
+                ]}
+              />
+              <div className="mt-4 space-y-4">
+                <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} grid gap-4 md:grid-cols-2`}>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-semibold uppercase text-slate-400">
                       Pedido
@@ -417,12 +441,12 @@ const Orders = () => {
                   </div>
                 </div>
 
-                <div>
+                <div className={`desktop-workspace-panel ${detailView === 'items' ? 'is-active' : ''}`}>
                   <p className="text-sm font-semibold text-slate-700">
                     Itens do pedido
                   </p>
                   <div className="mt-3 space-y-2">
-                    {selectedOrder.items.map((item) => (
+                    {selectedOrder.items.slice(itemsPage * 3, itemsPage * 3 + 3).map((item) => (
                       <div
                         key={item.id}
                         className="flex flex-wrap items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600"
@@ -441,9 +465,16 @@ const Orders = () => {
                       </div>
                     ))}
                   </div>
+                  {selectedOrder.items.length > 3 ? (
+                    <div className="mt-2 flex items-center justify-end gap-2 text-xs text-slate-500">
+                      <button type="button" disabled={itemsPage === 0} onClick={() => setItemsPage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Anterior</button>
+                      <span>{itemsPage + 1} / {Math.ceil(selectedOrder.items.length / 3)}</span>
+                      <button type="button" disabled={itemsPage + 1 >= Math.ceil(selectedOrder.items.length / 3)} onClick={() => setItemsPage((value) => value + 1)} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Proxima</button>
+                    </div>
+                  ) : null}
                 </div>
 
-                <div>
+                <div className={`desktop-workspace-panel ${detailView === 'tracking' ? 'is-active' : ''}`}>
                   <p className="text-sm font-semibold text-slate-700">
                     UTM da campanha
                   </p>
@@ -481,6 +512,7 @@ const Orders = () => {
                   )}
                 </div>
               </div>
+              </>
             ) : (
               <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                 Selecione um pedido para ver os detalhes.
@@ -488,6 +520,7 @@ const Orders = () => {
             )}
           </section>
         </div>
+        </>
       ) : null}
     </DashboardPage>
   )

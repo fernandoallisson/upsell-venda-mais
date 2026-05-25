@@ -11,6 +11,7 @@ import {
   User as UserIcon,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
+import WorkspaceTabs from '../components/layout/WorkspaceTabs'
 import { ApiError } from '../lib/api'
 import {
   createUser,
@@ -35,6 +36,7 @@ import type {
   Permission,
 } from '../lib/services/permissions/permissions.types'
 import { PermissionsSection } from '../features/users/components/PermissionsSection'
+import { COMPACT_PAGE_SIZE, loadCompactPage } from '../lib/utils/compactPagination'
 
 const formatDate = (value: string) => {
   const parsed = new Date(value)
@@ -94,6 +96,7 @@ const Users = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [serverPageSize, setServerPageSize] = useState(COMPACT_PAGE_SIZE)
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createStatus, setCreateStatus] = useState<
@@ -109,6 +112,8 @@ const Users = () => {
   const [createPermissionSlugs, setCreatePermissionSlugs] = useState<string[]>([])
 
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [workspaceView, setWorkspaceView] = useState<'list' | 'details' | 'create'>('list')
+  const [detailView, setDetailView] = useState<'summary' | 'edit' | 'permissions' | 'actions'>('summary')
   const [updateStatus, setUpdateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -172,20 +177,16 @@ const Users = () => {
       setError(null)
 
       try {
-        const response = await getUsers(targetPage)
+        const response = await loadCompactPage<UserListItem, UsersResponse>(
+          getUsers,
+          targetPage,
+          serverPageSize,
+        )
 
         setUsers(response.data)
-        setPagination({
-          current_page: response.current_page,
-          last_page: response.last_page,
-          per_page: response.per_page,
-          total: response.total,
-          from: response.from,
-          to: response.to,
-          next_page_url: response.next_page_url,
-          prev_page_url: response.prev_page_url,
-        })
-        setPage(response.current_page)
+        setPagination(response.pagination)
+        setServerPageSize(response.serverPageSize)
+        setPage(response.pagination.current_page)
 
         const firstUser = response.data[0] ?? null
         setSelectedUserId(firstUser?.id ?? null)
@@ -203,7 +204,7 @@ const Users = () => {
         setStatus('error')
       }
     },
-    [fetchUserDetails, page],
+    [fetchUserDetails, page, serverPageSize],
   )
 
   useEffect(() => {
@@ -267,6 +268,8 @@ const Users = () => {
 
   const handleSelectUser = (user: UserListItem) => {
     setSelectedUserId(user.id)
+    setWorkspaceView('details')
+    setDetailView('summary')
     fetchUserDetails(user.id)
   }
 
@@ -376,7 +379,7 @@ const Users = () => {
     <DashboardPage
       title="Usuários"
       subtitle="Administração"
-      containerClassName="max-w-6xl"
+      containerClassName="viewport-workspace crud-workspace max-w-6xl"
     >
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
@@ -445,9 +448,22 @@ const Users = () => {
       ) : null}
 
       {status === 'idle' && users.length > 0 ? (
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <>
+        <WorkspaceTabs
+          value={workspaceView}
+          tabs={[
+            { value: 'list', label: 'Lista' },
+            { value: 'details', label: 'Detalhes', disabled: !selectedUser },
+            { value: 'create', label: 'Novo' },
+          ]}
+          onChange={(next) => {
+            setWorkspaceView(next)
+            if (next === 'create') setIsCreateOpen(true)
+          }}
+        />
+        <div className="desktop-workspace-columns grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
+          <div className="desktop-workspace-stack space-y-6">
+            <section className={`desktop-workspace-panel ${workspaceView === 'create' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
               <button
                 type="button"
                 onClick={() => setIsCreateOpen((prev) => !prev)}
@@ -567,21 +583,21 @@ const Users = () => {
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section className={`workspace-list-panel desktop-workspace-panel ${workspaceView === 'list' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-4 shadow-sm`}>
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
                 <UserIcon className="h-4 w-4 text-sky-500" />
                 Lista de usuários
               </div>
 
-              <div className="space-y-3">
-                {users.map((user) => {
+              <div className="workspace-list-items space-y-3">
+                {users.slice(0, 5).map((user) => {
                   const isActive = selectedUserId === user.id
                   return (
                     <button
                       key={user.id}
                       type="button"
                       onClick={() => handleSelectUser(user)}
-                      className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                      className={`workspace-list-row w-full rounded-xl border px-4 py-3 text-left transition ${
                         isActive
                           ? 'border-sky-200 bg-sky-50'
                           : 'border-slate-200 bg-white hover:border-slate-300'
@@ -675,7 +691,7 @@ const Users = () => {
             </section>
           </div>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className={`desktop-workspace-panel ${workspaceView === 'details' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-700">Detalhes</p>
@@ -689,8 +705,19 @@ const Users = () => {
             </div>
 
             {selectedUser ? (
-              <div className="mt-6 space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
+              <>
+              <WorkspaceTabs
+                value={detailView}
+                onChange={setDetailView}
+                tabs={[
+                  { value: 'summary', label: 'Resumo' },
+                  { value: 'edit', label: 'Editar' },
+                  { value: 'permissions', label: 'Permissoes' },
+                  { value: 'actions', label: 'Acoes' },
+                ]}
+              />
+              <div className="mt-4 space-y-4">
+                <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} grid gap-4 md:grid-cols-2`}>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-semibold uppercase text-slate-400">
                       Identificação
@@ -727,7 +754,7 @@ const Users = () => {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'edit' ? 'is-active' : ''} rounded-xl border border-slate-200 p-4`}>
                   <button
                     type="button"
                     onClick={() => setIsEditOpen((prev) => !prev)}
@@ -832,6 +859,7 @@ const Users = () => {
                 </div>
 
                 {permissionsLoaded && (
+                  <div className={`desktop-workspace-panel ${detailView === 'permissions' ? 'is-active' : ''}`}>
                   <PermissionsSection
                     title="Permissões do usuário"
                     allPermissions={allPermissions}
@@ -846,9 +874,10 @@ const Users = () => {
                     status={permSyncStatus}
                     statusMessage={permSyncError}
                   />
+                  </div>
                 )}
 
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'actions' ? 'is-active' : ''} rounded-xl border border-rose-200 bg-rose-50 p-4`}>
                   <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
                     <Trash2 className="h-4 w-4" />
                     Remover usuário
@@ -866,6 +895,7 @@ const Users = () => {
                   </button>
                 </div>
               </div>
+              </>
             ) : (
               <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                 Selecione um usuário para ver os detalhes.
@@ -873,6 +903,7 @@ const Users = () => {
             )}
           </section>
         </div>
+        </>
       ) : null}
     </DashboardPage>
   )

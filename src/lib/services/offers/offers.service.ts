@@ -139,8 +139,16 @@ const parseOffersResponse = (data: JsonValue): OffersResponse => {
   }
 }
 
-export const getOffers = async (page = 1): Promise<OffersResponse> => {
-  const data = await apiFetch<JsonValue>(`${OFFERS_ENDPOINT}?page=${page}`, {
+type OffersListOptions = { page?: number; perPage?: number }
+
+export const getOffers = async (
+  options: number | OffersListOptions = 1,
+): Promise<OffersResponse> => {
+  const page = typeof options === 'number' ? options : (options.page ?? 1)
+  const perPage = typeof options === 'number' ? undefined : options.perPage
+  const params = new URLSearchParams({ page: String(page) })
+  if (perPage) params.set('per_page', String(perPage))
+  const data = await apiFetch<JsonValue>(`${OFFERS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
     errorMessage: 'Erro ao carregar ofertas',

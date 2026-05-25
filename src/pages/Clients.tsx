@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import DashboardPage from '../components/layout/DashboardPage'
+import WorkspaceTabs from '../components/layout/WorkspaceTabs'
 import CustomerCreateSection from '../features/customers/components/CustomerCreateSection'
 import CustomerDetailsSection from '../features/customers/components/CustomerDetailsSection'
 import CustomersListSection from '../features/customers/components/CustomersListSection'
@@ -7,6 +9,7 @@ import OrdersModal from '../features/customers/components/OrdersModal'
 import { useCustomersPage } from '../features/customers/hooks/useCustomersPage'
 
 const Clients = () => {
+  const [workspaceView, setWorkspaceView] = useState<'list' | 'details' | 'create'>('list')
   const {
     customers,
     selectedCustomer,
@@ -55,7 +58,7 @@ const Clients = () => {
   } = useCustomersPage()
 
   return (
-    <DashboardPage title="Clientes" subtitle="CRM" containerClassName="max-w-6xl">
+    <DashboardPage title="Clientes" subtitle="CRM" containerClassName="viewport-workspace crud-workspace max-w-6xl">
       <CustomersStatsHeader
         pagination={pagination}
         totals={totals}
@@ -89,8 +92,22 @@ const Clients = () => {
       ) : null}
 
       {status === 'idle' ? (
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-          <div className="space-y-6">
+        <>
+        <WorkspaceTabs
+          value={workspaceView}
+          tabs={[
+            { value: 'list', label: 'Lista' },
+            { value: 'details', label: 'Detalhes', disabled: !selectedCustomer },
+            { value: 'create', label: 'Novo' },
+          ]}
+          onChange={(next) => {
+            setWorkspaceView(next)
+            if (next === 'create') setIsCreateOpen(true)
+          }}
+        />
+        <div className="desktop-workspace-columns grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
+          <div className="desktop-workspace-stack space-y-6">
+            <div className={`desktop-workspace-panel ${workspaceView === 'create' ? 'is-active' : ''}`}>
             <CustomerCreateSection
               isCreateOpen={isCreateOpen}
               setIsCreateOpen={setIsCreateOpen}
@@ -101,21 +118,27 @@ const Clients = () => {
               onCreateCustomer={handleCreateCustomer}
               segments={segments}
             />
+            </div>
 
+            <div className={`desktop-workspace-panel ${workspaceView === 'list' ? 'is-active' : ''}`}>
             <CustomersListSection
               customerSearch={customerSearch}
               onSearchChange={setCustomerSearch}
               filteredCustomers={filteredCustomers}
               customersCount={customers.length}
               selectedCustomerId={selectedCustomer?.id}
-              onSelectCustomer={handleSelectCustomer}
+              onSelectCustomer={(customer) => {
+                handleSelectCustomer(customer)
+                setWorkspaceView('details')
+              }}
               pagination={pagination}
               pageItems={pageItems}
               onGoToPage={handleGoToPage}
             />
+            </div>
           </div>
 
-          <div className="space-y-6">
+          <div className={`desktop-workspace-panel ${workspaceView === 'details' ? 'is-active' : ''} space-y-6`}>
             <CustomerDetailsSection
               detailStatus={detailStatus}
               selectedCustomer={selectedCustomer}
@@ -133,6 +156,7 @@ const Clients = () => {
             />
           </div>
         </div>
+        </>
       ) : null}
 
       <OrdersModal

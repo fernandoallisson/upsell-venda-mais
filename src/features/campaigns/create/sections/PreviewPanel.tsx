@@ -104,7 +104,7 @@ const PreviewPanel = ({ form, selectedWidgetPreset }: Props) => {
         </div>
 
         {/* Preview area */}
-        <div className="flex flex-1 items-center justify-center overflow-auto bg-slate-100 p-4">
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-slate-100 p-4">
           {previewContent}
         </div>
       </div>
@@ -144,7 +144,7 @@ const PreviewPanel = ({ form, selectedWidgetPreset }: Props) => {
             </div>
           </div>
 
-          <div className="flex flex-1 items-center justify-center overflow-auto p-8">
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-8">
             <WidgetPreviewFrame viewport={viewport} fullscreen compactChrome>
               <WidgetHtmlPreview
                 html={generated.html}

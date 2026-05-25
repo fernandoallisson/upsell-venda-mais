@@ -13,6 +13,7 @@ import {
   Zap,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
+import WorkspaceTabs from '../components/layout/WorkspaceTabs'
 import { ApiError } from '../lib/api'
 import {
   deleteCampaign,
@@ -34,6 +35,7 @@ import { getProducts } from '../lib/services/products/products.service'
 import type { Product } from '../lib/services/products/products.types'
 import { getSegments } from '../lib/services/segments/segments.service'
 import type { Segment } from '../lib/services/segments/segments.types'
+import { COMPACT_PAGE_SIZE, loadCompactPage } from '../lib/utils/compactPagination'
 
 type PaginationMeta = Pick<
   CampaignsResponse,
@@ -169,6 +171,14 @@ const UpsellCampaigns = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [serverPageSize, setServerPageSize] = useState(COMPACT_PAGE_SIZE)
+  const [workspaceView, setWorkspaceView] = useState<'list' | 'details' | 'create'>('list')
+  const [detailView, setDetailView] = useState<
+    'summary' | 'analytics' | 'products' | 'segments' | 'offers' | 'actions'
+  >('summary')
+  const [productPickerPage, setProductPickerPage] = useState(0)
+  const [segmentPickerPage, setSegmentPickerPage] = useState(0)
+  const [offerPage, setOfferPage] = useState(0)
 
   const [metricFilter, setMetricFilter] = useState<MetricKey>('views')
   const [pieMetric, setPieMetric] = useState<PieMetricKey>('revenue')
@@ -261,19 +271,15 @@ const UpsellCampaigns = () => {
       setError(null)
 
       try {
-        const response = await getCampaigns(targetPage)
+        const response = await loadCompactPage<Campaign, CampaignsResponse>(
+          getCampaigns,
+          targetPage,
+          serverPageSize,
+        )
         setCampaigns(response.data)
-        setPagination({
-          current_page: response.current_page,
-          last_page: response.last_page,
-          per_page: response.per_page,
-          total: response.total,
-          from: response.from,
-          to: response.to,
-          next_page_url: response.next_page_url,
-          prev_page_url: response.prev_page_url,
-        })
-        setPage(response.current_page)
+        setPagination(response.pagination)
+        setServerPageSize(response.serverPageSize)
+        setPage(response.pagination.current_page)
 
         const firstCampaign = response.data[0] ?? null
         setSelectedCampaign(firstCampaign)
@@ -291,7 +297,7 @@ const UpsellCampaigns = () => {
         setStatus('error')
       }
     },
-    [fetchCampaignDetails, page],
+    [fetchCampaignDetails, page, serverPageSize],
   )
 
   useEffect(() => {
@@ -346,6 +352,11 @@ const UpsellCampaigns = () => {
 
   const handleSelectCampaign = (campaign: Campaign) => {
     setSelectedCampaign(campaign)
+    setWorkspaceView('details')
+    setDetailView('summary')
+    setProductPickerPage(0)
+    setSegmentPickerPage(0)
+    setOfferPage(0)
     fetchCampaignDetails(campaign.id)
   }
 
@@ -522,7 +533,7 @@ const UpsellCampaigns = () => {
     <DashboardPage
       title="Campanhas"
       subtitle="Upsell"
-      containerClassName="max-w-6xl"
+      containerClassName="viewport-workspace crud-workspace max-w-6xl"
     >
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
@@ -531,7 +542,7 @@ const UpsellCampaigns = () => {
             <p className="text-2xl font-semibold text-slate-900">
               {pagination?.total ?? totals.count}
             </p>
-            <span className="text-sm text-slate-400">{totals.active} ativas</span>
+            <span className="text-sm text-slate-400">{totals.active} ativas nesta pagina</span>
             <span className="text-sm text-slate-400">
               {pagination
                 ? `(pág. ${pagination.current_page} de ${pagination.last_page})`
@@ -584,12 +595,28 @@ const UpsellCampaigns = () => {
       ) : null}
 
       {status === 'idle' ? (
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.6fr]">
-          <div className="space-y-6">
+        <>
+          <WorkspaceTabs
+            value={workspaceView}
+            onChange={(value) => {
+              if (value === 'create') {
+                navigate('/upsell/campanhas/nova')
+                return
+              }
+              setWorkspaceView(value)
+            }}
+            tabs={[
+              { value: 'list', label: 'Lista' },
+              { value: 'details', label: 'Detalhes' },
+              { value: 'create', label: 'Nova' },
+            ]}
+          />
+        <div className="desktop-workspace-columns grid gap-6 lg:grid-cols-[1.1fr_1.6fr]">
+          <div className="desktop-workspace-stack space-y-6">
             <button
               type="button"
               onClick={() => navigate('/upsell/campanhas/nova')}
-              className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:bg-blue-50"
+              className={`desktop-workspace-panel ${workspaceView === 'create' ? 'is-active' : ''} flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:bg-blue-50`}
             >
               <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-blue-600">
                 <PlusCircle className="h-4 w-4 text-white" />
@@ -600,26 +627,26 @@ const UpsellCampaigns = () => {
               </div>
             </button>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section className={`workspace-list-panel desktop-workspace-panel ${workspaceView === 'list' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-4 shadow-sm`}>
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
                 <Zap className="h-4 w-4 text-blue-500" />
                 Lista de campanhas
               </div>
 
-              <div className="space-y-3">
+              <div className="workspace-list-items space-y-3">
                 {campaigns.length === 0 ? (
                   <p className="px-2 py-4 text-center text-sm text-slate-400">
                     Nenhuma campanha encontrada.
                   </p>
                 ) : null}
-                {campaigns.map((campaign) => {
+                {campaigns.slice(0, 5).map((campaign) => {
                   const isActive = selectedCampaign?.id === campaign.id
                   return (
                     <button
                       key={campaign.id}
                       type="button"
                       onClick={() => handleSelectCampaign(campaign)}
-                      className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                      className={`workspace-list-row w-full rounded-xl border px-4 py-3 text-left transition ${
                         isActive
                           ? 'border-blue-200 bg-blue-50'
                           : 'border-slate-200 bg-white hover:border-slate-300'
@@ -735,7 +762,7 @@ const UpsellCampaigns = () => {
             </section>
           </div>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className={`desktop-workspace-panel ${workspaceView === 'details' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-700">Detalhes</p>
@@ -755,8 +782,21 @@ const UpsellCampaigns = () => {
             ) : null}
 
             {selectedCampaign && details ? (
-              <div className="mt-6 space-y-6">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <>
+              <WorkspaceTabs
+                value={detailView}
+                onChange={setDetailView}
+                tabs={[
+                  { value: 'summary', label: 'Resumo' },
+                  { value: 'analytics', label: 'Desempenho' },
+                  { value: 'products', label: 'Produtos' },
+                  { value: 'segments', label: 'Segmentos' },
+                  { value: 'offers', label: 'Ofertas' },
+                  { value: 'actions', label: 'Acoes' },
+                ]}
+              />
+              <div className="mt-4 space-y-4">
+                <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} rounded-xl border border-slate-200 bg-slate-50 p-4`}>
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-base font-semibold text-slate-900">
@@ -796,7 +836,7 @@ const UpsellCampaigns = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} grid gap-4 md:grid-cols-3`}>
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <p className="text-xs font-semibold uppercase text-slate-400">
                       Receita total
@@ -833,7 +873,7 @@ const UpsellCampaigns = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+                <div className={`desktop-workspace-panel ${detailView === 'analytics' ? 'is-active' : ''} grid gap-4 md:grid-cols-[1.4fr_1fr]`}>
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
@@ -964,7 +1004,7 @@ const UpsellCampaigns = () => {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'products' ? 'is-active' : ''} rounded-xl border border-slate-200 bg-white p-4`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-700">
@@ -1002,7 +1042,7 @@ const UpsellCampaigns = () => {
                           Nenhum produto vinculado ainda.
                         </div>
                       ) : (
-                        campaignProducts.map((product) => (
+                        campaignProducts.slice(0, 3).map((product) => (
                           <div
                             key={product.id}
                             className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600"
@@ -1022,6 +1062,11 @@ const UpsellCampaigns = () => {
                         ))
                       )}
                     </div>
+                  ) : null}
+                  {campaignProducts.length > 3 ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Mais {campaignProducts.length - 3} produto(s). Use Adicionar produtos para revisar a selecao.
+                    </p>
                   ) : null}
 
                   {isProductsOpen ? (
@@ -1057,13 +1102,13 @@ const UpsellCampaigns = () => {
                       ) : null}
 
                       {productListStatus === 'idle' ? (
-                        <div className="max-h-64 space-y-2 overflow-auto pr-1">
+                        <div className="space-y-2">
                           {productList.length === 0 ? (
                             <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-center text-xs text-slate-400">
                               Nenhum produto encontrado.
                             </div>
                           ) : (
-                            productList.map((product) => {
+                            productList.slice(productPickerPage * 3, productPickerPage * 3 + 3).map((product) => {
                               const isSelected = selectedProductIds.has(
                                 product.id,
                               )
@@ -1109,6 +1154,14 @@ const UpsellCampaigns = () => {
                         </div>
                       ) : null}
 
+                      {productList.length > 3 ? (
+                        <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
+                          <button type="button" disabled={productPickerPage === 0} onClick={() => setProductPickerPage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Anterior</button>
+                          <span>{productPickerPage + 1} / {Math.ceil(productList.length / 3)}</span>
+                          <button type="button" disabled={productPickerPage + 1 >= Math.ceil(productList.length / 3)} onClick={() => setProductPickerPage((value) => value + 1)} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Proxima</button>
+                        </div>
+                      ) : null}
+
                       <div className="flex flex-wrap items-center gap-3">
                         <button
                           type="button"
@@ -1133,7 +1186,7 @@ const UpsellCampaigns = () => {
                   ) : null}
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'segments' ? 'is-active' : ''} rounded-xl border border-slate-200 bg-white p-4`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-700">
@@ -1164,7 +1217,7 @@ const UpsellCampaigns = () => {
 
                   {campaignSegmentsStatus === 'idle' && campaignSegments.length > 0 ? (
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {campaignSegments.map((seg) => (
+                      {campaignSegments.slice(0, 3).map((seg) => (
                         <span key={seg.id} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700">
                           {seg.name}
                           {seg.matched_customers_count != null && (
@@ -1193,13 +1246,13 @@ const UpsellCampaigns = () => {
                       ) : null}
 
                       {segmentListStatus === 'idle' ? (
-                        <div className="max-h-52 space-y-2 overflow-auto pr-1">
+                        <div className="space-y-2">
                           {segmentList.length === 0 ? (
                             <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-center text-xs text-slate-400">
                               Nenhum segmento encontrado.
                             </div>
                           ) : (
-                            segmentList.map((seg) => {
+                            segmentList.slice(segmentPickerPage * 3, segmentPickerPage * 3 + 3).map((seg) => {
                               const isSelected = selectedSegmentIds.has(seg.id)
                               return (
                                 <label
@@ -1227,6 +1280,14 @@ const UpsellCampaigns = () => {
                         </div>
                       ) : null}
 
+                      {segmentList.length > 3 ? (
+                        <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
+                          <button type="button" disabled={segmentPickerPage === 0} onClick={() => setSegmentPickerPage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Anterior</button>
+                          <span>{segmentPickerPage + 1} / {Math.ceil(segmentList.length / 3)}</span>
+                          <button type="button" disabled={segmentPickerPage + 1 >= Math.ceil(segmentList.length / 3)} onClick={() => setSegmentPickerPage((value) => value + 1)} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Proxima</button>
+                        </div>
+                      ) : null}
+
                       <div className="flex flex-wrap items-center gap-3">
                         <button
                           type="button"
@@ -1247,7 +1308,7 @@ const UpsellCampaigns = () => {
                   ) : null}
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'offers' ? 'is-active' : ''} rounded-xl border border-slate-200 bg-white p-4`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="text-sm font-semibold text-slate-700">
                       Ofertas da campanha
@@ -1256,7 +1317,10 @@ const UpsellCampaigns = () => {
                       <span>Filtrar tipo</span>
                       <select
                         value={offerTypeFilter}
-                        onChange={(event) => setOfferTypeFilter(event.target.value)}
+                        onChange={(event) => {
+                          setOfferTypeFilter(event.target.value)
+                          setOfferPage(0)
+                        }}
                         className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700"
                       >
                         <option value="all">Todos</option>
@@ -1269,8 +1333,8 @@ const UpsellCampaigns = () => {
                     </div>
                   </div>
 
-                  <div className="mt-4 overflow-auto">
-                    <table className="min-w-full text-left text-xs text-slate-600">
+                  <div className="mt-4 overflow-hidden">
+                    <table className="w-full table-fixed text-left text-xs text-slate-600">
                       <thead className="text-xs font-semibold uppercase text-slate-400">
                         <tr>
                           <th className="px-2 py-2">Produto</th>
@@ -1282,13 +1346,13 @@ const UpsellCampaigns = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredOffers.map((offer) => (
+                        {filteredOffers.slice(offerPage * 3, offerPage * 3 + 3).map((offer) => (
                           <tr
                             key={offer.id}
                             className="border-t border-slate-100"
                           >
                             <td className="px-2 py-2">
-                              <div className="font-semibold text-slate-700">
+                              <div className="truncate font-semibold text-slate-700" title={offer.product.name}>
                                 {offer.product.name}
                               </div>
                               <div className="text-[11px] text-slate-400">
@@ -1315,6 +1379,18 @@ const UpsellCampaigns = () => {
                       </tbody>
                     </table>
                   </div>
+                  {filteredOffers.length > 3 ? (
+                    <div className="mt-3 flex items-center justify-end gap-2 text-xs text-slate-500">
+                      <button type="button" disabled={offerPage === 0} onClick={() => setOfferPage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Anterior</button>
+                      <span>{offerPage + 1} / {Math.ceil(filteredOffers.length / 3)}</span>
+                      <button type="button" disabled={offerPage + 1 >= Math.ceil(filteredOffers.length / 3)} onClick={() => setOfferPage((value) => value + 1)} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Proxima</button>
+                    </div>
+                  ) : null}
+                  {campaignSegments.length > 3 ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Mais {campaignSegments.length - 3} segmento(s). Use Gerenciar segmentos para revisar a selecao.
+                    </p>
+                  ) : null}
                 </div>
 
                 <button
@@ -1322,7 +1398,7 @@ const UpsellCampaigns = () => {
                   onClick={() =>
                     navigate(`/upsell/campanhas/${selectedCampaign.id}/editar`)
                   }
-                  className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-200 hover:bg-blue-50"
+                  className={`desktop-workspace-panel ${detailView === 'actions' ? 'is-active' : ''} flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-200 hover:bg-blue-50`}
                 >
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
                     <Pencil className="h-4 w-4 text-slate-500" />
@@ -1337,7 +1413,7 @@ const UpsellCampaigns = () => {
                   </div>
                 </button>
 
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'actions' ? 'is-active' : ''} rounded-xl border border-rose-200 bg-rose-50 p-4`}>
                   <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
                     <Trash2 className="h-4 w-4" />
                     Remover campanha
@@ -1355,6 +1431,7 @@ const UpsellCampaigns = () => {
                   </button>
                 </div>
               </div>
+              </>
             ) : (
               <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                 Selecione uma campanha para ver os detalhes.
@@ -1362,6 +1439,7 @@ const UpsellCampaigns = () => {
             )}
           </section>
         </div>
+        </>
       ) : null}
     </DashboardPage>
   )

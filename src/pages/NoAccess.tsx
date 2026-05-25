@@ -26,6 +26,7 @@ const NoAccess = () => {
       onLogout={handleLogout}
       title="Acesso aos módulos"
       subtitle="Permissões da conta"
+      containerClassName="viewport-workspace max-w-5xl"
     >
       <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
         <p className="font-semibold text-slate-900">

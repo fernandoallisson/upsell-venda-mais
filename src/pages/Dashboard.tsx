@@ -24,7 +24,6 @@ import { getProducts } from '../lib/services/products/products.service'
 import type { Product } from '../lib/services/products/products.types'
 import { useAuth } from '../contexts/useAuth'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
-import KpiCard from '../components/dashboard/KpiCard'
 import OffersCharts from '../components/dashboard/OffersCharts'
 import OffersTable from '../components/dashboard/OffersTable'
 import DashboardLayout from '../components/layout/DashboardLayout'
@@ -149,6 +148,44 @@ const Dashboard = () => {
 
   const ctr = calcRate(totals.clicks, totals.views)
   const acceptRate = calcRate(totals.accepted, totals.clicks)
+  const metricGroups = [
+    {
+      title: 'Pedidos',
+      items: [
+        {
+          label: 'Total de Pedidos',
+          value: overview ? overview.orders_count.toLocaleString('pt-BR') : '--',
+          icon: <ShoppingCart className="h-4 w-4" />,
+        },
+        {
+          label: 'Receita de Pedidos',
+          value: overview ? formatCurrency(Number(overview.revenue) || 0) : '--',
+          icon: <DollarSign className="h-4 w-4" />,
+        },
+        {
+          label: 'Ticket Medio',
+          value: overview ? formatCurrency(Number(overview.avg_ticket) || 0) : '--',
+          icon: <TrendingUp className="h-4 w-4" />,
+        },
+      ],
+    },
+    {
+      title: 'Interacoes',
+      items: [
+        { label: 'Views', value: totals.views.toLocaleString('pt-BR'), icon: <Eye className="h-4 w-4" /> },
+        { label: 'Clicks', value: totals.clicks.toLocaleString('pt-BR'), icon: <MousePointer className="h-4 w-4" /> },
+        { label: 'Aceites', value: totals.accepted.toLocaleString('pt-BR'), icon: <CheckCircle2 className="h-4 w-4" /> },
+      ],
+    },
+    {
+      title: 'Performance',
+      items: [
+        { label: 'Receita Total', value: formatCurrency(totals.revenue), icon: <DollarSign className="h-4 w-4" /> },
+        { label: 'CTR', value: `${(ctr * 100).toFixed(1)}%`, icon: <Percent className="h-4 w-4" /> },
+        { label: 'Taxa de Aceite', value: `${(acceptRate * 100).toFixed(1)}%`, icon: <TrendingUp className="h-4 w-4" /> },
+      ],
+    },
+  ]
 
   const handleLogout = async () => {
     try {
@@ -164,7 +201,12 @@ const Dashboard = () => {
   }
 
   return (
-    <DashboardLayout user={user} onRefresh={handleRefresh} onLogout={handleLogout}>
+    <DashboardLayout
+      user={user}
+      onRefresh={handleRefresh}
+      onLogout={handleLogout}
+      containerClassName="viewport-workspace dashboard-overview max-w-7xl"
+    >
       <DashboardFilters
         search={search}
         selectedCampaign={selectedCampaign}
@@ -214,63 +256,31 @@ const Dashboard = () => {
 
       {status === 'idle' && filteredOffers.length > 0 ? (
         <>
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {overview ? (
-              <>
-                <KpiCard
-                  title="Total de Pedidos"
-                  value={overview.orders_count.toLocaleString('pt-BR')}
-                  icon={<ShoppingCart className="h-5 w-5" />}
-                />
-                <KpiCard
-                  title="Receita de Pedidos"
-                  value={formatCurrency(Number(overview.revenue) || 0)}
-                  icon={<DollarSign className="h-5 w-5" />}
-                />
-                <KpiCard
-                  title="Ticket Médio"
-                  value={formatCurrency(Number(overview.avg_ticket) || 0)}
-                  icon={<TrendingUp className="h-5 w-5" />}
-                />
-              </>
-            ) : null}
-            <KpiCard
-              title="Total de Views"
-              value={totals.views.toLocaleString('pt-BR')}
-              icon={<Eye className="h-5 w-5" />}
-            />
-            <KpiCard
-              title="Total de Clicks"
-              value={totals.clicks.toLocaleString('pt-BR')}
-              icon={<MousePointer className="h-5 w-5" />}
-            />
-            <KpiCard
-              title="Total de Accepted"
-              value={totals.accepted.toLocaleString('pt-BR')}
-              icon={<CheckCircle2 className="h-5 w-5" />}
-            />
-            <KpiCard
-              title="Receita Total"
-              value={formatCurrency(totals.revenue)}
-              icon={<DollarSign className="h-5 w-5" />}
-            />
-            <KpiCard
-              title="Taxa de Clique (CTR)"
-              value={`${(ctr * 100).toFixed(1)}%`}
-              icon={<Percent className="h-5 w-5" />}
-              helper="Clicks / Views"
-            />
-            <KpiCard
-              title="Taxa de Aceite"
-              value={`${(acceptRate * 100).toFixed(1)}%`}
-              icon={<TrendingUp className="h-5 w-5" />}
-              helper="Accepted / Clicks"
-            />
+          <section className="dashboard-kpi-groups grid gap-4 xl:grid-cols-3">
+            {metricGroups.map((group) => (
+              <div key={group.title} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{group.title}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {group.items.map((item) => (
+                    <div key={item.label} className="min-w-0 rounded-xl bg-slate-50 p-2">
+                      <div className="flex items-center justify-between gap-1 text-slate-500">
+                        <p className="truncate text-[10px] font-medium" title={item.label}>{item.label}</p>
+                        <span className="shrink-0">{item.icon}</span>
+                      </div>
+                      <p className="mt-1 truncate text-sm font-semibold text-slate-900" title={item.value}>{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </section>
 
           <OffersCharts offers={filteredOffers} />
 
-          <OffersTable offers={filteredOffers} />
+          <OffersTable
+            key={`${search}|${selectedCampaign}|${selectedProduct}|${onlyTop}`}
+            offers={filteredOffers}
+          />
         </>
       ) : null}
     </DashboardLayout>

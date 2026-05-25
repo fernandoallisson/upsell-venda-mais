@@ -13,6 +13,7 @@ import {
   UserCircle2,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
+import WorkspaceTabs from '../components/layout/WorkspaceTabs'
 import ExportSegmentModal from '../components/segments/ExportSegmentModal'
 import { ApiError } from '../lib/api'
 import {
@@ -32,6 +33,7 @@ import type {
   UpdateSegmentPayload,
   SegmentRules,
 } from '../lib/services/segments/segments.types'
+import { COMPACT_PAGE_SIZE, loadCompactPage } from '../lib/utils/compactPagination'
 
 const formatDate = (value: string) => {
   const parsed = new Date(value)
@@ -523,7 +525,11 @@ const RuleBuilder = ({
   previewCount,
   onCalculatePreview,
   showPreview = false,
-}: RuleBuilderProps) => (
+}: RuleBuilderProps) => {
+  const [rulePage, setRulePage] = useState(0)
+  const currentPage = Math.min(rulePage, Math.max(0, rules.length - 1))
+
+  return (
   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -536,7 +542,10 @@ const RuleBuilder = ({
       </div>
       <button
         type="button"
-        onClick={onAddRule}
+        onClick={() => {
+          onAddRule()
+          setRulePage(rules.length)
+        }}
         className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
       >
         <PlusCircle className="h-4 w-4 text-indigo-500" />
@@ -545,7 +554,7 @@ const RuleBuilder = ({
     </div>
 
     <div className="mt-4 space-y-4">
-      {rules.map((rule, index) => {
+      {rules.slice(currentPage, currentPage + 1).map((rule, index) => {
         const categoryFilters = getCategoryFilters(rule.category)
         const filterDefinition = getFilterDefinition(rule.category, rule.filter)
 
@@ -556,7 +565,7 @@ const RuleBuilder = ({
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-slate-700">
-                Regra {index + 1}
+                Regra {currentPage + index + 1}
               </p>
               <button
                 type="button"
@@ -816,6 +825,13 @@ const RuleBuilder = ({
         )
       })}
     </div>
+    {rules.length > 1 ? (
+      <div className="mt-3 flex items-center justify-end gap-2 text-xs text-slate-500">
+        <button type="button" disabled={currentPage === 0} onClick={() => setRulePage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">Anterior</button>
+        <span>{currentPage + 1} / {rules.length}</span>
+        <button type="button" disabled={currentPage + 1 >= rules.length} onClick={() => setRulePage((value) => value + 1)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">Proxima</button>
+      </div>
+    ) : null}
 
     {showPreview ? (
       <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
@@ -841,7 +857,8 @@ const RuleBuilder = ({
       </div>
     ) : null}
   </div>
-)
+  )
+}
 
 const STATUS_LABELS: Record<SegmentStatus, string> = {
   pending: 'Pendente',
@@ -870,6 +887,11 @@ const Segmentation = () => {
 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationMeta | null>(null)
+  const [serverPageSize, setServerPageSize] = useState(COMPACT_PAGE_SIZE)
+  const [workspaceView, setWorkspaceView] = useState<'list' | 'details' | 'create'>('list')
+  const [detailView, setDetailView] = useState<'summary' | 'members' | 'edit' | 'actions'>('summary')
+  const [customerPage, setCustomerPage] = useState(0)
+  const [rulesPage, setRulesPage] = useState(0)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createStatus, setCreateStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
@@ -978,20 +1000,16 @@ const Segmentation = () => {
       setError(null)
 
       try {
-        const response = await getSegments(targetPage)
+        const response = await loadCompactPage<Segment, SegmentsResponse>(
+          getSegments,
+          targetPage,
+          serverPageSize,
+        )
 
         setSegments(response.data)
-        setPagination({
-          current_page: response.current_page,
-          last_page: response.last_page,
-          per_page: response.per_page,
-          total: response.total,
-          from: response.from,
-          to: response.to,
-          next_page_url: response.next_page_url,
-          prev_page_url: response.prev_page_url,
-        })
-        setPage(response.current_page)
+        setPagination(response.pagination)
+        setServerPageSize(response.serverPageSize)
+        setPage(response.pagination.current_page)
 
         const firstSegment = response.data[0] ?? null
         setSelectedSegment(firstSegment)
@@ -1008,7 +1026,7 @@ const Segmentation = () => {
         setStatus('error')
       }
     },
-    [fetchSegmentDetails, page],
+    [fetchSegmentDetails, page, serverPageSize],
   )
 
   useEffect(() => {
@@ -1057,6 +1075,10 @@ const Segmentation = () => {
 
   const handleSelectSegment = (segment: Segment) => {
     setSelectedSegment(segment)
+    setWorkspaceView('details')
+    setDetailView('summary')
+    setCustomerPage(0)
+    setRulesPage(0)
     fetchSegmentDetails(segment.id)
   }
 
@@ -1307,7 +1329,7 @@ const Segmentation = () => {
     <DashboardPage
       title="Segmentação"
       subtitle="Clientes"
-      containerClassName="max-w-6xl"
+      containerClassName="viewport-workspace crud-workspace max-w-6xl"
     >
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
@@ -1374,9 +1396,22 @@ const Segmentation = () => {
       ) : null}
 
       {status === 'idle' ? (
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <>
+          <WorkspaceTabs
+            value={workspaceView}
+            onChange={(value) => {
+              setWorkspaceView(value)
+              if (value === 'create') setIsCreateOpen(true)
+            }}
+            tabs={[
+              { value: 'list', label: 'Lista' },
+              { value: 'details', label: 'Detalhes' },
+              { value: 'create', label: 'Novo' },
+            ]}
+          />
+        <div className="desktop-workspace-columns grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
+          <div className="desktop-workspace-stack space-y-6">
+            <section className={`desktop-workspace-panel ${workspaceView === 'create' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
               <button
                 type="button"
                 onClick={() => setIsCreateOpen((prev) => !prev)}
@@ -1456,19 +1491,19 @@ const Segmentation = () => {
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section className={`workspace-list-panel desktop-workspace-panel ${workspaceView === 'list' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-4 shadow-sm`}>
               <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
                 <Filter className="h-4 w-4 text-indigo-500" />
                 Lista de segmentos
               </div>
 
-              <div className="space-y-3">
+              <div className="workspace-list-items space-y-3">
                 {segments.length === 0 ? (
                   <p className="px-2 py-4 text-center text-sm text-slate-400">
                     Nenhum segmento encontrado.
                   </p>
                 ) : null}
-                {segments.map((segment) => {
+                {segments.slice(0, 5).map((segment) => {
                   const isActive = selectedSegment?.id === segment.id
                   const count = rulesCount(segment.rules)
                   const segStatus = segment.status
@@ -1478,7 +1513,7 @@ const Segmentation = () => {
                       key={segment.id}
                       type="button"
                       onClick={() => handleSelectSegment(segment)}
-                      className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                      className={`workspace-list-row w-full rounded-xl border px-4 py-3 text-left transition ${
                         isActive
                           ? 'border-blue-200 bg-blue-50'
                           : 'border-slate-200 bg-white hover:border-slate-300'
@@ -1591,7 +1626,7 @@ const Segmentation = () => {
             </section>
           </div>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className={`desktop-workspace-panel ${workspaceView === 'details' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-700">Detalhes</p>
@@ -1617,8 +1652,19 @@ const Segmentation = () => {
             </div>
 
             {selectedSegment ? (
-              <div className="mt-6 space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
+              <>
+              <WorkspaceTabs
+                value={detailView}
+                onChange={setDetailView}
+                tabs={[
+                  { value: 'summary', label: 'Resumo' },
+                  { value: 'members', label: 'Clientes e regras' },
+                  { value: 'edit', label: 'Editar' },
+                  { value: 'actions', label: 'Acoes' },
+                ]}
+              />
+              <div className="mt-4 space-y-4">
+                <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} grid gap-4 md:grid-cols-2`}>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-semibold uppercase text-slate-400">
                       Segmento
@@ -1691,7 +1737,7 @@ const Segmentation = () => {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'edit' ? 'is-active' : ''} rounded-xl border border-slate-200 p-4`}>
                   <button
                     type="button"
                     onClick={() => setIsEditOpen((prev) => !prev)}
@@ -1770,7 +1816,7 @@ const Segmentation = () => {
                   ) : null}
                 </div>
 
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                <div className={`desktop-workspace-panel ${detailView === 'actions' ? 'is-active' : ''} rounded-xl border border-rose-200 bg-rose-50 p-4`}>
                   <div className="flex items-center gap-2 text-sm font-semibold text-rose-700">
                     <Trash2 className="h-4 w-4" />
                     Remover segmento
@@ -1795,7 +1841,7 @@ const Segmentation = () => {
                 </div>
 
                 {selectedSegment.customers && selectedSegment.customers.length > 0 ? (
-                  <div>
+                  <div className={`desktop-workspace-panel ${detailView === 'members' ? 'is-active' : ''}`}>
                     <p className="text-sm font-semibold text-slate-700">
                       Clientes no segmento
                     </p>
@@ -1815,7 +1861,7 @@ const Segmentation = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedSegment.customers.map((customer) => (
+                          {selectedSegment.customers.slice(customerPage * 3, customerPage * 3 + 3).map((customer) => (
                             <tr
                               key={customer.id}
                               className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
@@ -1836,16 +1882,23 @@ const Segmentation = () => {
                         </tbody>
                       </table>
                     </div>
+                    {selectedSegment.customers.length > 3 ? (
+                      <div className="mt-2 flex items-center justify-end gap-2 text-xs text-slate-500">
+                        <button type="button" disabled={customerPage === 0} onClick={() => setCustomerPage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Anterior</button>
+                        <span>{customerPage + 1} / {Math.ceil(selectedSegment.customers.length / 3)}</span>
+                        <button type="button" disabled={customerPage + 1 >= Math.ceil(selectedSegment.customers.length / 3)} onClick={() => setCustomerPage((value) => value + 1)} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Proxima</button>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 
-                <div>
+                <div className={`desktop-workspace-panel ${detailView === 'members' ? 'is-active' : ''}`}>
                   <p className="text-sm font-semibold text-slate-700">
                     Regras de segmentação
                   </p>
                   {selectedRules.length > 0 ? (
                     <div className="mt-3 space-y-2">
-                      {selectedRules.map((rule) => {
+                      {selectedRules.slice(rulesPage * 3, rulesPage * 3 + 3).map((rule) => {
                         const filterDefinition = getFilterDefinition(
                           rule.category,
                           rule.filter,
@@ -1884,8 +1937,16 @@ const Segmentation = () => {
                       Nenhuma regra cadastrada para este segmento.
                     </p>
                   )}
+                  {selectedRules.length > 3 ? (
+                    <div className="mt-2 flex items-center justify-end gap-2 text-xs text-slate-500">
+                      <button type="button" disabled={rulesPage === 0} onClick={() => setRulesPage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Anterior</button>
+                      <span>{rulesPage + 1} / {Math.ceil(selectedRules.length / 3)}</span>
+                      <button type="button" disabled={rulesPage + 1 >= Math.ceil(selectedRules.length / 3)} onClick={() => setRulesPage((value) => value + 1)} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Proxima</button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
+              </>
             ) : (
               <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                 Selecione um segmento para ver os detalhes.
@@ -1893,6 +1954,7 @@ const Segmentation = () => {
             )}
           </section>
         </div>
+        </>
       ) : null}
       {selectedSegment ? (
         <ExportSegmentModal

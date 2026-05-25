@@ -71,9 +71,7 @@ const WidgetFilters = ({
         onChange={(event) => onPerPageChange(Number(event.target.value))}
         className="rounded-xl border border-slate-200 px-2 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-400"
       >
-        <option value={10}>10</option>
-        <option value={20}>20</option>
-        <option value={50}>50</option>
+        <option value={3}>3</option>
       </select>
     </div>
   </div>

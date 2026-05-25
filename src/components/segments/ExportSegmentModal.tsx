@@ -75,6 +75,7 @@ const ExportSegmentModal = ({
   )
   const [columnsLoading, setColumnsLoading] = useState(false)
   const [columnsError, setColumnsError] = useState<string | null>(null)
+  const [columnPage, setColumnPage] = useState(0)
 
   const [syncLoading, setSyncLoading] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
@@ -103,6 +104,7 @@ const ExportSegmentModal = ({
       setSyncError(null)
       setAsyncState({ exportId: null, status: 'idle', progress: 0, message: '' })
       setAsyncError(null)
+      setColumnPage(0)
     }
   }, [open, stopPolling])
 
@@ -441,8 +443,9 @@ const ExportSegmentModal = ({
                 </button>
               </div>
             ) : (
-              <div className="mt-2 grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
-                {columns.map((col) => (
+              <>
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                {columns.slice(columnPage * 6, columnPage * 6 + 6).map((col) => (
                   <label
                     key={col.key}
                     className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-600 transition hover:bg-slate-50"
@@ -457,6 +460,14 @@ const ExportSegmentModal = ({
                   </label>
                 ))}
               </div>
+              {columns.length > 6 ? (
+                <div className="mt-2 flex items-center justify-end gap-2 text-xs text-slate-500">
+                  <button type="button" disabled={columnPage === 0} onClick={() => setColumnPage((value) => Math.max(0, value - 1))} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Anterior</button>
+                  <span>{columnPage + 1} / {Math.ceil(columns.length / 6)}</span>
+                  <button type="button" disabled={columnPage + 1 >= Math.ceil(columns.length / 6)} onClick={() => setColumnPage((value) => value + 1)} className="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-40">Proxima</button>
+                </div>
+              ) : null}
+              </>
             )}
           </div>
 

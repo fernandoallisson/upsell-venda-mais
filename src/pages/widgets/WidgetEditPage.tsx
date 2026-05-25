@@ -67,7 +67,7 @@ const WidgetEditPage = () => {
   }
 
   return (
-    <DashboardPage title="Editar Widget" subtitle="Personalize o template visual do widget">
+    <DashboardPage title="Editar Widget" subtitle="Personalize o template visual do widget" containerClassName="viewport-workspace widget-builder-page max-w-7xl">
       {loading ? (
         <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-16">
           <div className="flex flex-col items-center gap-3">
@@ -76,7 +76,7 @@ const WidgetEditPage = () => {
           </div>
         </div>
       ) : widget ? (
-        <div className="space-y-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
           {error && (
             <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               <svg className="h-5 w-5 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">

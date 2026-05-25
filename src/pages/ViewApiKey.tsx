@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
+import WorkspaceTabs from '../components/layout/WorkspaceTabs'
 import { ApiError } from '../lib/api'
 import {
   deleteApiKey,
@@ -166,6 +167,7 @@ const DeleteConfirmModal = ({
 )
 
 const ViewApiKey = () => {
+  const [detailView, setDetailView] = useState<'summary' | 'credentials' | 'script' | 'actions'>('summary')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [apiKey, setApiKey] = useState<ApiKey | null>(null)
@@ -278,6 +280,7 @@ const ViewApiKey = () => {
     <DashboardPage
       title={apiKey.name}
       subtitle="Detalhes da chave de API"
+      containerClassName="viewport-workspace api-key-details max-w-7xl"
     >
       <div className="mb-2 flex justify-end gap-2">
         <button
@@ -304,9 +307,19 @@ const ViewApiKey = () => {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <WorkspaceTabs
+        value={detailView}
+        onChange={setDetailView}
+        tabs={[
+          { value: 'summary', label: 'Resumo' },
+          { value: 'credentials', label: 'Credenciais' },
+          { value: 'script', label: 'Script' },
+          { value: 'actions', label: 'Acoes' },
+        ]}
+      />
+      <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-cols-2">
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+          <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 space-y-4`}>
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">Informações Gerais</h2>
@@ -369,7 +382,7 @@ const ViewApiKey = () => {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
+          <div className={`desktop-workspace-panel ${detailView === 'credentials' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 space-y-4`}>
             <h2 className="text-sm font-semibold text-slate-900">Chaves de Acesso</h2>
 
             <div className="space-y-3">
@@ -414,12 +427,12 @@ const ViewApiKey = () => {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <div className={`desktop-workspace-panel ${detailView === 'script' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6`}>
             <h2 className="mb-3 text-sm font-semibold text-slate-900">Script de Incorporação</h2>
             <p className="mb-3 text-xs text-slate-500">
               Cole este script no &lt;head&gt; ou antes do &lt;/body&gt; do seu site.
             </p>
-            <pre className="overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs text-emerald-400 whitespace-pre-wrap break-all">
+            <pre className="overflow-hidden rounded-xl bg-slate-900 p-4 text-xs text-emerald-400 whitespace-pre-wrap break-all">
               {script}
             </pre>
             <div className="mt-3 flex justify-end">
@@ -427,7 +440,7 @@ const ViewApiKey = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-rose-100 bg-white p-6">
+          <div className={`desktop-workspace-panel ${detailView === 'actions' ? 'is-active' : ''} rounded-2xl border border-rose-100 bg-white p-6`}>
             <h2 className="mb-1 text-sm font-semibold text-rose-700">Zona de Perigo</h2>
             <p className="mb-4 text-xs text-slate-500">
               Ao remover esta chave, todas as integrações que a utilizam serão quebradas imediatamente.

@@ -240,8 +240,16 @@ const parseCustomersResponse = (data: JsonValue): CustomersResponse => {
   }
 }
 
-export const getCustomers = async (page = 1): Promise<CustomersResponse> => {
-  const data = await apiFetch<JsonValue>(`${CUSTOMERS_ENDPOINT}?page=${page}`, {
+type CustomersListOptions = { page?: number; perPage?: number }
+
+export const getCustomers = async (
+  options: number | CustomersListOptions = 1,
+): Promise<CustomersResponse> => {
+  const page = typeof options === 'number' ? options : (options.page ?? 1)
+  const perPage = typeof options === 'number' ? undefined : options.perPage
+  const params = new URLSearchParams({ page: String(page) })
+  if (perPage) params.set('per_page', String(perPage))
+  const data = await apiFetch<JsonValue>(`${CUSTOMERS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
     errorMessage: 'Erro ao carregar clientes',

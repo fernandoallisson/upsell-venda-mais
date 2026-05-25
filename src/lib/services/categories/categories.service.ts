@@ -113,8 +113,16 @@ const parseCategoriesResponse = (data: JsonValue): CategoriesResponse => {
   }
 }
 
-export const getCategories = async (page = 1): Promise<CategoriesResponse> => {
-  const data = await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}?page=${page}`, {
+type CategoriesListOptions = { page?: number; perPage?: number }
+
+export const getCategories = async (
+  options: number | CategoriesListOptions = 1,
+): Promise<CategoriesResponse> => {
+  const page = typeof options === 'number' ? options : (options.page ?? 1)
+  const perPage = typeof options === 'number' ? undefined : options.perPage
+  const params = new URLSearchParams({ page: String(page) })
+  if (perPage) params.set('per_page', String(perPage))
+  const data = await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
     errorMessage: 'Erro ao carregar categorias',

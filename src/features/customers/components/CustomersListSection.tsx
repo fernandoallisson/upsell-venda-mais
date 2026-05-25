@@ -27,13 +27,13 @@ const CustomersListSection = ({
   onGoToPage,
 }: CustomersListSectionProps) => {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="workspace-list-panel rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2 px-2 pb-3 text-sm font-semibold text-slate-700">
         <User className="h-4 w-4 text-indigo-500" />
         Lista de clientes
       </div>
 
-      <div className="px-2 pb-4">
+      <div className="workspace-list-search px-2 pb-4">
         <label className="space-y-2 text-sm text-slate-600">
           <span>Buscar por nome</span>
           <input
@@ -48,15 +48,15 @@ const CustomersListSection = ({
         </p>
       </div>
 
-      <div className="space-y-3">
-        {filteredCustomers.map((customer) => {
+      <div className="workspace-list-items space-y-3">
+        {filteredCustomers.slice(0, 5).map((customer) => {
           const isActive = selectedCustomerId === customer.id
           return (
             <button
               key={customer.id}
               type="button"
               onClick={() => onSelectCustomer(customer)}
-              className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+              className={`workspace-list-row w-full rounded-xl border px-4 py-3 text-left transition ${
                 isActive
                   ? 'border-indigo-200 bg-indigo-50'
                   : 'border-slate-200 bg-white hover:border-slate-300'

@@ -27,10 +27,10 @@ const WidgetHtmlPreview = ({ html, css, compact = false, allowScripts = false, f
 <style>
   * { box-sizing: border-box; }
   html, body { width: 100%; min-height: 100%; }
-  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: auto; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; padding: 12px; overflow: hidden; }
   ${css}
   html, body { width: 100%; min-height: 0 !important; height: 100%; background: transparent !important; }
-  body { margin: 0 !important; padding: 12px !important; overflow: auto; }
+  body { margin: 0 !important; padding: 12px !important; overflow: hidden; }
   :where(.hero, .overlay, .banner, .popup, .card, .offer-box, .showcase, .cd-section, .vagas-box, .progress-card, .prize-card, .dep-card, .testimonials, .urgency-wrap, .flash-banner) {
     width: min(100%, 600px) !important;
     max-width: 600px !important;
