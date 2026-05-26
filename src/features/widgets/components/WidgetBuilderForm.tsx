@@ -222,7 +222,7 @@ const WidgetBuilderForm = ({ initialValue, submitting, submitLabel, apiErrors, o
   // ─── Step 1: Template Gallery ───
   if (step === 'template') {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="widget-template-step min-h-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6">
         <WidgetTemplateGallery
           onSelect={handleSelectTemplate}
           onSkip={() => setStep('customize')}

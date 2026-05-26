@@ -206,9 +206,11 @@ const VisualTemplateCard = ({ preset, isHovered, onHover, onLeave, onSelect }: V
         : 'border-slate-200 bg-white shadow-sm hover:shadow-md'
     }`}
   >
-    <div className="widget-template-thumbnail relative overflow-hidden bg-slate-50 px-4 pb-3 pt-4">
-      <div className="pointer-events-none mx-auto" style={{ transform: 'scale(0.58)', transformOrigin: 'top center', maxHeight: 180, overflow: 'hidden' }}>
+    <div className="widget-template-thumbnail relative overflow-hidden bg-slate-50 p-3">
+      <div className="pointer-events-none flex h-[260px] items-center justify-center overflow-hidden rounded-xl">
+        <div className="w-full origin-center scale-[0.72]">
         <WidgetRenderer config={preset.config} mode="thumbnail" />
+        </div>
       </div>
       <HoverOverlay visible={isHovered} />
     </div>
@@ -242,11 +244,13 @@ const HtmlTemplateCard = ({ template, isHovered, onHover, onLeave, onSelect }: H
     }`}
   >
     <div className="widget-template-thumbnail relative overflow-hidden bg-slate-950 p-3">
-      <div className="pointer-events-none h-[180px] overflow-hidden rounded-xl bg-white">
+      <div className="pointer-events-none h-[260px] overflow-hidden rounded-xl bg-white">
         <WidgetHtmlPreview
           html={generateHtmlWidgetTemplateHtml(template)}
           css={generateHtmlWidgetTemplateCss(template)}
           compact
+          fill
+          fitContent
           allowScripts={template.supportsScript}
         />
       </div>

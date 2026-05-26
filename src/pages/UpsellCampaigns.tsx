@@ -521,13 +521,35 @@ const UpsellCampaigns = () => {
     }))
   }, [details, metricFilter])
 
-  const lineMax = Math.max(1, ...lineData.map((item) => item.value))
+  const lineMax = Math.max(0, ...lineData.map((item) => item.value))
+  const lineScaleMax = Math.max(1, lineMax)
+  const lineMetricLabel =
+    metricOptions.find((option) => option.value === metricFilter)?.label ??
+    'Indicador'
+  const chartTop = 8
+  const chartBottom = 92
+  const chartLeft = 2
+  const chartRight = 98
+  const chartHeight = chartBottom - chartTop
 
   const linePoints = lineData.map((item, index) => {
-    const x = lineData.length === 1 ? 50 : (index / (lineData.length - 1)) * 100
-    const y = 100 - (item.value / lineMax) * 100
+    const x =
+      lineData.length === 1
+        ? 50
+        : chartLeft +
+          (index / (lineData.length - 1)) * (chartRight - chartLeft)
+    const y = chartBottom - (item.value / lineScaleMax) * chartHeight
     return { ...item, x, y }
   })
+
+  const lineAreaPoints =
+    linePoints.length > 0
+      ? [
+          `${linePoints[0].x},${chartBottom}`,
+          ...linePoints.map((point) => `${point.x},${point.y}`),
+          `${linePoints[linePoints.length - 1].x},${chartBottom}`,
+        ].join(' ')
+      : ''
 
   return (
     <DashboardPage
@@ -903,36 +925,56 @@ const UpsellCampaigns = () => {
                         Sem dados diários para este período.
                       </div>
                     ) : (
-                      <div className="mt-6">
+                      <div className="mt-5">
                         <svg
                           viewBox="0 0 100 100"
                           className="h-40 w-full"
                           preserveAspectRatio="none"
+                          role="img"
+                          aria-label={`Evolução diária de ${lineMetricLabel}`}
                         >
+                          {[chartTop, chartTop + chartHeight / 2, chartBottom].map(
+                            (y) => (
+                              <line
+                                key={y}
+                                x1={chartLeft}
+                                x2={chartRight}
+                                y1={y}
+                                y2={y}
+                                stroke="#E2E8F0"
+                                strokeWidth="1"
+                                strokeDasharray="3 4"
+                                vectorEffect="non-scaling-stroke"
+                              />
+                            ),
+                          )}
+                          <polygon
+                            fill="#EFF6FF"
+                            points={lineAreaPoints}
+                          />
                           <polyline
                             fill="none"
                             stroke="#2563EB"
-                            strokeWidth="2"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke"
                             points={linePoints
                               .map((point) => `${point.x},${point.y}`)
                               .join(' ')}
                           />
-                          {linePoints.map((point) => (
-                            <circle
-                              key={point.label}
-                              cx={point.x}
-                              cy={point.y}
-                              r="1.8"
-                              fill="#2563EB"
-                            />
-                          ))}
                         </svg>
                         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
                           <span>
                             {formatDateLabel(details.timeframe.start)} –{' '}
                             {formatDateLabel(details.timeframe.end)}
                           </span>
-                          <span>Máximo: {lineMax}</span>
+                          <span>
+                            Máximo:{' '}
+                            {metricFilter === 'revenue'
+                              ? formatCurrency(lineMax)
+                              : lineMax.toLocaleString('pt-BR')}
+                          </span>
                         </div>
                       </div>
                     )}

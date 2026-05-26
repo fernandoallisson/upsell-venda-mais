@@ -883,7 +883,7 @@ body {
   }
 
   .widget-template-gallery .widget-template-thumbnail {
-    max-height: 122px;
+    max-height: none;
   }
 
   .widget-template-gallery .widget-template-info {
@@ -989,7 +989,7 @@ body {
   }
 
   .widget-template-gallery .widget-template-thumbnail {
-    max-height: 92px;
+    max-height: none;
   }
 
   .widget-details-page iframe {

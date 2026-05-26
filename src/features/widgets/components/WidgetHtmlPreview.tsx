@@ -6,9 +6,17 @@ type Props = {
   compact?: boolean
   allowScripts?: boolean
   fill?: boolean
+  fitContent?: boolean
 }
 
-const WidgetHtmlPreview = ({ html, css, compact = false, allowScripts = false, fill = false }: Props) => {
+const WidgetHtmlPreview = ({
+  html,
+  css,
+  compact = false,
+  allowScripts = false,
+  fill = false,
+  fitContent = false,
+}: Props) => {
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
@@ -40,12 +48,55 @@ const WidgetHtmlPreview = ({ html, css, compact = false, allowScripts = false, f
   :where(.hero) { padding: 24px 20px !important; border-radius: 20px !important; }
   :where(.overlay) { position: relative !important; inset: auto !important; padding: 0 !important; background: transparent !important; backdrop-filter: none !important; }
   :where(.banner, .flash-banner) { position: relative !important; inset: auto !important; border-radius: 16px !important; flex-wrap: wrap !important; }
+  ${fitContent ? `
+  body { align-items: flex-start !important; justify-content: center !important; padding: 8px !important; }
+  #widget-fit-content {
+    display: flex;
+    width: 100%;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    transform-origin: top center;
+  }
+  #widget-fit-content > * { flex-shrink: 0; }
+  ` : ''}
 </style>
 </head>
-<body>${html}</body>
+<body>${fitContent ? `<div id="widget-fit-content">${html}</div>` : html}</body>
 </html>`)
     doc.close()
-  }, [html, css])
+
+    if (!fitContent) return
+
+    const content = doc.getElementById('widget-fit-content')
+    if (!content) return
+
+    const fitPreview = () => {
+      content.style.transform = 'none'
+
+      const availableHeight = Math.max(1, iframe.clientHeight - 16)
+      const availableWidth = Math.max(1, iframe.clientWidth - 16)
+      const contentHeight = Math.max(1, content.scrollHeight)
+      const contentWidth = Math.max(1, content.scrollWidth)
+      const scale = Math.min(
+        1,
+        availableHeight / contentHeight,
+        availableWidth / contentWidth,
+      )
+
+      content.style.transform = `scale(${scale})`
+    }
+
+    const frame = window.requestAnimationFrame(fitPreview)
+    const resizeObserver = new ResizeObserver(fitPreview)
+    resizeObserver.observe(iframe)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      resizeObserver.disconnect()
+    }
+  }, [css, fitContent, html])
 
   if (!html && !css) {
     return (
