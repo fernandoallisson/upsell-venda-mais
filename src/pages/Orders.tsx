@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
-import { ApiError } from '../lib/api'
+import { ApiError, invalidateApiCache } from '../lib/api'
+import { API_CACHE_TAGS } from '../lib/services/cacheTags'
 import { getOrderById, getOrders } from '../lib/services/orders/orders.service'
 import type {
   Order,
@@ -213,7 +214,10 @@ const Orders = () => {
 
         <button
           type="button"
-          onClick={() => fetchOrders(page)}
+          onClick={() => {
+            invalidateApiCache([API_CACHE_TAGS.orders])
+            fetchOrders(page)
+          }}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
         >
           <RefreshCcw className="h-4 w-4" />

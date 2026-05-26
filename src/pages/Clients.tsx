@@ -7,6 +7,8 @@ import CustomersListSection from '../features/customers/components/CustomersList
 import CustomersStatsHeader from '../features/customers/components/CustomersStatsHeader'
 import OrdersModal from '../features/customers/components/OrdersModal'
 import { useCustomersPage } from '../features/customers/hooks/useCustomersPage'
+import { invalidateApiCache } from '../lib/api'
+import { API_CACHE_TAGS } from '../lib/services/cacheTags'
 
 const Clients = () => {
   const [workspaceView, setWorkspaceView] = useState<'list' | 'details' | 'create'>('list')
@@ -63,7 +65,10 @@ const Clients = () => {
         pagination={pagination}
         totals={totals}
         page={page}
-        onRefresh={() => fetchCustomers(page)}
+        onRefresh={() => {
+          invalidateApiCache([API_CACHE_TAGS.customers])
+          fetchCustomers(page)
+        }}
       />
 
       {status === 'loading' ? (

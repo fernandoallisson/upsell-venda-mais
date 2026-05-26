@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   CreateUserPayload,
   UpdateUserPayload,
@@ -146,6 +147,8 @@ export const getUsers = async (
   const data = await apiFetch<JsonValue>(`${USERS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.users],
     errorMessage: 'Erro ao carregar usuários',
     networkErrorMessage: 'Falha de rede ao carregar usuários',
   })
@@ -157,6 +160,8 @@ export const getUserById = async (id: number): Promise<User> => {
   const data = await apiFetch<JsonValue>(`${USERS_ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.users],
     errorMessage: 'Erro ao carregar detalhes do usuário',
     networkErrorMessage: 'Falha de rede ao carregar usuário',
   })
@@ -170,6 +175,7 @@ export const createUser = async (
   const data = await apiFetch<JsonValue>(USERS_ENDPOINT, {
     method: 'POST',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.users, API_CACHE_TAGS.permissions],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar usuário',
     networkErrorMessage: 'Falha de rede ao criar usuário',
@@ -185,6 +191,7 @@ export const updateUserById = async (
   const data = await apiFetch<JsonValue>(`${USERS_ENDPOINT}/${id}`, {
     method: 'PUT',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.users, API_CACHE_TAGS.permissions],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar usuário',
     networkErrorMessage: 'Falha de rede ao atualizar usuário',
@@ -197,6 +204,7 @@ export const deleteUserById = async (id: number): Promise<void> => {
   await apiFetch<JsonValue>(`${USERS_ENDPOINT}/${id}`, {
     method: 'DELETE',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.users, API_CACHE_TAGS.permissions],
     errorMessage: 'Erro ao remover usuário',
     networkErrorMessage: 'Falha de rede ao remover usuário',
   })
@@ -206,6 +214,8 @@ export const getUser = async (): Promise<User> => {
   const data = await apiFetch<JsonValue>(USER_ENDPOINT, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.users],
     errorMessage: 'Erro ao buscar usuário',
     networkErrorMessage: 'Falha de rede ao buscar usuário',
   })
@@ -220,6 +230,7 @@ export const updateUser = async (
   const data = await apiFetch<JsonValue>(USER_ENDPOINT, {
     method,
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.users],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar usuário',
     networkErrorMessage: 'Falha de rede ao atualizar usuário',
@@ -234,6 +245,7 @@ export const updateAuthenticatedUser = async (
   const data = await apiFetch<JsonValue>(AUTH_ME_ENDPOINT, {
     method: 'PUT',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.users],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar perfil',
     networkErrorMessage: 'Falha de rede ao atualizar perfil',

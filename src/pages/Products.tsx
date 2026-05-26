@@ -18,7 +18,8 @@ import {
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
 import WorkspaceTabs from '../components/layout/WorkspaceTabs'
-import { ApiError } from '../lib/api'
+import { ApiError, invalidateApiCache } from '../lib/api'
+import { API_CACHE_TAGS } from '../lib/services/cacheTags'
 import { getCategories } from '../lib/services/categories/categories.service'
 import type { Category } from '../lib/services/categories/categories.types'
 import {
@@ -624,6 +625,7 @@ const Products = () => {
         <button
           type="button"
           onClick={() => {
+            invalidateApiCache([API_CACHE_TAGS.products])
             invalidateFilteredProducts()
             fetchProducts(page)
           }}

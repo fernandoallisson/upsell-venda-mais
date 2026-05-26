@@ -8,6 +8,8 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { login } from '../lib/services/auth/auth.service'
 import { clearAuthToken, getAuthToken, setAuthToken } from '../lib/storage'
+import { invalidateApiCache } from '../lib/api'
+import { API_CACHE_TAGS } from '../lib/services/cacheTags'
 import { getUser } from '../lib/services/users/users.service'
 import type { User } from '../lib/services/users/users.types'
 import { AuthContext } from './AuthContextBase'
@@ -61,6 +63,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     setUserError(null)
 
     try {
+      if (options?.force) {
+        invalidateApiCache([API_CACHE_TAGS.users])
+      }
       pendingUserRequest ??= getUser()
       const nextUser = await pendingUserRequest
       cachedUserToken = token
@@ -93,6 +98,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const signIn = useCallback(
     async (email: string, password: string) => {
       const response = await login(email, password)
+      invalidateApiCache()
       setAuthToken(response.token)
       setToken(response.token)
       cachedUserToken = null
@@ -107,6 +113,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   )
 
   const signOut = useCallback(() => {
+    invalidateApiCache()
     clearAuthToken()
     setToken(null)
     clearUserCache()

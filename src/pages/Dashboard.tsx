@@ -8,7 +8,8 @@ import {
   ShoppingCart,
   TrendingUp,
 } from 'lucide-react'
-import { ApiError } from '../lib/api'
+import { ApiError, invalidateApiCache } from '../lib/api'
+import { API_CACHE_TAGS } from '../lib/services/cacheTags'
 import {
   getAnalyticsOverview,
   getOffersAnalytics,
@@ -196,6 +197,11 @@ const Dashboard = () => {
   }
 
   const handleRefresh = () => {
+    invalidateApiCache([
+      API_CACHE_TAGS.analytics,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.products,
+    ])
     fetchAnalytics()
     void refreshUser({ force: true })
   }

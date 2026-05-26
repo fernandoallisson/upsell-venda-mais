@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   CreateOfferPayload,
   Offer,
@@ -151,6 +152,8 @@ export const getOffers = async (
   const data = await apiFetch<JsonValue>(`${OFFERS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.offers],
     errorMessage: 'Erro ao carregar ofertas',
     networkErrorMessage: 'Falha de rede ao carregar ofertas',
   })
@@ -162,6 +165,8 @@ export const getOfferById = async (id: number): Promise<OfferResponse> => {
   const data = await apiFetch<JsonValue>(`${OFFERS_ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.offers],
     errorMessage: 'Erro ao carregar detalhes da oferta',
     networkErrorMessage: 'Falha de rede ao carregar detalhes da oferta',
   })
@@ -175,6 +180,11 @@ export const createOffer = async (
   const data = await apiFetch<JsonValue>(OFFERS_ENDPOINT, {
     method: 'POST',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.offers,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.analytics,
+    ],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar oferta',
     networkErrorMessage: 'Falha de rede ao criar oferta',
@@ -190,6 +200,11 @@ export const updateOffer = async (
   const data = await apiFetch<JsonValue>(`${OFFERS_ENDPOINT}/${id}`, {
     method: 'PUT',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.offers,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.analytics,
+    ],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar oferta',
     networkErrorMessage: 'Falha de rede ao atualizar oferta',
@@ -202,6 +217,11 @@ export const deleteOffer = async (id: number): Promise<void> => {
   await apiFetch<JsonValue>(`${OFFERS_ENDPOINT}/${id}`, {
     method: 'DELETE',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.offers,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.analytics,
+    ],
     errorMessage: 'Erro ao remover oferta',
     networkErrorMessage: 'Falha de rede ao remover oferta',
   })

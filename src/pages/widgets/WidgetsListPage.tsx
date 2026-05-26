@@ -5,7 +5,8 @@ import DashboardPage from '../../components/layout/DashboardPage'
 import WidgetFilters from '../../features/widgets/components/WidgetFilters'
 import WidgetCardPreview from '../../features/widgets/components/WidgetCardPreview'
 import WidgetStatusBadge from '../../features/widgets/components/WidgetStatusBadge'
-import { ApiError } from '../../lib/api'
+import { ApiError, invalidateApiCache } from '../../lib/api'
+import { API_CACHE_TAGS } from '../../lib/services/cacheTags'
 import { deleteWidget, getWidgets, restoreWidget } from '../../lib/services/widgets/widgets.service'
 import type { Widget, WidgetListParams, WidgetListResponse } from '../../types/widget'
 
@@ -82,7 +83,10 @@ const WidgetsListPage = () => {
     <DashboardPage title="Biblioteca de Widgets" subtitle="Gerencie templates visuais reutilizáveis para campanhas" containerClassName="viewport-workspace widgets-list-page max-w-7xl">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <button type="button" onClick={fetchWidgets} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+          <button type="button" onClick={() => {
+            invalidateApiCache([API_CACHE_TAGS.widgets])
+            fetchWidgets()
+          }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
             <RefreshCcw className="h-4 w-4" /> Atualizar
           </button>
 

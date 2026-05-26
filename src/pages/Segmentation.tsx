@@ -15,7 +15,8 @@ import {
 import DashboardPage from '../components/layout/DashboardPage'
 import WorkspaceTabs from '../components/layout/WorkspaceTabs'
 import ExportSegmentModal from '../components/segments/ExportSegmentModal'
-import { ApiError } from '../lib/api'
+import { ApiError, invalidateApiCache } from '../lib/api'
+import { API_CACHE_TAGS } from '../lib/services/cacheTags'
 import {
   createSegment,
   getSegmentById,
@@ -1362,7 +1363,10 @@ const Segmentation = () => {
 
         <button
           type="button"
-          onClick={() => fetchSegments(page)}
+          onClick={() => {
+            invalidateApiCache([API_CACHE_TAGS.segments])
+            fetchSegments(page)
+          }}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
         >
           <RefreshCcw className="h-4 w-4" />

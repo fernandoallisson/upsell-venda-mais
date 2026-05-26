@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   Campaign,
   CampaignApiKey,
@@ -393,6 +394,8 @@ export const getCampaignById = async (id: number): Promise<CampaignDetails> => {
   const data = await apiFetch<JsonValue>(`${CAMPAIGNS_ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.campaigns],
     errorMessage: 'Erro ao carregar detalhes da campanha',
     networkErrorMessage: 'Falha de rede ao carregar campanha',
   })
@@ -406,6 +409,11 @@ export const createCampaign = async (
   const data = await apiFetch<JsonValue>(CAMPAIGNS_ENDPOINT, {
     method: 'POST',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.offers,
+      API_CACHE_TAGS.analytics,
+    ],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar campanha',
     networkErrorMessage: 'Falha de rede ao criar campanha',
@@ -421,6 +429,11 @@ export const updateCampaign = async (
   const data = await apiFetch<JsonValue>(`${CAMPAIGNS_ENDPOINT}/${id}`, {
     method: 'PUT',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.offers,
+      API_CACHE_TAGS.analytics,
+    ],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar campanha',
     networkErrorMessage: 'Falha de rede ao atualizar campanha',
@@ -433,6 +446,11 @@ export const deleteCampaign = async (id: number): Promise<void> => {
   await apiFetch<JsonValue>(`${CAMPAIGNS_ENDPOINT}/${id}`, {
     method: 'DELETE',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.offers,
+      API_CACHE_TAGS.analytics,
+    ],
     errorMessage: 'Erro ao remover campanha',
     networkErrorMessage: 'Falha de rede ao remover campanha',
   })
@@ -446,6 +464,8 @@ export const getCampaignProducts = async (
     {
       method: 'GET',
       auth: true,
+      cache: true,
+      cacheTags: [API_CACHE_TAGS.campaigns],
       errorMessage: 'Erro ao carregar produtos da campanha',
       networkErrorMessage: 'Falha de rede ao carregar produtos da campanha',
     },
@@ -463,6 +483,7 @@ export const updateCampaignProducts = async (
     {
       method: 'PUT',
       auth: true,
+      invalidateTags: [API_CACHE_TAGS.campaigns, API_CACHE_TAGS.offers],
       body: JSON.stringify({ products }),
       errorMessage: 'Erro ao atualizar produtos da campanha',
       networkErrorMessage: 'Falha de rede ao atualizar produtos da campanha',
@@ -478,6 +499,8 @@ export const getDisplayLocations = async (): Promise<DisplayLocationsResponse> =
     {
       method: 'GET',
       auth: true,
+      cache: true,
+      cacheTags: [API_CACHE_TAGS.campaigns],
       errorMessage: 'Erro ao carregar locais de exibição',
       networkErrorMessage: 'Falha de rede ao carregar locais de exibição',
     },
@@ -528,6 +551,8 @@ export const getCampaignSegments = async (
     {
       method: 'GET',
       auth: true,
+      cache: true,
+      cacheTags: [API_CACHE_TAGS.campaigns],
       errorMessage: 'Erro ao carregar segmentos da campanha',
       networkErrorMessage: 'Falha de rede ao carregar segmentos da campanha',
     },
@@ -545,6 +570,7 @@ export const updateCampaignSegments = async (
     {
       method: 'PUT',
       auth: true,
+      invalidateTags: [API_CACHE_TAGS.campaigns],
       body: JSON.stringify({ segments }),
       errorMessage: 'Erro ao atualizar segmentos da campanha',
       networkErrorMessage: 'Falha de rede ao atualizar segmentos da campanha',
@@ -568,6 +594,8 @@ export const getCampaigns = async (
   const data = await apiFetch<JsonValue>(`${CAMPAIGNS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.campaigns],
     errorMessage: 'Erro ao carregar campanhas',
     networkErrorMessage: 'Falha de rede ao carregar campanhas',
   })

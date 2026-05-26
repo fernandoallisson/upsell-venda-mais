@@ -8,6 +8,8 @@ import {
 import { useAuth } from './useAuth'
 import type { Permission } from '../lib/services/permissions/permissions.types'
 import { getUserPermissions } from '../lib/services/permissions/permissions.service'
+import { invalidateApiCache } from '../lib/api'
+import { API_CACHE_TAGS } from '../lib/services/cacheTags'
 import { PermissionsContext } from './PermissionsContextBase'
 
 const PERMISSIONS_CACHE_PREFIX = 'upsell_venda_mais_permissions'
@@ -124,6 +126,8 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
           setPermissions(cachedPermissions)
           return
         }
+      } else {
+        invalidateApiCache([API_CACHE_TAGS.permissions])
       }
 
       const response = await getUserPermissions(user.id)

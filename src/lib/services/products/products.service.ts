@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   CreateProductPayload,
   Product,
@@ -166,6 +167,8 @@ export const getProducts = async (
   const data = await apiFetch<JsonValue>(`${PRODUCTS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.products],
     errorMessage: 'Erro ao carregar produtos',
     networkErrorMessage: 'Falha de rede ao carregar produtos',
   })
@@ -177,6 +180,8 @@ export const getProductById = async (id: number): Promise<Product> => {
   const data = await apiFetch<JsonValue>(`${PRODUCTS_ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.products],
     errorMessage: 'Erro ao carregar detalhes do produto',
     networkErrorMessage: 'Falha de rede ao carregar produto',
   })
@@ -190,6 +195,12 @@ export const createProduct = async (
   const data = await apiFetch<JsonValue>(PRODUCTS_ENDPOINT, {
     method: 'POST',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.products,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.offers,
+      API_CACHE_TAGS.analytics,
+    ],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar produto',
     networkErrorMessage: 'Falha de rede ao criar produto',
@@ -205,6 +216,12 @@ export const updateProduct = async (
   const data = await apiFetch<JsonValue>(`${PRODUCTS_ENDPOINT}/${id}`, {
     method: 'PUT',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.products,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.offers,
+      API_CACHE_TAGS.analytics,
+    ],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar produto',
     networkErrorMessage: 'Falha de rede ao atualizar produto',
@@ -217,6 +234,12 @@ export const deleteProduct = async (id: number): Promise<void> => {
   await apiFetch<JsonValue>(`${PRODUCTS_ENDPOINT}/${id}`, {
     method: 'DELETE',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.products,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.offers,
+      API_CACHE_TAGS.analytics,
+    ],
     errorMessage: 'Erro ao remover produto',
     networkErrorMessage: 'Falha de rede ao remover produto',
   })

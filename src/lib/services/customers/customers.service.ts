@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   Customer,
   CustomerPayload,
@@ -252,6 +253,8 @@ export const getCustomers = async (
   const data = await apiFetch<JsonValue>(`${CUSTOMERS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.customers],
     errorMessage: 'Erro ao carregar clientes',
     networkErrorMessage: 'Falha de rede ao carregar clientes',
   })
@@ -263,6 +266,8 @@ export const getCustomerById = async (id: number): Promise<Customer> => {
   const data = await apiFetch<JsonValue>(`${CUSTOMERS_ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.customers],
     errorMessage: 'Erro ao carregar detalhes do cliente',
     networkErrorMessage: 'Falha de rede ao carregar cliente',
   })
@@ -274,6 +279,7 @@ export const createCustomer = async (payload: CustomerPayload): Promise<Customer
   const data = await apiFetch<JsonValue>(CUSTOMERS_ENDPOINT, {
     method: 'POST',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.customers, API_CACHE_TAGS.segments, API_CACHE_TAGS.orders],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar cliente',
     networkErrorMessage: 'Falha de rede ao criar cliente',
@@ -286,6 +292,7 @@ export const updateCustomer = async (id: number, payload: CustomerPayload): Prom
   const data = await apiFetch<JsonValue>(`${CUSTOMERS_ENDPOINT}/${id}`, {
     method: 'PUT',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.customers, API_CACHE_TAGS.segments, API_CACHE_TAGS.orders],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar cliente',
     networkErrorMessage: 'Falha de rede ao atualizar cliente',
@@ -298,6 +305,7 @@ export const deleteCustomer = async (id: number): Promise<void> => {
   await apiFetch(`${CUSTOMERS_ENDPOINT}/${id}`, {
     method: 'DELETE',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.customers, API_CACHE_TAGS.segments, API_CACHE_TAGS.orders],
     errorMessage: 'Erro ao remover cliente',
     networkErrorMessage: 'Falha de rede ao remover cliente',
   })

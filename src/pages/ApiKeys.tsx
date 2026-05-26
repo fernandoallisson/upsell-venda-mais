@@ -13,7 +13,8 @@ import {
   ToggleRight,
 } from 'lucide-react'
 import DashboardPage from '../components/layout/DashboardPage'
-import { ApiError } from '../lib/api'
+import { ApiError, invalidateApiCache } from '../lib/api'
+import { API_CACHE_TAGS } from '../lib/services/cacheTags'
 import {
   deleteApiKey,
   getApiKeys,
@@ -269,7 +270,10 @@ const ApiKeys = () => {
           </select>
           <button
             type="button"
-            onClick={fetchApiKeys}
+            onClick={() => {
+              invalidateApiCache([API_CACHE_TAGS.apiKeys])
+              fetchApiKeys()
+            }}
             className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
           >
             <RefreshCcw className="h-4 w-4" />

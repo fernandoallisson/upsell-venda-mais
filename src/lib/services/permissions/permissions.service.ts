@@ -1,4 +1,5 @@
 import { apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   PermissionsResponse,
   SyncPermissionsPayload,
@@ -12,6 +13,8 @@ export const getAllPermissions = async (): Promise<PermissionsResponse> => {
   return apiFetch<PermissionsResponse>(PERMISSIONS_ENDPOINT, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.permissions],
     errorMessage: 'Erro ao carregar permissões',
     networkErrorMessage: 'Falha de rede ao carregar permissões',
   })
@@ -25,6 +28,8 @@ export const getUserPermissions = async (
     {
       method: 'GET',
       auth: true,
+      cache: true,
+      cacheTags: [API_CACHE_TAGS.permissions],
       errorMessage: 'Erro ao carregar permissões do usuário',
       networkErrorMessage: 'Falha de rede ao carregar permissões do usuário',
     },
@@ -40,6 +45,7 @@ export const syncUserPermissionsBySlugs = async (
     {
       method: 'PUT',
       auth: true,
+      invalidateTags: [API_CACHE_TAGS.permissions, API_CACHE_TAGS.users],
       body: JSON.stringify(payload),
       errorMessage: 'Erro ao sincronizar permissões do usuário',
       networkErrorMessage: 'Falha de rede ao sincronizar permissões do usuário',

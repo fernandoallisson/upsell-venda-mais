@@ -1,4 +1,5 @@
-import { ApiError, apiFetch } from '../../api'
+import { ApiError, apiFetch, type ApiFetchOptions } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   UpdateWidgetFormPayload,
   WidgetFormPayload,
@@ -124,7 +125,7 @@ const handleValidationError = (error: unknown, fallbackMessage: string): never =
  */
 const widgetRequest = async <T>(
   endpoint: string,
-  options: RequestInit,
+  options: ApiFetchOptions,
   fallbackErrorMessage: string,
 ): Promise<T> => {
   try {
@@ -145,7 +146,7 @@ const widgetRequest = async <T>(
 const widgetPublicRequest = async <T>(
   endpoint: string,
   apiKey: string,
-  options: RequestInit,
+  options: Omit<RequestInit, 'cache'>,
   fallbackErrorMessage: string,
 ): Promise<T> => {
   if (!apiKey.trim()) {
@@ -187,7 +188,11 @@ export const getWidgets = async (params: WidgetListParams): Promise<WidgetListRe
 
   const response = await widgetRequest<JsonValue>(
     `${WIDGETS_BASE_ENDPOINT}?${query.toString()}`,
-    { method: 'GET' },
+    {
+      method: 'GET',
+      cache: true,
+      cacheTags: [API_CACHE_TAGS.widgets],
+    },
     'Erro ao carregar widgets',
   )
 
@@ -197,7 +202,11 @@ export const getWidgets = async (params: WidgetListParams): Promise<WidgetListRe
 export const getWidgetById = async (id: string): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     `${WIDGETS_BASE_ENDPOINT}/${id}`,
-    { method: 'GET' },
+    {
+      method: 'GET',
+      cache: true,
+      cacheTags: [API_CACHE_TAGS.widgets],
+    },
     'Erro ao carregar widget',
   )
 
@@ -207,7 +216,11 @@ export const getWidgetById = async (id: string): Promise<Widget> => {
 export const getWidgetBySlug = async (slug: string): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     `/v1/widgets/by-slug/${encodeURIComponent(slug)}`,
-    { method: 'GET' },
+    {
+      method: 'GET',
+      cache: true,
+      cacheTags: [API_CACHE_TAGS.widgets],
+    },
     'Erro ao buscar widget por slug',
   )
 
@@ -226,6 +239,7 @@ export const createWidget = async (payload: WidgetFormPayload): Promise<Widget> 
     {
       method: 'POST',
       body: JSON.stringify(toCreateWidgetPayload(payload)),
+      invalidateTags: [API_CACHE_TAGS.widgets, API_CACHE_TAGS.campaigns],
     },
     'Erro ao criar widget',
   )
@@ -245,6 +259,7 @@ export const updateWidget = async (id: string, payload: UpdateWidgetFormPayload)
     {
       method: 'PUT',
       body: JSON.stringify(toUpdateWidgetPayload(payload)),
+      invalidateTags: [API_CACHE_TAGS.widgets, API_CACHE_TAGS.campaigns],
     },
     'Erro ao atualizar widget',
   )
@@ -256,7 +271,10 @@ export const updateWidget = async (id: string, payload: UpdateWidgetFormPayload)
 export const deleteWidget = async (id: string): Promise<void> => {
   await widgetRequest(
     `${WIDGETS_BASE_ENDPOINT}/${id}`,
-    { method: 'DELETE' },
+    {
+      method: 'DELETE',
+      invalidateTags: [API_CACHE_TAGS.widgets, API_CACHE_TAGS.campaigns],
+    },
     'Erro ao deletar widget',
   )
 }
@@ -264,7 +282,10 @@ export const deleteWidget = async (id: string): Promise<void> => {
 export const restoreWidget = async (id: string): Promise<Widget> => {
   const response = await widgetRequest<JsonValue>(
     `/v1/widgets/${id}/restore`,
-    { method: 'POST' },
+    {
+      method: 'POST',
+      invalidateTags: [API_CACHE_TAGS.widgets, API_CACHE_TAGS.campaigns],
+    },
     'Erro ao restaurar widget',
   )
 

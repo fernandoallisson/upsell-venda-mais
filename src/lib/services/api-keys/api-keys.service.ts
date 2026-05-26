@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   ApiKey,
   ApiKeyWithSecret,
@@ -139,6 +140,8 @@ export const getApiKeys = async (params?: {
   const data = await apiFetch<JsonValue>(`${ENDPOINT}${qs ? `?${qs}` : ''}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.apiKeys],
     errorMessage: 'Erro ao carregar chaves de API',
     networkErrorMessage: 'Falha de rede ao carregar chaves de API',
   })
@@ -150,6 +153,8 @@ export const getApiKeyById = async (id: number): Promise<ApiKey> => {
   const data = await apiFetch<JsonValue>(`${ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.apiKeys],
     errorMessage: 'Erro ao carregar chave de API',
     networkErrorMessage: 'Falha de rede ao carregar chave de API',
   })
@@ -172,6 +177,7 @@ export const createApiKey = async (
     method: 'POST',
     auth: true,
     body: JSON.stringify(body),
+    invalidateTags: [API_CACHE_TAGS.apiKeys, API_CACHE_TAGS.campaigns],
     errorMessage: 'Erro ao criar chave de API',
     networkErrorMessage: 'Falha de rede ao criar chave de API',
   })
@@ -194,6 +200,7 @@ export const updateApiKey = async (
     method: 'PUT',
     auth: true,
     body: JSON.stringify(body),
+    invalidateTags: [API_CACHE_TAGS.apiKeys, API_CACHE_TAGS.campaigns],
     errorMessage: 'Erro ao atualizar chave de API',
     networkErrorMessage: 'Falha de rede ao atualizar chave de API',
   })
@@ -205,6 +212,7 @@ export const deleteApiKey = async (id: number): Promise<void> => {
   await apiFetch<void>(`${ENDPOINT}/${id}`, {
     method: 'DELETE',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.apiKeys, API_CACHE_TAGS.campaigns],
     errorMessage: 'Erro ao remover chave de API',
     networkErrorMessage: 'Falha de rede ao remover chave de API',
   })
@@ -214,6 +222,7 @@ export const regeneratePublicKey = async (id: number): Promise<ApiKey> => {
   const data = await apiFetch<JsonValue>(`${ENDPOINT}/${id}/regenerate-public-key`, {
     method: 'POST',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.apiKeys, API_CACHE_TAGS.campaigns],
     errorMessage: 'Erro ao regenerar chave pública',
     networkErrorMessage: 'Falha de rede ao regenerar chave pública',
   })
@@ -225,6 +234,7 @@ export const regenerateSecretKey = async (id: number): Promise<ApiKeyWithSecret>
   const data = await apiFetch<JsonValue>(`${ENDPOINT}/${id}/regenerate-secret-key`, {
     method: 'POST',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.apiKeys, API_CACHE_TAGS.campaigns],
     errorMessage: 'Erro ao regenerar chave secreta',
     networkErrorMessage: 'Falha de rede ao regenerar chave secreta',
   })
@@ -236,6 +246,7 @@ export const toggleApiKeyActive = async (id: number): Promise<ApiKey> => {
   const data = await apiFetch<JsonValue>(`${ENDPOINT}/${id}/toggle-active`, {
     method: 'POST',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.apiKeys, API_CACHE_TAGS.campaigns],
     errorMessage: 'Erro ao alterar status da chave',
     networkErrorMessage: 'Falha de rede ao alterar status',
   })

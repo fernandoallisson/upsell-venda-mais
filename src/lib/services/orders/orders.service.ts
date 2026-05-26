@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   CreateOrderPayload,
   Order,
@@ -221,6 +222,8 @@ export const getOrders = async (
   const data = await apiFetch<JsonValue>(`${ORDERS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.orders],
     errorMessage: 'Erro ao carregar pedidos',
     networkErrorMessage: 'Falha de rede ao carregar pedidos',
   })
@@ -232,6 +235,8 @@ export const getOrderById = async (id: number): Promise<Order> => {
   const data = await apiFetch<JsonValue>(`${ORDERS_ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.orders],
     errorMessage: 'Erro ao carregar detalhes do pedido',
     networkErrorMessage: 'Falha de rede ao carregar pedido',
   })
@@ -245,6 +250,12 @@ export const createOrder = async (
   const data = await apiFetch<JsonValue>(ORDERS_ENDPOINT, {
     method: 'POST',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.orders,
+      API_CACHE_TAGS.customers,
+      API_CACHE_TAGS.analytics,
+      API_CACHE_TAGS.segments,
+    ],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar pedido',
     networkErrorMessage: 'Falha de rede ao criar pedido',

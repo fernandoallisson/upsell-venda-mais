@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   CreateSegmentPayload,
   ExportColumn,
@@ -327,6 +328,8 @@ export const getSegments = async (
   const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.segments],
     errorMessage: 'Erro ao carregar segmentos',
     networkErrorMessage: 'Falha de rede ao carregar segmentos',
   })
@@ -338,6 +341,8 @@ export const getSegmentById = async (id: number): Promise<Segment> => {
   const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.segments],
     errorMessage: 'Erro ao carregar detalhes do segmento',
     networkErrorMessage: 'Falha de rede ao carregar segmento',
   })
@@ -349,6 +354,11 @@ export const createSegment = async (payload: CreateSegmentPayload): Promise<Segm
   const data = await apiFetch<JsonValue>(SEGMENTS_ENDPOINT, {
     method: 'POST',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.segments,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.customers,
+    ],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar segmento',
     networkErrorMessage: 'Falha de rede ao criar segmento',
@@ -364,6 +374,11 @@ export const updateSegment = async (
   const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}/${id}`, {
     method: 'PUT',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.segments,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.customers,
+    ],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar segmento',
     networkErrorMessage: 'Falha de rede ao atualizar segmento',
@@ -376,6 +391,11 @@ export const deleteSegment = async (id: number): Promise<void> => {
   await apiFetch<void>(`${SEGMENTS_ENDPOINT}/${id}`, {
     method: 'DELETE',
     auth: true,
+    invalidateTags: [
+      API_CACHE_TAGS.segments,
+      API_CACHE_TAGS.campaigns,
+      API_CACHE_TAGS.customers,
+    ],
     errorMessage: 'Erro ao remover segmento',
     networkErrorMessage: 'Falha de rede ao remover segmento',
   })
@@ -414,6 +434,8 @@ export const getExportColumns = async (): Promise<ExportColumn[]> => {
   const data = await apiFetch<JsonValue>(`${SEGMENTS_ENDPOINT}/export/columns`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.segments],
     errorMessage: 'Erro ao carregar colunas de exportação',
     networkErrorMessage: 'Falha de rede ao carregar colunas',
   })

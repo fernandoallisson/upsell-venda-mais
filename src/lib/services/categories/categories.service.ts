@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from '../../api'
+import { API_CACHE_TAGS } from '../cacheTags'
 import type {
   CategoriesResponse,
   Category,
@@ -125,6 +126,8 @@ export const getCategories = async (
   const data = await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}?${params.toString()}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.categories],
     errorMessage: 'Erro ao carregar categorias',
     networkErrorMessage: 'Falha de rede ao carregar categorias',
   })
@@ -136,6 +139,8 @@ export const getCategoryById = async (id: number): Promise<Category> => {
   const data = await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}/${id}`, {
     method: 'GET',
     auth: true,
+    cache: true,
+    cacheTags: [API_CACHE_TAGS.categories],
     errorMessage: 'Erro ao carregar detalhes da categoria',
     networkErrorMessage: 'Falha de rede ao carregar categoria',
   })
@@ -149,6 +154,7 @@ export const createCategory = async (
   const data = await apiFetch<JsonValue>(CATEGORIES_ENDPOINT, {
     method: 'POST',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.categories, API_CACHE_TAGS.products],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao criar categoria',
     networkErrorMessage: 'Falha de rede ao criar categoria',
@@ -164,6 +170,7 @@ export const updateCategory = async (
   const data = await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}/${id}`, {
     method: 'PUT',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.categories, API_CACHE_TAGS.products],
     body: JSON.stringify(payload),
     errorMessage: 'Erro ao atualizar categoria',
     networkErrorMessage: 'Falha de rede ao atualizar categoria',
@@ -176,6 +183,7 @@ export const deleteCategory = async (id: number): Promise<void> => {
   await apiFetch<JsonValue>(`${CATEGORIES_ENDPOINT}/${id}`, {
     method: 'DELETE',
     auth: true,
+    invalidateTags: [API_CACHE_TAGS.categories, API_CACHE_TAGS.products],
     errorMessage: 'Erro ao remover categoria',
     networkErrorMessage: 'Falha de rede ao remover categoria',
   })
