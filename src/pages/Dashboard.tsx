@@ -170,7 +170,7 @@ const Dashboard = () => {
       ],
     },
     {
-      title: 'Interacoes',
+      title: 'Interações',
       items: [
         { label: 'Views', value: totals.views.toLocaleString('pt-BR'), icon: <Eye className="h-4 w-4" /> },
         { label: 'Clicks', value: totals.clicks.toLocaleString('pt-BR'), icon: <MousePointer className="h-4 w-4" /> },

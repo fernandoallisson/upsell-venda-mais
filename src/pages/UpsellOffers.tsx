@@ -1002,7 +1002,7 @@ const UpsellOffers = () => {
                   { value: 'summary', label: 'Resumo' },
                   { value: 'analytics', label: 'Desempenho' },
                   { value: 'edit', label: 'Editar' },
-                  { value: 'actions', label: 'Acoes' },
+                  { value: 'actions', label: 'Ações' },
                 ]}
               />
               <div className="mt-4 space-y-4">

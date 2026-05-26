@@ -314,7 +314,7 @@ const ViewApiKey = () => {
           { value: 'summary', label: 'Resumo' },
           { value: 'credentials', label: 'Credenciais' },
           { value: 'script', label: 'Script' },
-          { value: 'actions', label: 'Acoes' },
+          { value: 'actions', label: 'Ações' },
         ]}
       />
       <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-cols-2">

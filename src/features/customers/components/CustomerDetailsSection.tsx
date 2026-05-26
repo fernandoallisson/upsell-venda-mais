@@ -64,9 +64,9 @@ const CustomerDetailsSection = ({
             onChange={setDetailView}
             tabs={[
               { value: 'summary', label: 'Resumo' },
-              { value: 'relations', label: 'Preferencias' },
+              { value: 'relations', label: 'Preferências' },
               { value: 'edit', label: 'Editar' },
-              { value: 'actions', label: 'Acoes' },
+              { value: 'actions', label: 'Ações' },
             ]}
           />
           <div className={`desktop-workspace-panel ${detailView === 'summary' ? 'is-active' : ''}`}>

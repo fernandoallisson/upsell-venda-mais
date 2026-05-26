@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Barcode,
   Calendar,
@@ -96,6 +96,8 @@ const parseNumber = (value: string) => {
   return Number.isNaN(parsed) ? null : parsed
 }
 
+const FULL_PRODUCT_LIST_PAGE_SIZE = 100
+
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -121,7 +123,19 @@ const Products = () => {
     status: 'all',
   })
 
-  const [isFiltersOpen, setIsFiltersOpen] = useState(true)
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  const [allProducts, setAllProducts] = useState<Product[] | null>(null)
+  const [filterPage, setFilterPage] = useState(1)
+  const [filterStatus, setFilterStatus] = useState<
+    'idle' | 'loading' | 'error'
+  >('idle')
+  const [filterError, setFilterError] = useState<string | null>(null)
+  const filterRequestId = useRef(0)
+
+  const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
+    if (key === 'status') return value !== 'all'
+    return value.trim().length > 0
+  })
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
@@ -142,7 +156,7 @@ const Products = () => {
   })
 
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [workspaceView, setWorkspaceView] = useState<'list' | 'details' | 'create' | 'filters'>('list')
+  const [workspaceView, setWorkspaceView] = useState<'list' | 'details' | 'create'>('list')
   const [detailView, setDetailView] = useState<'summary' | 'edit' | 'actions'>('summary')
 
   const [updateStatus, setUpdateStatus] = useState<
@@ -175,6 +189,55 @@ const Products = () => {
       setError(message)
       setDetailStatus('error')
     }
+  }, [])
+
+  const fetchAllProducts = useCallback(async () => {
+    const requestId = filterRequestId.current + 1
+    filterRequestId.current = requestId
+    setFilterStatus('loading')
+    setFilterError(null)
+
+    try {
+      const firstPage = await getProducts({
+        page: 1,
+        perPage: FULL_PRODUCT_LIST_PAGE_SIZE,
+      })
+      const remainingPages =
+        firstPage.last_page > 1
+          ? await Promise.all(
+              Array.from({ length: firstPage.last_page - 1 }, (_, index) =>
+                getProducts({
+                  page: index + 2,
+                  perPage: FULL_PRODUCT_LIST_PAGE_SIZE,
+                }),
+              ),
+            )
+          : []
+
+      if (requestId !== filterRequestId.current) return
+
+      setAllProducts([
+        ...firstPage.data,
+        ...remainingPages.flatMap((response) => response.data),
+      ])
+      setFilterStatus('idle')
+    } catch (err) {
+      if (requestId !== filterRequestId.current) return
+
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Erro ao pesquisar em todos os produtos.'
+      setFilterError(message)
+      setFilterStatus('error')
+    }
+  }, [])
+
+  const invalidateFilteredProducts = useCallback(() => {
+    filterRequestId.current += 1
+    setAllProducts(null)
+    setFilterStatus('idle')
+    setFilterError(null)
   }, [])
 
   const fetchProducts = useCallback(
@@ -284,6 +347,18 @@ const Products = () => {
     setUpdateError(null)
   }, [isEditOpen])
 
+  useEffect(() => {
+    setFilterPage(1)
+  }, [filters])
+
+  useEffect(() => {
+    if (!hasActiveFilters || allProducts !== null || filterStatus !== 'idle') {
+      return
+    }
+
+    fetchAllProducts()
+  }, [allProducts, fetchAllProducts, filterStatus, hasActiveFilters])
+
   const totals = useMemo(() => {
     return products.reduce(
       (acc, product) => {
@@ -303,8 +378,12 @@ const Products = () => {
   }
 
   const handleGoToPage = (nextPage: number) => {
-    if (!pagination) return
-    if (nextPage < 1 || nextPage > pagination.last_page) return
+    if (!listPagination) return
+    if (nextPage < 1 || nextPage > listPagination.last_page) return
+    if (hasActiveFilters) {
+      setFilterPage(nextPage)
+      return
+    }
     fetchProducts(nextPage)
   }
 
@@ -341,6 +420,7 @@ const Products = () => {
 
       setIsCreateOpen(false)
 
+      invalidateFilteredProducts()
       fetchProducts(1)
     } catch (err) {
       const message =
@@ -372,6 +452,7 @@ const Products = () => {
       const updated = await updateProduct(selectedProduct.id, payload)
       setSelectedProduct(updated)
       setUpdateStatus('success')
+      invalidateFilteredProducts()
       fetchProducts(page)
     } catch (err) {
       const message =
@@ -392,6 +473,7 @@ const Products = () => {
     try {
       await deleteProduct(selectedProduct.id)
       setSelectedProduct(null)
+      invalidateFilteredProducts()
       fetchProducts(page)
     } catch (err) {
       const message =
@@ -399,11 +481,6 @@ const Products = () => {
       setError(message)
     }
   }
-
-  const pageItems = useMemo(() => {
-    if (!pagination) return []
-    return buildPageItems(pagination.current_page, pagination.last_page)
-  }, [pagination])
 
   const filteredProducts = useMemo(() => {
     const nameQuery = filters.name.trim().toLowerCase()
@@ -417,7 +494,9 @@ const Products = () => {
       ? new Date(`${filters.created_to}T23:59:59`)
       : null
 
-    return products.filter((product) => {
+    const searchableProducts = hasActiveFilters ? (allProducts ?? []) : products
+
+    return searchableProducts.filter((product) => {
       if (nameQuery && !product.name.toLowerCase().includes(nameQuery)) {
         return false
       }
@@ -441,12 +520,44 @@ const Products = () => {
 
       return true
     })
-  }, [filters, products])
+  }, [allProducts, filters, hasActiveFilters, products])
 
-  const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
-    if (key === 'status') return value !== 'all'
-    return value.trim().length > 0
-  })
+  const listPagination = useMemo<PaginationMeta | null>(() => {
+    if (!hasActiveFilters) return pagination
+
+    const total = filteredProducts.length
+    const lastPage = Math.max(1, Math.ceil(total / COMPACT_PAGE_SIZE))
+    const currentPage = Math.min(filterPage, lastPage)
+    const start = (currentPage - 1) * COMPACT_PAGE_SIZE
+    const to = Math.min(start + COMPACT_PAGE_SIZE, total)
+
+    return {
+      current_page: currentPage,
+      last_page: lastPage,
+      per_page: COMPACT_PAGE_SIZE,
+      total,
+      from: total === 0 ? null : start + 1,
+      to: total === 0 ? null : to,
+      prev_page_url: currentPage > 1 ? 'filtered-prev' : null,
+      next_page_url: currentPage < lastPage ? 'filtered-next' : null,
+    }
+  }, [filterPage, filteredProducts.length, hasActiveFilters, pagination])
+
+  const visibleProducts = useMemo(() => {
+    if (!hasActiveFilters) return products
+
+    const currentPage = listPagination?.current_page ?? 1
+    const start = (currentPage - 1) * COMPACT_PAGE_SIZE
+    return filteredProducts.slice(start, start + COMPACT_PAGE_SIZE)
+  }, [filteredProducts, hasActiveFilters, listPagination?.current_page, products])
+
+  const pageItems = useMemo(() => {
+    if (!listPagination) return []
+    return buildPageItems(
+      listPagination.current_page,
+      listPagination.last_page,
+    )
+  }, [listPagination])
 
   const handleClearFilters = () => {
     setFilters({
@@ -512,7 +623,10 @@ const Products = () => {
 
         <button
           type="button"
-          onClick={() => fetchProducts(page)}
+          onClick={() => {
+            invalidateFilteredProducts()
+            fetchProducts(page)
+          }}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
         >
           <RefreshCcw className="h-4 w-4" />
@@ -553,180 +667,14 @@ const Products = () => {
             { value: 'list', label: 'Lista' },
             { value: 'details', label: 'Detalhes', disabled: !selectedProduct },
             { value: 'create', label: 'Novo' },
-            { value: 'filters', label: 'Filtros' },
           ]}
           onChange={(next) => {
             setWorkspaceView(next)
             if (next === 'create') setIsCreateOpen(true)
-            if (next === 'filters') setIsFiltersOpen(true)
           }}
         />
         <div className="desktop-workspace-columns grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           <div className="desktop-workspace-stack space-y-6">
-            <section className={`desktop-workspace-panel ${workspaceView === 'filters' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsFiltersOpen((prev) => !prev)}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
-                >
-                  <Filter className="h-4 w-4 text-indigo-500" />
-                  Filtros
-                  {isFiltersOpen ? (
-                    <ChevronUp className="h-4 w-4 text-slate-500" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-slate-500" />
-                  )}
-                </button>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsFiltersOpen((prev) => !prev)}
-                    className="text-xs font-semibold text-indigo-600"
-                  >
-                    {isFiltersOpen ? 'Recolher' : 'Expandir'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleClearFilters}
-                    disabled={!hasActiveFilters}
-                    className="text-xs font-semibold text-indigo-600 disabled:text-slate-300"
-                  >
-                    Limpar filtros
-                  </button>
-                </div>
-              </div>
-
-              {isFiltersOpen ? (
-                <div className="mt-4 grid gap-4">
-                <label className="space-y-2 text-sm text-slate-600">
-                  <span>Nome do produto</span>
-                  <input
-                    value={filters.name}
-                    onChange={(event) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        name: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                    placeholder="Buscar pelo nome"
-                  />
-                </label>
-
-                <label className="space-y-2 text-sm text-slate-600">
-                  <span>Categoria</span>
-                  <select
-                    value={filters.category_id}
-                    onChange={(event) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        category_id: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                  >
-                    <option value="">Todas</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="space-y-2 text-sm text-slate-600">
-                    <span>Preço mínimo</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={filters.price_min}
-                      onChange={(event) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          price_min: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                      placeholder="0,00"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-600">
-                    <span>Preço máximo</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={filters.price_max}
-                      onChange={(event) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          price_max: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                      placeholder="9999,00"
-                    />
-                  </label>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="space-y-2 text-sm text-slate-600">
-                    <span>Criado a partir de</span>
-                    <input
-                      type="date"
-                      value={filters.created_from}
-                      onChange={(event) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          created_from: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                    />
-                  </label>
-                  <label className="space-y-2 text-sm text-slate-600">
-                    <span>Criado até</span>
-                    <input
-                      type="date"
-                      value={filters.created_to}
-                      onChange={(event) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          created_to: event.target.value,
-                        }))
-                      }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                    />
-                  </label>
-                </div>
-
-                <label className="space-y-2 text-sm text-slate-600">
-                  <span>Status</span>
-                  <select
-                    value={filters.status}
-                    onChange={(event) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        status: event.target.value,
-                      }))
-                    }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
-                  >
-                    <option value="all">Todos</option>
-                    <option value="active">Ativos</option>
-                    <option value="inactive">Inativos</option>
-                  </select>
-                </label>
-
-                <p className="text-xs text-slate-500">
-                  Exibindo {filteredProducts.length} de {products.length} itens na
-                  página atual.
-                </p>
-              </div>
-              ) : null}
-            </section>
-
             <section className={`desktop-workspace-panel ${workspaceView === 'create' ? 'is-active' : ''} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm`}>
               <button
                 type="button"
@@ -928,8 +876,176 @@ const Products = () => {
                 Lista de produtos
               </div>
 
+              <section className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    aria-expanded={isFiltersOpen}
+                    onClick={() => setIsFiltersOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"
+                  >
+                    <Filter className="h-4 w-4 text-indigo-500" />
+                    Filtros
+                    {isFiltersOpen ? (
+                      <ChevronUp className="h-4 w-4 text-slate-500" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-slate-500" />
+                    )}
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsFiltersOpen((prev) => !prev)}
+                      className="text-xs font-semibold text-indigo-600"
+                    >
+                      {isFiltersOpen ? 'Recolher' : 'Expandir'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearFilters}
+                      disabled={!hasActiveFilters}
+                      className="text-xs font-semibold text-indigo-600 disabled:text-slate-300"
+                    >
+                      Limpar filtros
+                    </button>
+                  </div>
+                </div>
+
+                {isFiltersOpen ? (
+                  <div className="mt-3 grid gap-3">
+                    <label className="space-y-2 text-sm text-slate-600">
+                      <span>Nome do produto</span>
+                      <input
+                        value={filters.name}
+                        onChange={(event) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            name: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        placeholder="Buscar pelo nome"
+                      />
+                    </label>
+
+                    <label className="space-y-2 text-sm text-slate-600">
+                      <span>Categoria</span>
+                      <select
+                        value={filters.category_id}
+                        onChange={(event) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            category_id: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      >
+                        <option value="">Todas</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-600">
+                        <span>Preço mínimo</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={filters.price_min}
+                          onChange={(event) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              price_min: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                          placeholder="0,00"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-600">
+                        <span>Preço máximo</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={filters.price_max}
+                          onChange={(event) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              price_max: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                          placeholder="9999,00"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="space-y-2 text-sm text-slate-600">
+                        <span>Criado a partir de</span>
+                        <input
+                          type="date"
+                          value={filters.created_from}
+                          onChange={(event) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              created_from: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm text-slate-600">
+                        <span>Criado até</span>
+                        <input
+                          type="date"
+                          value={filters.created_to}
+                          onChange={(event) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              created_to: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                        />
+                      </label>
+                    </div>
+
+                    <label className="space-y-2 text-sm text-slate-600">
+                      <span>Status</span>
+                      <select
+                        value={filters.status}
+                        onChange={(event) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            status: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none transition focus:border-indigo-300"
+                      >
+                        <option value="all">Todos</option>
+                        <option value="active">Ativos</option>
+                        <option value="inactive">Inativos</option>
+                      </select>
+                    </label>
+
+                    <p className="text-xs text-slate-500">
+                      {filterStatus === 'loading' && hasActiveFilters
+                        ? 'Pesquisando em todos os produtos...'
+                        : hasActiveFilters
+                          ? `${filteredProducts.length} produto(s) encontrado(s) em todo o catálogo.`
+                          : 'A pesquisa considera todos os produtos cadastrados.'}
+                    </p>
+                  </div>
+                ) : null}
+              </section>
+
               <div className="workspace-list-items space-y-3">
-                {filteredProducts.slice(0, 5).map((product) => {
+                {visibleProducts.map((product) => {
                   const isActive = selectedProduct?.id === product.id
                   return (
                     <button
@@ -972,39 +1088,54 @@ const Products = () => {
                 })}
               </div>
 
-              {products.length === 0 ? (
+              {hasActiveFilters && filterStatus === 'loading' ? (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+                  Pesquisando em toda a lista de produtos...
+                </div>
+              ) : hasActiveFilters && filterStatus === 'error' ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-center text-xs text-rose-600">
+                  <p>{filterError}</p>
+                  <button
+                    type="button"
+                    onClick={fetchAllProducts}
+                    className="mt-3 rounded-lg border border-rose-200 bg-white px-3 py-1.5 font-semibold text-rose-700"
+                  >
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : !hasActiveFilters && products.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
                   Nenhum produto cadastrado ainda. Você já pode criar o primeiro
                   produto acima.
                 </div>
-              ) : filteredProducts.length === 0 ? (
+              ) : hasActiveFilters && filteredProducts.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
                   Nenhum produto encontrado com os filtros aplicados.
                 </div>
               ) : null}
 
-              {pagination && filteredProducts.length > 0 ? (
+              {listPagination && visibleProducts.length > 0 ? (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-2">
                   <div className="text-xs text-slate-500">
                     Mostrando{' '}
                     <span className="font-semibold text-slate-700">
-                      {pagination.from ?? 0}
+                      {listPagination.from ?? 0}
                     </span>{' '}
                     –
                     <span className="font-semibold text-slate-700">
-                      {pagination.to ?? 0}
+                      {listPagination.to ?? 0}
                     </span>{' '}
                     de{' '}
                     <span className="font-semibold text-slate-700">
-                      {pagination.total}
+                      {listPagination.total}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      disabled={!pagination.prev_page_url}
-                      onClick={() => handleGoToPage(pagination.current_page - 1)}
+                      disabled={!listPagination.prev_page_url}
+                      onClick={() => handleGoToPage(listPagination.current_page - 1)}
                       className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -1026,7 +1157,7 @@ const Products = () => {
                             type="button"
                             onClick={() => handleGoToPage(item)}
                             className={`min-w-9 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                              item === pagination.current_page
+                              item === listPagination.current_page
                                 ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                             }`}
@@ -1039,8 +1170,8 @@ const Products = () => {
 
                     <button
                       type="button"
-                      disabled={!pagination.next_page_url}
-                      onClick={() => handleGoToPage(pagination.current_page + 1)}
+                      disabled={!listPagination.next_page_url}
+                      onClick={() => handleGoToPage(listPagination.current_page + 1)}
                       className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Próximo
@@ -1073,7 +1204,7 @@ const Products = () => {
                 tabs={[
                   { value: 'summary', label: 'Resumo' },
                   { value: 'edit', label: 'Editar' },
-                  { value: 'actions', label: 'Acoes' },
+                  { value: 'actions', label: 'Ações' },
                 ]}
               />
               <div className="mt-4 space-y-4">

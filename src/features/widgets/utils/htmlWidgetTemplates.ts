@@ -4,7 +4,7 @@ export const htmlWidgetTemplates = [
   {
     "id": "btn-cta-principal",
     "name": "Botao CTA Principal",
-    "description": "CTA principal com pulso e variacoes de cor",
+    "description": "CTA principal com pulso e variações de cor",
     "category": "botoes",
     "categoryLabel": "Botoes",
     "html": "<span class=\"label\">Variante Roxo (Padrão)</span>\n  <a href=\"#\" class=\"btn-cta pulse\">\n    <svg width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v8M8 12h8\"/></svg>\n    Quero Participar Agora!\n  </a>\n\n  <span class=\"label\">Variante Verde</span>\n  <a href=\"#\" class=\"btn-cta green pulse\">\n    <svg width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" viewBox=\"0 0 24 24\"><path d=\"M20 6L9 17l-5-5\"/></svg>\n    Garantir Meu Bilhete\n  </a>\n\n  <span class=\"label\">Variante Laranja</span>\n  <a href=\"#\" class=\"btn-cta orange\">\n    <svg width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" viewBox=\"0 0 24 24\"><polygon points=\"13 2 3 14 12 14 11 22 21 10 12 10 13 2\"/></svg>\n    Aproveitar Oferta Especial\n  </a>",

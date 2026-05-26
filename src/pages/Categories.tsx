@@ -684,7 +684,7 @@ const Categories = () => {
                   { value: 'summary', label: 'Resumo' },
                   { value: 'products', label: 'Produtos' },
                   { value: 'edit', label: 'Editar' },
-                  { value: 'actions', label: 'Acoes' },
+                  { value: 'actions', label: 'Ações' },
                 ]}
               />
               <div className="mt-3 space-y-3">

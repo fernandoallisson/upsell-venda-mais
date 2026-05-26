@@ -1660,7 +1660,7 @@ const Segmentation = () => {
                   { value: 'summary', label: 'Resumo' },
                   { value: 'members', label: 'Clientes e regras' },
                   { value: 'edit', label: 'Editar' },
-                  { value: 'actions', label: 'Acoes' },
+                  { value: 'actions', label: 'Ações' },
                 ]}
               />
               <div className="mt-4 space-y-4">

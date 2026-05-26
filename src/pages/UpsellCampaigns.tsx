@@ -792,7 +792,7 @@ const UpsellCampaigns = () => {
                   { value: 'products', label: 'Produtos' },
                   { value: 'segments', label: 'Segmentos' },
                   { value: 'offers', label: 'Ofertas' },
-                  { value: 'actions', label: 'Acoes' },
+                  { value: 'actions', label: 'Ações' },
                 ]}
               />
               <div className="mt-4 space-y-4">

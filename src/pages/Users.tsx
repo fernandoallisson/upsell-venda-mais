@@ -713,7 +713,7 @@ const Users = () => {
                   { value: 'summary', label: 'Resumo' },
                   { value: 'edit', label: 'Editar' },
                   { value: 'permissions', label: 'Permissoes' },
-                  { value: 'actions', label: 'Acoes' },
+                  { value: 'actions', label: 'Ações' },
                 ]}
               />
               <div className="mt-4 space-y-4">
