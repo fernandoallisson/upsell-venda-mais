@@ -84,7 +84,17 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasLoaded, setHasLoaded] = useState(false)
+  const [loadedPermissionsKey, setLoadedPermissionsKey] = useState<string | null>(
+    null,
+  )
   const [error, setError] = useState<string | null>(null)
+
+  const currentPermissionsKey = useMemo(() => {
+    if (!isAuthenticated) return 'anonymous'
+    if (!user?.id || !token) return null
+
+    return getPermissionsCacheKey(user.id, token)
+  }, [isAuthenticated, token, user?.id])
 
   const loadPermissions = useCallback(async (options?: { force?: boolean }) => {
     if (!isAuthenticated) {
@@ -92,12 +102,14 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       setError(null)
       setIsLoading(false)
       setHasLoaded(true)
+      setLoadedPermissionsKey('anonymous')
       return
     }
 
     if (isUserLoading) {
       setIsLoading(true)
       setHasLoaded(false)
+      setLoadedPermissionsKey(null)
       return
     }
 
@@ -106,10 +118,12 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       setError(userError)
       setIsLoading(false)
       setHasLoaded(true)
+      setLoadedPermissionsKey(null)
       return
     }
 
     setIsLoading(true)
+    setHasLoaded(false)
     setError(null)
 
     try {
@@ -122,8 +136,9 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
           ? readCachedPermissions(user.id, token)
           : null
 
-        if (cachedPermissions) {
+        if (cachedPermissions && token) {
           setPermissions(cachedPermissions)
+          setLoadedPermissionsKey(getPermissionsCacheKey(user.id, token))
           return
         }
       } else {
@@ -139,6 +154,7 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       setPermissions(normalizedPermissions)
       if (token) {
         writeCachedPermissions(user.id, token, normalizedPermissions)
+        setLoadedPermissionsKey(getPermissionsCacheKey(user.id, token))
       }
     } catch (err) {
       const message =
@@ -148,6 +164,7 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
 
       setPermissions([])
       setError(message)
+      setLoadedPermissionsKey(null)
     } finally {
       setIsLoading(false)
       setHasLoaded(true)
@@ -201,13 +218,22 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
     [categoriesSet, slugsSet],
   )
 
+  const hasLoadedCurrentPermissions =
+    hasLoaded &&
+    (Boolean(error) ||
+      (currentPermissionsKey !== null &&
+        loadedPermissionsKey === currentPermissionsKey))
+
+  const isLoadingCurrentPermissions =
+    isLoading || !hasLoadedCurrentPermissions
+
   const value = useMemo(
     () => ({
       permissions,
       categories,
       slugs,
-      isLoading,
-      hasLoaded,
+      isLoading: isLoadingCurrentPermissions,
+      hasLoaded: hasLoadedCurrentPermissions,
       error,
       hasPermission,
       hasModuleAccess,
@@ -218,8 +244,8 @@ export const PermissionsProvider = ({ children }: PropsWithChildren) => {
       permissions,
       categories,
       slugs,
-      isLoading,
-      hasLoaded,
+      isLoadingCurrentPermissions,
+      hasLoadedCurrentPermissions,
       error,
       hasPermission,
       hasModuleAccess,

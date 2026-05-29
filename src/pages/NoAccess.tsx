@@ -1,11 +1,39 @@
+import { Navigate } from 'react-router-dom'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth } from '../contexts/useAuth'
 import { usePermissions } from '../contexts/usePermissions'
 import { logout } from '../lib/services/auth/auth.service'
 
+const MODULE_DEFAULT_ROUTES: Array<{ category: string; path: string }> = [
+  { category: 'analytics', path: '/dashboard' },
+  { category: 'categories', path: '/catalogo/categorias' },
+  { category: 'products', path: '/catalogo/produtos' },
+  { category: 'customers', path: '/clientes' },
+  { category: 'orders', path: '/pedidos' },
+  { category: 'segments', path: '/segmentacao' },
+  { category: 'upsell', path: '/upsell/campanhas' },
+  { category: 'offers', path: '/upsell/ofertas' },
+  { category: 'users', path: '/usuarios' },
+  { category: 'settings', path: '/widget' },
+]
+
 const NoAccess = () => {
   const { signOut } = useAuth()
-  const { error, isLoading, refreshPermissions } = usePermissions()
+  const {
+    error,
+    hasAnyModuleAccess,
+    hasModuleAccess,
+    isLoading,
+    refreshPermissions,
+  } = usePermissions()
+
+  if (hasAnyModuleAccess) {
+    const firstAvailablePath =
+      MODULE_DEFAULT_ROUTES.find((module) => hasModuleAccess(module.category))
+        ?.path ?? '/dashboard'
+
+    return <Navigate to={firstAvailablePath} replace />
+  }
 
   const handleLogout = async () => {
     try {
