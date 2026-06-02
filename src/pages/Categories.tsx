@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
-  Package,
   Pencil,
   PlusCircle,
   RefreshCcw,
@@ -203,7 +202,6 @@ const Categories = () => {
     })
 
     setIsEditOpen(false)
-    setIsProductsOpen(false)
     setCategoryProducts([])
     setCategoryProductsPage(1)
     setCategoryProductsStatus('idle')
@@ -281,15 +279,22 @@ const Categories = () => {
 
   const handleOpenCategoryProducts = () => {
     if (!selectedCategory) return
-    setIsProductsOpen(true)
-
-    if (
-      categoryProductsCategoryId !== selectedCategory.id ||
-      categoryProducts.length === 0
-    ) {
-      fetchCategoryProducts(selectedCategory.id)
-    }
+    fetchCategoryProducts(selectedCategory.id)
   }
+
+  useEffect(() => {
+    if (!selectedCategory || detailView !== 'products') return
+    if (categoryProductsStatus === 'loading') return
+    if (categoryProductsCategoryId === selectedCategory.id) return
+
+    fetchCategoryProducts(selectedCategory.id)
+  }, [
+    categoryProductsCategoryId,
+    categoryProductsStatus,
+    detailView,
+    fetchCategoryProducts,
+    selectedCategory,
+  ])
 
   const handleCreateCategory = async () => {
     setCreateStatus('loading')
@@ -736,18 +741,162 @@ const Categories = () => {
                         Produtos da categoria
                       </p>
                       <p className="text-xs text-slate-500">
-                        Veja todos os itens vinculados a esta categoria.
+                        {categoryProductsCategoryId === selectedCategory.id
+                          ? `${categoryProducts.length} itens encontrados`
+                          : 'Veja todos os itens vinculados a esta categoria.'}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleOpenCategoryProducts}
-                      className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700 transition hover:border-indigo-300"
-                    >
-                      <Package className="h-4 w-4" />
-                      Ver produtos
-                    </button>
                   </div>
+
+                  <div className="mt-3 space-y-3">
+                    {categoryProductsStatus === 'loading' ? (
+                      <div className="space-y-2">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <div
+                            key={`loading-${index}`}
+                            className="h-20 animate-pulse rounded-2xl border border-slate-200 bg-white"
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {categoryProductsStatus === 'error' ? (
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                        <p className="font-semibold">Erro ao carregar produtos.</p>
+                        <p className="text-xs text-rose-600">
+                          {categoryProductsError}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleOpenCategoryProducts}
+                          className="mt-3 inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700"
+                        >
+                          <RefreshCcw className="h-4 w-4" />
+                          Tentar novamente
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {categoryProductsStatus === 'idle' &&
+                    categoryProductsCategoryId === selectedCategory.id &&
+                    categoryProducts.length === 0 ? (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                        Nenhum produto encontrado para esta categoria.
+                      </div>
+                    ) : null}
+
+                    {categoryProductsStatus === 'idle' &&
+                    categoryProducts.length > 0 ? (
+                      <div className="space-y-2">
+                        {visibleCategoryProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                SKU {product.sku} ·{' '}
+                                {formatCurrency(product.price, 'BRL')}
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                product.is_active
+                                  ? 'bg-emerald-50 text-emerald-600'
+                                  : 'bg-slate-100 text-slate-500'
+                              }`}
+                            >
+                              {product.is_active ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {categoryProductsStatus === 'idle' &&
+                  categoryProducts.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-xs text-slate-500">
+                        Mostrando{' '}
+                        <span className="font-semibold text-slate-700">
+                          {(categoryProductsPage - 1) * categoryProductsPerPage + 1}
+                        </span>{' '}
+                        –
+                        <span className="font-semibold text-slate-700">
+                          {Math.min(
+                            categoryProductsPage * categoryProductsPerPage,
+                            categoryProducts.length,
+                          )}
+                        </span>{' '}
+                        de{' '}
+                        <span className="font-semibold text-slate-700">
+                          {categoryProducts.length}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={categoryProductsPage === 1}
+                          onClick={() =>
+                            setCategoryProductsPage((prev) =>
+                              Math.max(1, prev - 1),
+                            )
+                          }
+                          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Anterior
+                        </button>
+
+                        <div className="mx-1 flex items-center gap-1">
+                          {categoryProductsPageItems.map((item, idx) =>
+                            item === '...' ? (
+                              <span
+                                key={`dots-${idx}`}
+                                className="px-2 text-xs text-slate-400"
+                              >
+                                …
+                              </span>
+                            ) : (
+                              <button
+                                key={item}
+                                type="button"
+                                onClick={() => setCategoryProductsPage(item)}
+                                className={`min-w-9 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                                  item === categoryProductsPage
+                                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                }`}
+                              >
+                                {item}
+                              </button>
+                            ),
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={
+                            categoryProductsPage === categoryProductsLastPage
+                          }
+                          onClick={() =>
+                            setCategoryProductsPage((prev) =>
+                              Math.min(categoryProductsLastPage, prev + 1),
+                            )
+                          }
+                          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Próximo
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className={`desktop-workspace-panel ${detailView === 'edit' ? 'is-active' : ''} rounded-xl border border-slate-200 p-3`}>
